@@ -17,7 +17,7 @@ export default defineConfig({
     proxy: {
       // Proxy API requests to backend
       "/api": {
-        target: "https://bluc-ysbf.onrender.com",
+        target: "https://crewseed.onrender.com",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
