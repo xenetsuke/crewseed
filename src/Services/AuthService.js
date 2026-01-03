@@ -6,7 +6,8 @@ import axiosInstance from "../Interceptor/AxiosInterceptor";
  */
 export const loginWithEmail = async (loginData) => {
   try {
-    return await axiosInstance.post("/auth/login", loginData);
+    const response = await axiosInstance.post("/auth/login", loginData);
+    return response.data; // ✅ RETURN ONLY DATA
   } catch (error) {
     console.error("❌ Login failed:", error);
     throw error;
