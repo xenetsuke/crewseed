@@ -17,7 +17,7 @@ export default defineConfig({
     proxy: {
       // Proxy API requests to backend
       "/api": {
-        target: "https://crewseed.onrender.com",
+        target: "https://crewb-1.onrender.com",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
