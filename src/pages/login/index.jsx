@@ -61,7 +61,8 @@ const Login = () => {
       setLoading(true);
 
       // Call login service for authentication
-      const res = await loginWithEmail(formData);
+const res = await loginWithEmail(formData);
+const token = res?.jwt;
       
       // ✅ Access JWT safely
       const token = res?.data?.jwt;
