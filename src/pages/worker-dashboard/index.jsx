@@ -73,8 +73,8 @@ const WorkerDashboard = () => {
   };
 
   useEffect(() => {
-    if (profile && profile.availabilityStatus !== undefined) {
-      setIsAvailable(profile.availabilityStatus);
+    if (profile && profile.Workeravailability !== undefined) {
+      setIsAvailable(profile.Workeravailability);
     }
   }, [profile]);
 
@@ -82,7 +82,7 @@ const WorkerDashboard = () => {
     const newStatus = !isAvailable;
     setIsAvailable(newStatus);
     try {
-      const updatedProfile = { ...profile, id: user.id, availabilityStatus: newStatus };
+      const updatedProfile = { ...profile, id: user.id, Workeravailability: newStatus };
       const savedProfile = await updateProfile(updatedProfile);
       dispatch(setProfile(savedProfile));
     } catch (err) {
