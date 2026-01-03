@@ -5,7 +5,7 @@ import { removeJwt } from "../features/JwtSlice";
 // 🔹 Create Axios instance
 const axiosInstance = axios.create({
   // Use the Vite proxy path
-  baseURL: "https://crewb-1.onrender.com/",
+  baseURL: "https://crewb-2.onrender.com",
 });
 
 // 🔹 REQUEST INTERCEPTOR (Attach JWT)
