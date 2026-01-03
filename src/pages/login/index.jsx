@@ -61,9 +61,10 @@ const Login = () => {
       setLoading(true);
 
       // Call login service for authentication
-const res = await loginWithEmail(formData);
-const token = res?.data?.jwt;
-
+      const res = await loginWithEmail(formData);
+      
+      // ✅ Access JWT safely
+      const token = res?.data?.jwt;
       if (!token) {
         throw new Error("Login failed: JWT not returned from backend");
       }
