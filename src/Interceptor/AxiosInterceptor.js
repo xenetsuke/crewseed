@@ -2,54 +2,70 @@ import axios from "axios";
 import { removeUser } from "../features/UserSlice";
 import { removeJwt } from "../features/JwtSlice";
 
-// 🔹 Create Axios instance pointing directly to Render backend
+/* =========================
+   AXIOS INSTANCE
+========================= */
 const axiosInstance = axios.create({
+  // 🔹 Your deployed backend base URL
   baseURL: "https://bluc-ysbf.onrender.com",
 });
 
-// 🔹 REQUEST INTERCEPTOR (Attach JWT)
+/* =========================
+   REQUEST INTERCEPTOR
+   - Removes /api if present
+   - Attaches JWT
+========================= */
 axiosInstance.interceptors.request.use(
   (config) => {
+    /* 🔹 STRIP /api PREFIX (Vite replacement logic) */
+    if (config.url && config.url.startsWith("/api")) {
+      console.log("🔁 Stripping /api from URL:", config.url);
+      config.url = config.url.replace("/api", "");
+    }
+
+    /* 🔹 ATTACH JWT TOKEN */
     let token = localStorage.getItem("token");
 
-    // Fix: Remove JSON quotes if present (common when using useLocalStorage hooks)
     try {
-      if (token && (token.startsWith('"') || token.startsWith('{'))) {
-        token = JSON.parse(token);
-      }
-    } catch (e) {
-      // Token is a plain string, continue
+      token = JSON.parse(token);
+    } catch {
+      // token is plain string
     }
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log("🔐 JWT attached");
     }
+
+    console.log("🚀 Final API Request:", {
+      method: config.method?.toUpperCase(),
+      url: config.baseURL + config.url,
+    });
+
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// 🔹 RESPONSE INTERCEPTOR (Handle 401 Unauthorized)
-// This function is called in your main App.js or main.js to give axios access to navigate/dispatch
+/* =========================
+   RESPONSE INTERCEPTOR
+   - Handle 401 Unauthorized
+========================= */
 export const setupResponseInterceptor = (navigate, dispatch) => {
   axiosInstance.interceptors.response.use(
-    (response) => {
-      return response;
-    },
+    (response) => response,
     (error) => {
-      if (error.response?.status === 401) {
-        console.warn("🔐 Session expired or Unauthorized. Clearing storage...");
-        
-        // Clear Redux State
+      if (error?.response?.status === 401) {
+        console.warn("🔐 Unauthorized - Session expired");
+
+        // Clear Redux
         dispatch(removeUser());
         dispatch(removeJwt());
-        
-        // Clear Local Storage
+
+        // Clear Storage
         localStorage.removeItem("token");
 
-        // Redirect to login
+        // Redirect
         navigate("/login");
       }
       return Promise.reject(error);
