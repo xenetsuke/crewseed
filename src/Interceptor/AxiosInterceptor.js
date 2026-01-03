@@ -6,7 +6,7 @@ import { removeJwt } from "../features/JwtSlice";
 const axiosInstance = axios.create({
   // Use the Vite proxy path
   // baseURL: "/api",
-  baseURL: import.meta.env.VITE_API_URL || "https://bluc-ysbf.onrender.com",
+  baseURL: "https://bluc-ysbf.onrender.com",
 });
 
 // 🔹 REQUEST INTERCEPTOR (Attach JWT)
