@@ -116,7 +116,7 @@ const handleSubmit = async (e) => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
               label="Company Name"
-              placeholder="Enter company name"
+              placeholder="Account Holder Name"
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
               error={errors.name}
