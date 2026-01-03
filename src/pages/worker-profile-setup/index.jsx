@@ -22,7 +22,8 @@ const WorkerProfileSetup = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const user = useSelector((state) => state.user || {});
+  // Access user and profile from Redux
+  const user = useSelector((state) => state.user.user || state.user || {});
   const profile = useSelector((state) => state.profile || {});
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -32,12 +33,12 @@ const WorkerProfileSetup = () => {
     name: "",
     age: "",
     gender: "",
-    state: "", // ✨ Added state
+    state: "", 
     city: "",
     address: "",
 
     jobRole: "",
-    otherJobRole: "", // ✨ Added other job role
+    otherJobRole: "", 
     experienceLevel: 0,
     skills: [],
 
@@ -56,19 +57,21 @@ const WorkerProfileSetup = () => {
       try {
         if (!user?.id) return;
         const backendProfile = await getProfile(user.id);
-        dispatch(setProfile(backendProfile));
+        if (backendProfile) {
+          dispatch(setProfile(backendProfile));
 
-        setFormData((prev) => ({
-          ...prev,
-          name: backendProfile.fullName || "",
-          age: backendProfile.age || "",
-          gender: backendProfile.gender || "",
-          state: backendProfile.state || "", // ✨ Prefill state
-          city: backendProfile.currentCity || "",
-          address: backendProfile.currentAddress || "",
-          skills: backendProfile.skills || [],
-          jobRole: backendProfile.primaryJobRole || "",
-        }));
+          setFormData((prev) => ({
+            ...prev,
+            name: backendProfile.fullName || "",
+            age: backendProfile.age || "",
+            gender: backendProfile.gender || "",
+            state: backendProfile.state || "", 
+            city: backendProfile.currentCity || "",
+            address: backendProfile.currentAddress || "",
+            skills: backendProfile.skills || [],
+            jobRole: backendProfile.primaryJobRole || "",
+          }));
+        }
       } catch (error) {
         console.error("❌ Error loading profile:", error);
       }
@@ -77,65 +80,19 @@ const WorkerProfileSetup = () => {
   }, [user, dispatch]);
 
   const indianStates = [
-    "Andaman and Nicobar Islands",
-    "Andhra Pradesh",
-    "Arunachal Pradesh",
-    "Assam",
-    "Bihar",
-    "Chandigarh",
-    "Chhattisgarh",
-    "Dadra and Nagar Haveli and Daman and Diu",
-    "Delhi",
-    "Goa",
-    "Gujarat",
-    "Haryana",
-    "Himachal Pradesh",
-    "Jammu and Kashmir",
-    "Jharkhand",
-    "Karnataka",
-    "Kerala",
-    "Ladakh",
-    "Lakshadweep",
-    "Madhya Pradesh",
-    "Maharashtra",
-    "Manipur",
-    "Meghalaya",
-    "Mizoram",
-    "Nagaland",
-    "Odisha",
-    "Puducherry",
-    "Punjab",
-    "Rajasthan",
-    "Sikkim",
-    "Tamil Nadu",
-    "Telangana",
-    "Tripura",
-    "Uttar Pradesh",
-    "Uttarakhand",
-    "West Bengal",
+    "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
+    "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi",
+    "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand",
+    "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra",
+    "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab",
+    "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh",
+    "Uttarakhand", "West Bengal",
   ];
 
   const indianCities = [
-    "Mumbai",
-    "Delhi",
-    "Bangalore",
-    "Hyderabad",
-    "Chennai",
-    "Kolkata",
-    "Pune",
-    "Ahmedabad",
-    "Jaipur",
-    "Surat",
-    "Lucknow",
-    "Kanpur",
-    "Nagpur",
-    "Indore",
-    "Bhopal",
-    "Visakhapatnam",
-    "Patna",
-    "Vadodara",
-    "Ghaziabad",
-    "Ludhiana",
+    "Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", "Kolkata", "Pune",
+    "Ahmedabad", "Jaipur", "Surat", "Lucknow", "Kanpur", "Nagpur", "Indore",
+    "Bhopal", "Visakhapatnam", "Patna", "Vadodara", "Ghaziabad", "Ludhiana",
   ];
 
   const jobRoles = [
@@ -151,22 +108,13 @@ const WorkerProfileSetup = () => {
     { id: "carpenter", name: "Carpenter", icon: "🔨" },
     { id: "painter", name: "Painter", icon: "🎨" },
     { id: "cook", name: "Cook/Chef", icon: "👨‍🍳" },
-    { id: "other", name: "Other", icon: "📝" }, // ✨ Added Other option
+    { id: "other", name: "Other", icon: "📝" },
   ];
 
   const skillsOptions = [
-    "Heavy Lifting",
-    "Machine Operation",
-    "Quality Control",
-    "Teamwork",
-    "Time Management",
-    "Safety Compliance",
-    "Basic Computer",
-    "Driving License",
-    "First Aid",
-    "Tool Handling",
-    "Customer Service",
-    "Hindi/English",
+    "Heavy Lifting", "Machine Operation", "Quality Control", "Teamwork",
+    "Time Management", "Safety Compliance", "Basic Computer", "Driving License",
+    "First Aid", "Tool Handling", "Customer Service", "Hindi/English",
   ];
 
   const handleInputChange = (field, value) => {
@@ -185,17 +133,19 @@ const WorkerProfileSetup = () => {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      if (!user?.id) return;
+      if (!user?.id) {
+        alert("User ID not found. Please log in again.");
+        return;
+      }
 
       const updatedProfile = {
         id: user.id,
         fullName: formData.name,
         age: formData.age ? Number(formData.age) : null,
         gender: formData.gender || null,
-        state: formData.state || "", // ✨ state to backend
+        state: formData.state || "",
         currentCity: formData.city || "",
         currentAddress: formData.address || "",
-        // ✨ Logic: If 'other' is selected, use the custom text field
         primaryJobRole:
           formData.jobRole === "other"
             ? formData.otherJobRole
@@ -205,10 +155,15 @@ const WorkerProfileSetup = () => {
       };
 
       const savedProfile = await updateProfile(updatedProfile);
+      
+      // Update local Redux state with saved data
       dispatch(setProfile(savedProfile));
+      
+      // ✅ Navigate to the profile page on success
       navigate("/worker-profile");
     } catch (err) {
       console.error("❌ Failed to save profile:", err);
+      alert("Error saving profile. Please check your connection.");
     } finally {
       setLoading(false);
     }
@@ -223,9 +178,7 @@ const WorkerProfileSetup = () => {
           <User className="w-6 h-6 text-blue-600" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Personal Details
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Personal Details</h2>
           <p className="text-sm text-gray-500">Tell us about yourself</p>
         </div>
       </div>
@@ -249,9 +202,7 @@ const WorkerProfileSetup = () => {
         />
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Gender *
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
           <div className="grid grid-cols-3 gap-3">
             {["Male", "Female", "Other"]?.map((gender) => (
               <button
@@ -270,11 +221,8 @@ const WorkerProfileSetup = () => {
           </div>
         </div>
 
-        {/* ✨ NEW STATE DROPDOWN */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            State *
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">State *</label>
           <select
             value={formData?.state}
             onChange={(e) => handleInputChange("state", e?.target?.value)}
@@ -282,17 +230,13 @@ const WorkerProfileSetup = () => {
           >
             <option value="">Select your state</option>
             {indianStates?.map((state) => (
-              <option key={state} value={state}>
-                {state}
-              </option>
+              <option key={state} value={state}>{state}</option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            City *
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
           <select
             value={formData?.city}
             onChange={(e) => handleInputChange("city", e?.target?.value)}
@@ -300,17 +244,13 @@ const WorkerProfileSetup = () => {
           >
             <option value="">Select your city</option>
             {indianCities?.map((city) => (
-              <option key={city} value={city}>
-                {city}
-              </option>
+              <option key={city} value={city}>{city}</option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Address
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
           <textarea
             value={formData?.address}
             onChange={(e) => handleInputChange("address", e?.target?.value)}
@@ -330,18 +270,14 @@ const WorkerProfileSetup = () => {
           <Briefcase className="w-6 h-6 text-green-600" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Professional Info
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Professional Info</h2>
           <p className="text-sm text-gray-500">What kind of work do you do?</p>
         </div>
       </div>
 
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Job Role *
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-3">Job Role *</label>
           <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto mb-4">
             {jobRoles?.map((role) => (
               <button
@@ -355,22 +291,17 @@ const WorkerProfileSetup = () => {
                 }`}
               >
                 <span className="text-2xl">{role?.icon}</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {role?.name}
-                </span>
+                <span className="text-sm font-medium text-gray-900">{role?.name}</span>
               </button>
             ))}
           </div>
 
-          {/* ✨ NEW OTHER JOB ROLE INPUT */}
           {formData.jobRole === "other" && (
             <Input
               label="Specify Job Role"
               placeholder="e.g. Tailor, Mechanic, etc."
               value={formData.otherJobRole}
-              onChange={(e) =>
-                handleInputChange("otherJobRole", e.target.value)
-              }
+              onChange={(e) => handleInputChange("otherJobRole", e.target.value)}
               required
             />
           )}
@@ -378,27 +309,20 @@ const WorkerProfileSetup = () => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            Experience Level:{" "}
-            <span className="font-semibold text-green-600">
-              {formData?.experienceLevel} years
-            </span>
+            Experience Level: <span className="font-semibold text-green-600">{formData?.experienceLevel} years</span>
           </label>
           <input
             type="range"
             min="0"
             max="20"
             value={formData?.experienceLevel}
-            onChange={(e) =>
-              handleInputChange("experienceLevel", parseInt(e?.target?.value))
-            }
+            onChange={(e) => handleInputChange("experienceLevel", parseInt(e?.target?.value))}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Skills (Select multiple)
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-3">Skills (Select multiple)</label>
           <div className="flex flex-wrap gap-2">
             {skillsOptions?.map((skill) => (
               <button
@@ -412,9 +336,7 @@ const WorkerProfileSetup = () => {
                 }`}
               >
                 {skill}
-                {formData?.skills?.includes(skill) && (
-                  <CheckCircle2 className="inline ml-1 w-4 h-4" />
-                )}
+                {formData?.skills?.includes(skill) && <CheckCircle2 className="inline ml-1 w-4 h-4" />}
               </button>
             ))}
           </div>
@@ -426,9 +348,11 @@ const WorkerProfileSetup = () => {
   const renderStep3 = () => (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-gray-500">
-          Upload Preferences & document Later.
-        </p>
+        <p className="text-sm text-gray-500">Upload Preferences & document Later.</p>
+        <div className="p-8 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400">
+           <Upload className="w-12 h-12 mb-2" />
+           <p className="text-sm">Documents will be collected in the next phase.</p>
+        </div>
       </div>
     </div>
   );
@@ -438,10 +362,7 @@ const WorkerProfileSetup = () => {
       <div className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-lg font-semibold text-gray-900">
-              Profile Setup
-            </h1>
-            {/* ✨ SETUP LATER BUTTON */}
+            <h1 className="text-lg font-semibold text-gray-900">Profile Setup</h1>
             <button
               onClick={() => navigate("/worker-profile")}
               className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
@@ -450,9 +371,7 @@ const WorkerProfileSetup = () => {
             </button>
           </div>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-gray-500">
-              Step {currentStep} of 3
-            </span>
+            <span className="text-xs text-gray-500">Step {currentStep} of 3</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
