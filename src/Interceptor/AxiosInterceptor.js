@@ -7,7 +7,7 @@ import { removeJwt } from "../features/JwtSlice";
 ========================= */
 const axiosInstance = axios.create({
   // 🔹 Your deployed backend base URL
-  baseURL: "https://bluc-ysbf.onrender.com",
+  baseURL: "http://localhost:8080",
 });
 
 /* =========================
