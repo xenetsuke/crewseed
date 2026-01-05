@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Users, Bookmark, Loader2, Search, Filter } from "lucide-react"; // ✅ Modern Icons
+import { Users, Bookmark, Loader2, Search, Filter } from "lucide-react"; 
 
 import EmployerSidebar from "../../components/navigation/EmployerSidebar";
 import DashboardMetrics from "../../components/ui/DashboardMetrics";
@@ -31,6 +31,9 @@ const FindWorkers = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
 
+  /* =========================================================
+      FETCH CURRENT USER (EMPLOYER) PROFILE
+  ========================================================= */
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -43,32 +46,37 @@ const FindWorkers = () => {
       }
     };
     if (user?.id && !profile?.id) fetchProfile();
-  }, [profile, user, dispatch]);
+  }, [profile?.id, user?.id, dispatch]);
 
+  /* =========================================================
+      FETCH ALL WORKER PROFILES 
+      (Fixed: Dependency changed to prevent page rolling on save)
+  ========================================================= */
   useEffect(() => {
     const fetchWorkers = async () => {
       try {
         setLoading(true);
         const res = await getAllProfiles();
         const applicants = (res || [])
-          .filter((p) => p.accountType === "APPLICANT")
-          .map((w) => ({
-            ...w,
-            isSaved: profile?.savedWorkers?.includes(w.id),
-          }));
+          .filter((p) => p.accountType === "APPLICANT");
 
         setWorkers(applicants);
         setFilteredWorkers(applicants);
       } catch (err) {
         console.error("❌ Failed to load workers", err);
       } finally {
-        // Artificial delay for smooth transition
         setTimeout(() => setLoading(false), 600);
       }
     };
-    fetchWorkers();
-  }, [profile]);
+    
+    if (user?.id) {
+      fetchWorkers();
+    }
+  }, [user?.id]); // Removed 'profile' to prevent re-fetching/rolling when saving
 
+  /* =========================================================
+      SEARCH LOGIC
+  ========================================================= */
   useEffect(() => {
     const q = searchQuery.toLowerCase();
     setFilteredWorkers(
@@ -79,6 +87,31 @@ const FindWorkers = () => {
       )
     );
   }, [searchQuery, workers]);
+
+  /* =========================================================
+      SAVE / BOOKMARK WORKER LOGIC
+  ========================================================= */
+  const handleBookmarkWorker = async (workerId) => {
+    if (!profile?.id) return;
+    try {
+      let savedWorkers = profile.savedWorkers ? [...profile.savedWorkers] : [];
+      
+      // Toggle logic: remove if exists, add if not
+      savedWorkers = savedWorkers.includes(workerId)
+        ? savedWorkers.filter((id) => id !== workerId)
+        : [...savedWorkers, workerId];
+
+      const updatedProfile = { ...profile, savedWorkers };
+      
+      // Update Redux state immediately (Optimistic UI)
+      dispatch(changeProfile(updatedProfile));
+
+      // Update backend in background
+      await updateProfile(updatedProfile);
+    } catch (err) {
+      console.error("❌ Failed to save worker", err);
+    }
+  };
 
   const handleViewProfile = async (worker) => {
     try {
@@ -118,7 +151,6 @@ const FindWorkers = () => {
       <main className={`main-content transition-all duration-300 ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
         <div className="max-w-7xl mx-auto px-6 py-8">
           
-          {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
               <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Find Talent</h1>
@@ -127,7 +159,6 @@ const FindWorkers = () => {
           </div>
 
           {loading ? (
-            /* ✨ Modern Loading State */
             <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
               <div className="relative flex items-center justify-center">
                 <Loader2 className="w-12 h-12 text-primary animate-spin" />
@@ -175,21 +206,7 @@ const FindWorkers = () => {
                         ...worker,
                         isSaved: profile?.savedWorkers?.includes(worker.id),
                       }}
-                      onBookmark={async (workerId) => {
-                        if (!profile?.id) return;
-                        try {
-                          let savedWorkers = profile.savedWorkers ? [...profile.savedWorkers] : [];
-                          savedWorkers = savedWorkers.includes(workerId)
-                            ? savedWorkers.filter((id) => id !== workerId)
-                            : [...savedWorkers, workerId];
-
-                          const updatedProfile = { ...profile, savedWorkers };
-                          await updateProfile(updatedProfile);
-                          dispatch(changeProfile(updatedProfile));
-                        } catch (err) {
-                          console.error("❌ Failed to save worker", err);
-                        }
-                      }}
+                      onBookmark={handleBookmarkWorker}
                       onViewProfile={handleViewProfile}
                       onCompare={(w) =>
                         setCompareList((prev) =>
