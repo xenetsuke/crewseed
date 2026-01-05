@@ -33,7 +33,7 @@ const RequirementHeader = ({ requirement, onEdit, onRenew, onClose }) => {
   const getStatusColor = (status) => {
     const s = status.toUpperCase();
     if (s === "ACTIVE" || s === "OPEN") return "badge-success text-white bg-green-600";
-    if (s === "CLOSED" || s === "FILLED") return "badge-error text-white bg-red-600";
+    if (s === "CLOSED" || s === "FILLED" || s === "EXPIRED") return "badge-error text-white bg-red-600";
     return "badge-warning text-black bg-yellow-400";
   };
 
@@ -96,13 +96,13 @@ const RequirementHeader = ({ requirement, onEdit, onRenew, onClose }) => {
           <Button
             variant="outline"
             size="sm"
-            iconName="Edit"
+            iconName="RefreshCcw"
             iconPosition="left"
             onClick={onEdit}
           >
-            Edit
+            Edit/Renew
           </Button>
-          <Button
+          {/* <Button
             variant="outline"
             size="sm"
             iconName="RefreshCcw"
@@ -110,7 +110,7 @@ const RequirementHeader = ({ requirement, onEdit, onRenew, onClose }) => {
             onClick={onRenew}
           >
             Renew
-          </Button>
+          </Button> */}
           {(rawStatus === "ACTIVE" || rawStatus === "OPEN") && (
             <Button
               variant="destructive"
