@@ -239,7 +239,20 @@ const RequirementDetailsPage = () => {
     setShowProfileModal(true);
   };
 
-  
+  const handleCloseJob = async () => {
+    if (!window.confirm("Are you sure you want to close this job? It will be marked as EXPIRED and hidden from applicants.")) return;
+    try {
+      setLoading(true);
+      await updateJobStatus(id, "EXPIRED");
+      setJob(prev => ({ ...prev, jobStatus: "EXPIRED" }));
+      toast.success("Job closed successfully");
+    } catch (err) {
+      console.error("❌ Close job failed:", err);
+      toast.error("Failed to close job");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // UI
   if (!id) return <div className="p-10 text-center text-error font-bold">Invalid Job ID</div>;
@@ -268,7 +281,7 @@ const RequirementDetailsPage = () => {
                 requirement={requirement}
                 onEdit={() => navigate(`/post-job-requirement/${id}`)}
                 onRenew={() => toast.info("Renewal feature coming soon")}
-                onClose={() => toast.info("Closing feature coming soon")}
+                onClose={handleCloseJob}
               />
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -307,6 +320,7 @@ const RequirementDetailsPage = () => {
                         "Increase compensation to attract skilled workers",
                         "Add clearer skill requirements",
                         "Extend posting duration",
+                        "High demand for this role in your area",
                       ],
                     }}
                   />
