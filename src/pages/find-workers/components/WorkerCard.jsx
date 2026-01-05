@@ -10,9 +10,9 @@ const WorkerCard = ({ worker, onBookmark, onViewProfile }) => {
   
 
   const availabilityData = Array.isArray(worker?.Workeravailability)
-  ? worker.availability
-  : typeof worker?.availability === "boolean"
-    ? [worker.availability ? "Available" : "Unavailable"]
+  ? worker.Workeravailability
+  : typeof worker?.Workeravailability === "boolean"
+    ? [worker.Workeravailability ? "Available" : "Unavailable"]
     : ["Unavailable"];
 
 
