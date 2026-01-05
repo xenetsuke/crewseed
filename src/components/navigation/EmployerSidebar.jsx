@@ -45,6 +45,7 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
     { label: 'Post Job', path: '/post-job-requirement/0', icon: 'PlusCircle' },
     { label: 'My Requirements', path: '/employer-requirements', icon: 'ClipboardList', badge: 5 },
     { label: 'Find Workers', path: '/find-workers', icon: 'Users' },
+    { label: 'HR Tool', path: '/hr-tool', icon: 'Wrench' },
     { label: 'My Profile', path: '/employer-profile', icon: 'UserCircle' },
   ];
 
