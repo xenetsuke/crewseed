@@ -92,7 +92,7 @@ const FindWorkers = () => {
           skills: prof.skills || [],
           certifications: prof.certifications || [],
           recentAssignments: prof.recentAssignments || [],
-          Workeravailability: prof.Workeravailability ?? ["Available"],
+          Workeravailability: prof.availability ?? ["Available"],
           about: prof.about || prof.bio || "",
           primaryJobRole: prof.primaryJobRole || worker.primaryJobRole,
           totalExperience: prof.totalExperience || worker.totalExperience || 0,
