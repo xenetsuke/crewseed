@@ -8,9 +8,16 @@ const WorkerCard = ({ worker, onBookmark, onViewProfile }) => {
   // ✅ Updated: Now uses isSaved passed from parent logic instead of applicationStatus
   const isBookmarked = worker?.isSaved;
 
-  const availabilityData = Array.isArray(worker?.availability) 
-    ? worker.availability 
-    : (worker?.availability ? [worker.availability] : ["Available"]);
+  const availabilityData = Array.isArray(worker?.availability)
+  ? worker.availability
+  : worker?.availability === "Unavailable"
+    ? ["Unavailable"]
+    : worker?.availability
+      ? [worker.availability]
+      : ["Available"];
+
+
+
 
     
   const getAvailabilityColor = (status) => {
