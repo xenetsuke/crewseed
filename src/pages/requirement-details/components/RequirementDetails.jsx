@@ -49,7 +49,7 @@ const RequirementDetails = ({ requirement }) => {
         )}
 
         {/* SKILLS - Styled as Tags */}
-        <div>
+        {/* <div>
           <h3 className="text-sm uppercase tracking-wider font-bold text-slate-400 mb-3">Required Skills</h3>
           <div className="flex flex-wrap gap-2">
             {requirement?.skills?.length > 0 ? (
@@ -65,7 +65,7 @@ const RequirementDetails = ({ requirement }) => {
               <span className="text-slate-400 text-sm italic">No specific skills listed</span>
             )}
           </div>
-        </div>
+        </div> */}
 
         {/* DOCUMENT REQUIREMENTS */}
         {requirement?.requirements?.length > 0 && (

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
@@ -16,6 +17,7 @@ const WorkerDashboard = () => {
   const user = useSelector((state) => state.user);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Synchronized with backend field 'availabilityStatus'
   const [isAvailable, setIsAvailable] = useState(profile?.availabilityStatus ?? true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -72,21 +74,32 @@ const WorkerDashboard = () => {
     return activities.slice(0, 5);
   };
 
+  // Sync internal state when profile loads from Redux/Backend
   useEffect(() => {
-    if (profile && profile.availabilityStatus !== undefined) {
-      setIsAvailable(profile.availabilityStatus);
+    if (profile && profile.Workeravailability !== undefined) {
+      setIsAvailable(profile.Workeravailability);
     }
   }, [profile]);
 
   const handleAvailabilityToggle = async () => {
     const newStatus = !isAvailable;
+    // Optimistic UI update
     setIsAvailable(newStatus);
+    
     try {
-      const updatedProfile = { ...profile, id: user.id, availabilityStatus: newStatus };
+      // Create payload matching your updateProfile requirements
+      const updatedProfile = { 
+        ...profile, 
+        id: user.id || profile.id, 
+        Workeravailability: newStatus 
+      };
+      
       const savedProfile = await updateProfile(updatedProfile);
       dispatch(setProfile(savedProfile));
     } catch (err) {
-      setIsAvailable(isAvailable);
+      console.error("Failed to update availability:", err);
+      // Revert UI on error
+      setIsAvailable(!newStatus);
     }
   };
 
@@ -249,7 +262,7 @@ const WorkerDashboard = () => {
                     <div key={job.id} className="card p-5 min-w-[280px] bg-card hover:border-primary/50 transition-all cursor-pointer shadow-sm group" onClick={() => navigate("/assignment-detail", { state: { jobId: job.id } })}>
                       <h4 className="font-bold text-base truncate group-hover:text-primary transition-colors">{job.jobTitle || job.title}</h4>
                       <p className="text-xs text-muted-foreground mb-4">{job.employer?.companyName || "Verified Recruiter"}</p>
-                      <div className="flex items-center justify-between mt-auto">
+                      <div className="items-center justify-between mt-auto flex">
                         <div className="text-sm font-black text-primary bg-primary/10 px-3 py-1 rounded-lg">
                           ₹{job.baseWageAmount || job.wage}/day
                         </div>
@@ -286,7 +299,7 @@ const WorkerDashboard = () => {
                 </div>
               </section>
 
-              {/* START FINANCIAL PART UPDATE */}
+              {/* FINANCIAL PART */}
               <section className="card p-6 bg-card border-none shadow-sm relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                     <Icon name="TrendingUp" size={40} className="text-success" />
@@ -326,8 +339,6 @@ const WorkerDashboard = () => {
                   View Detailed History
                 </button>
               </section>
-              {/* END FINANCIAL PART UPDATE */}
-
             </div>
           </div>
         </div>
@@ -335,5 +346,4 @@ const WorkerDashboard = () => {
     </div>
   );
 };
-
 export default WorkerDashboard;

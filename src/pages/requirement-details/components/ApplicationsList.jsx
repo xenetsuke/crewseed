@@ -189,9 +189,9 @@ const ApplicationsList = ({
                       <Button size="sm" variant="outline" className="border-purple-200 text-purple-700 bg-purple-50/50 hover:bg-purple-100 font-bold text-[10px] shrink-0" iconName="Calendar" onClick={() => onScheduleInterview(worker)}>
                         Interview
                       </Button>
-                      <Button size="sm" variant="outline" className="font-bold text-[10px] shrink-0" iconName="RefreshCcw" onClick={() => onChangeStatus(app)}>
+                      {/* <Button size="sm" variant="outline" className="font-bold text-[10px] shrink-0" iconName="RefreshCcw" onClick={() => onChangeStatus(app)}>
                         Status
-                      </Button>
+                      </Button> */}
                       <Button size="sm" variant="destructive" className="ml-auto font-bold text-[10px] shrink-0" iconName="Trash2" onClick={() => onReject(app)}>
                         Reject
                       </Button>

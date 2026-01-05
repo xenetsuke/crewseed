@@ -5,8 +5,8 @@ import Button from '../../../components/ui/Button';
 
 const WorkerCard = ({ worker, onBookmark, onViewProfile }) => {
 
-  // Derived bookmark state from applicationStatus
-  const isBookmarked = worker?.applicationStatus === "AVAILABLE";
+  // ✅ Updated: Now uses isSaved passed from parent logic instead of applicationStatus
+  const isBookmarked = worker?.isSaved;
 
   const availabilityData = Array.isArray(worker?.availability) 
     ? worker.availability 

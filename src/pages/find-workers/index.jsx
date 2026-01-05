@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux"; // ✅ SAME AS WorkerJobList
+
 import EmployerSidebar from "../../components/navigation/EmployerSidebar";
 import DashboardMetrics from "../../components/ui/DashboardMetrics";
 import SearchBar from "./components/SearchBar";
@@ -8,9 +10,17 @@ import ComparisonPanel from "./components/ComparisonPanel";
 import WorkerProfileModal from "../requirement-details/components/WorkerProfileModal";
 import ScheduleInterviewModal from "../requirement-details/components/ScheduleInterviewModal";
 
-import { getProfile, getAllProfiles } from "../../Services/ProfileService";
+// ✅ SAME services & redux actions as WorkerJobList
+import { getProfile, getAllProfiles, updateProfile } from "../../Services/ProfileService";
+import { setProfile, changeProfile } from "../../features/ProfileSlice";
 
 const FindWorkers = () => {
+  const dispatch = useDispatch();
+
+  // ✅ SAME redux usage as WorkerJobList
+  const profile = useSelector((state) => state.profile);
+  const user = useSelector((state) => state.user);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // DATA
@@ -23,33 +33,58 @@ const FindWorkers = () => {
   // COMPARE
   const [compareList, setCompareList] = useState([]);
 
-  // ✅ REQUIRED MODAL STATE (FIX)
+  // MODALS
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
 
-  // --------------------------------------------------
-  // FETCH WORKERS
-  // --------------------------------------------------
+  /* =========================================================
+      FETCH EMPLOYER PROFILE (EXACT SAME LOGIC AS WorkerJobList)
+  ========================================================= */
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        if (user?.id) {
+          const userProfile = await getProfile(user.id);
+          dispatch(setProfile(userProfile));
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+      }
+    };
+
+    if (user?.id && !profile?.id) fetchProfile();
+  }, [profile, user, dispatch]);
+
+  /* =========================================================
+      FETCH WORKERS
+  ========================================================= */
   useEffect(() => {
     const fetchWorkers = async () => {
       try {
         const res = await getAllProfiles();
-        const applicants = (res || []).filter(
-          (p) => p.accountType === "APPLICANT"
-        );
+
+        const applicants = (res || [])
+          .filter((p) => p.accountType === "APPLICANT")
+          // ✅ derive isSaved from profile.savedWorkers
+          .map((w) => ({
+            ...w,
+            isSaved: profile?.savedWorkers?.includes(w.id),
+          }));
+
         setWorkers(applicants);
         setFilteredWorkers(applicants);
       } catch (err) {
         console.error("❌ Failed to load workers", err);
       }
     };
-    fetchWorkers();
-  }, []);
 
-  // --------------------------------------------------
-  // SEARCH
-  // --------------------------------------------------
+    fetchWorkers();
+  }, [profile]); // 🔥 re-run when profile updates
+
+  /* =========================================================
+      SEARCH
+  ========================================================= */
   useEffect(() => {
     const q = searchQuery.toLowerCase();
     setFilteredWorkers(
@@ -61,30 +96,30 @@ const FindWorkers = () => {
     );
   }, [searchQuery, workers]);
 
-  // --------------------------------------------------
-  // ✅ VIEW PROFILE (MUST BE OUTSIDE EFFECT)
-  // --------------------------------------------------
+  /* =========================================================
+      VIEW PROFILE
+  ========================================================= */
   const handleViewProfile = async (worker) => {
     try {
-      const profile = await getProfile(worker.id);
+      const prof = await getProfile(worker.id);
 
       setSelectedWorker({
         id: worker.id,
-        fullName: profile.fullName || worker.fullName,
-        
+        fullName: prof.fullName || worker.fullName,
+
         profile: {
-          fullName: profile.fullName || worker.fullName,
-          picture: profile.picture || worker.picture,
-          skills: profile.skills || [],
-          certifications: profile.certifications || [],
-          recentAssignments: profile.recentAssignments || [],
-          Workeravailability: profile.availability ?? ["Available"],
-          about: profile.about || profile.bio || "",
-          primaryJobRole: profile.primaryJobRole || worker.primaryJobRole,
-          totalExperience: profile.totalExperience || worker.totalExperience || 0,
-          email: profile.email,
-          phone: profile.phone,
-          currentCity: profile.currentCity || worker.currentCity,
+          fullName: prof.fullName || worker.fullName,
+          picture: prof.picture || worker.picture,
+          skills: prof.skills || [],
+          certifications: prof.certifications || [],
+          recentAssignments: prof.recentAssignments || [],
+          Workeravailability: prof.availability ?? ["Available"],
+          about: prof.about || prof.bio || "",
+          primaryJobRole: prof.primaryJobRole || worker.primaryJobRole,
+          totalExperience: prof.totalExperience || worker.totalExperience || 0,
+          email: prof.email,
+          phone: prof.phone,
+          currentCity: prof.currentCity || worker.currentCity,
         },
 
         applicationStatus: worker.applicationStatus,
@@ -96,9 +131,9 @@ const FindWorkers = () => {
     }
   };
 
-  // --------------------------------------------------
-  // UI
-  // --------------------------------------------------
+  /* =========================================================
+      UI
+  ========================================================= */
   return (
     <div className="min-h-screen bg-background">
       <EmployerSidebar
@@ -113,10 +148,11 @@ const FindWorkers = () => {
           <DashboardMetrics
             metrics={[
               { icon: "Users", label: "Available Workers", value: filteredWorkers.length },
-              { 
-                icon: "Bookmark", 
-                label: "Bookmarked", 
-                value: workers.filter(w => w.applicationStatus === "AVAILABLE").length 
+              {
+                icon: "Bookmark",
+                label: "Bookmarked",
+                // ✅ NOW FROM profile.savedWorkers
+                value: profile?.savedWorkers?.length || 0,
               },
             ]}
           />
@@ -130,17 +166,31 @@ const FindWorkers = () => {
             {filteredWorkers.map((worker) => (
               <WorkerCard
                 key={worker.id}
-                worker={worker}
-                isBookmarked={worker.applicationStatus === "AVAILABLE"}
-                onBookmark={(id) =>
-                  setWorkers((prev) =>
-                    prev.map((w) =>
-                      w.id === id
-                        ? { ...w, applicationStatus: w.applicationStatus === "AVAILABLE" ? "NONE" : "AVAILABLE" }
-                        : w
-                    )
-                  )
-                }
+                // ✅ pass isSaved (same pattern as savedJobs)
+                worker={{
+                  ...worker,
+                  isSaved: profile?.savedWorkers?.includes(worker.id),
+                }}
+                onBookmark={async (workerId) => {
+                  if (!profile?.id) return;
+
+                  try {
+                    // ✅ SAME toggle logic as savedJobs
+                    let savedWorkers = profile.savedWorkers
+                      ? [...profile.savedWorkers]
+                      : [];
+
+                    savedWorkers = savedWorkers.includes(workerId)
+                      ? savedWorkers.filter((id) => id !== workerId)
+                      : [...savedWorkers, workerId];
+
+                    const updatedProfile = { ...profile, savedWorkers };
+                    await updateProfile(updatedProfile);
+                    dispatch(changeProfile(updatedProfile));
+                  } catch (err) {
+                    console.error("❌ Failed to save worker", err);
+                  }
+                }}
                 onViewProfile={handleViewProfile}
                 onCompare={(w) =>
                   setCompareList((prev) =>
@@ -163,7 +213,7 @@ const FindWorkers = () => {
         onClear={() => setCompareList([])}
       />
 
-      {/* ✅ MODALS */}
+      {/* MODALS */}
       <WorkerProfileModal
         worker={selectedWorker}
         isOpen={showProfileModal}

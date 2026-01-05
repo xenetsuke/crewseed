@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import EmployerSidebar from '../../components/navigation/EmployerSidebar';
-import DashboardMetrics from '../../components/ui/DashboardMetrics';
 import RequirementsTable from './components/RequirementsTable';
 import ActivityFeed from './components/ActivityFeed';
 import WorkerManagementPanel from './components/WorkerManagementPanel';
@@ -11,12 +10,15 @@ import Icon from '../../components/AppIcon';
 import WorkerProfileModal from "../requirement-details/components/WorkerProfileModal";
 import ScheduleInterviewModal from "../requirement-details/components/ScheduleInterviewModal";
 
-import { getAllProfiles, getProfile } from "../../Services/ProfileService";
+import { getAllProfiles, getProfile, updateProfile } from "../../Services/ProfileService";
 import { getJobsPostedBy } from "../../Services/JobService";
+import { changeProfile } from "../../features/ProfileSlice";
 
 const EmployerDashboard = () => {
   const navigate = useNavigate();
   const user = useSelector((state) => state.user);
+  const profile = useSelector((state) => state.profile);
+  const dispatch = useDispatch();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [workerCount, setWorkerCount] = useState(0);
@@ -27,12 +29,10 @@ const EmployerDashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Modal States
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
 
-  // --- UI Helpers ---
   const getGreeting = () => {
     const hour = currentTime.getHours();
     if (hour < 12) return "Good morning";
@@ -42,12 +42,12 @@ const EmployerDashboard = () => {
 
   const handleViewWorkerProfile = async (worker) => {
     try {
-      const profile = await getProfile(worker.id);
+      const profileData = await getProfile(worker.id);
       setSelectedWorker({
         id: worker.id,
-        fullName: profile.fullName || worker.fullName,
-        profile: { ...profile, availability: profile.availability ?? ["Available"] },
-        applicationStatus: worker.pipelineStatus?.toUpperCase() || "APPLIED",
+        fullName: profileData.fullName || worker.fullName,
+        profile: { ...profileData, availability: profileData.availability ?? ["Available"] },
+        applicationStatus: worker.applicationStatus || "APPLIED",
       });
       setShowProfileModal(true);
     } catch (err) {
@@ -55,7 +55,7 @@ const EmployerDashboard = () => {
     }
   };
 
-  const fetchData = async () => {
+ const fetchData = async () => {
     if (!user?.id) return;
     setIsRefreshing(true);
     try {
@@ -68,18 +68,49 @@ const EmployerDashboard = () => {
       const allWorkers = (profileRes || []).filter(p => p.accountType === "APPLICANT");
       setWorkerCount(allWorkers.length);
 
-      const demoPipeline = allWorkers.slice(0, 8).map((w, idx) => ({
-        ...w,
-        pipelineStatus: idx % 3 === 0 ? 'saved' : idx % 3 === 1 ? 'interviewing' : 'hired'
-      }));
-      setPipelineWorkers(demoPipeline);
+      // Create a map of workerId -> applicationStatus across all employer's jobs
+      const workerStatusMap = {};
+      jobsRes.forEach(job => {
+        job.applicants?.forEach(app => {
+          // Store the status for this worker (assuming one application per worker for simplicity)
+          workerStatusMap[app.applicantId] = app.applicationStatus?.toUpperCase();
+        });
+      });
+
+      /* =========================================================
+          STRICT PIPELINE MAPPING LOGIC
+      ========================================================= */
+      const pipeline = allWorkers.map((w) => {
+        // 1. Get status from our mapped applications
+        const status = workerStatusMap[w.id];
+
+        // 2. Map Under Review (Logic from WorkerAssignments 'active')
+        if (["APPLIED", "UNDER_REVIEW", "INTERVIEWING"].includes(status)) {
+          return { ...w, applicationStatus: status, pipelineStatus: 'Under Review' };
+        }
+
+        // 3. Map Hired/Completed (Logic from WorkerAssignments 'completed')
+        if (["SELECTED", "JOINED"].includes(status)) {
+          return { ...w, applicationStatus: status, pipelineStatus: 'hired' };
+        }
+
+        // 4. Check if Saved (Only if not already in an active application state, 
+        // or you can prioritize Saved status depending on your preference)
+        if (profile?.savedWorkers?.includes(w.id)) {
+          return { ...w, pipelineStatus: 'saved' };
+        }
+
+        return { ...w, pipelineStatus: 'unassigned' };
+      });
+
+      setPipelineWorkers(pipeline);
 
       setJobStats({
         active: jobsRes.filter(j => j.jobStatus?.toLowerCase() === 'active').length,
         totalApplicants: jobsRes.reduce((sum, job) => sum + (job.applicants?.length || 0), 0),
-        fulfillmentRate: 72 // Demo value
+        fulfillmentRate: 72
       });
-
+      
       setRequirements(jobsRes.slice(0, 5).map(job => ({
         id: job.id,
         position: job.jobTitle || "Untitled Position",
@@ -97,6 +128,17 @@ const EmployerDashboard = () => {
       setIsRefreshing(false);
     }
   };
+  useEffect(() => {
+    if (!profile?.savedWorkers?.length || pipelineWorkers.length === 0) return;
+
+    setPipelineWorkers(prev =>
+      prev.map(worker =>
+        profile.savedWorkers.includes(worker.id)
+          ? { ...worker, pipelineStatus: 'saved' }
+          : worker
+      )
+    );
+  }, [profile?.savedWorkers]);
 
   useEffect(() => {
     fetchData();
@@ -114,7 +156,6 @@ const EmployerDashboard = () => {
       <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''} p-4 lg:p-8`}>
         <div className="max-w-7xl mx-auto">
           
-          {/* --- HEADER SECTION --- */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
               <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight">
@@ -138,13 +179,12 @@ const EmployerDashboard = () => {
             </div>
           </div>
 
-          {/* --- METRICS GRID --- */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {[
-               { icon: 'Briefcase', label: 'Active Jobs', value: jobStats.active, color: 'text-primary', bg: 'bg-primary/10' },
-               { icon: 'Users', label: 'Talent Pool', value: workerCount, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-               { icon: 'UserCheck', label: 'In Pipeline', value: pipelineWorkers.length, color: 'text-success', bg: 'bg-success/10' },
-               { icon: 'Clock', label: 'Interviews', value: '12', color: 'text-warning', bg: 'bg-warning/10' },
+               { icon: 'Briefcase', label: 'My Active Jobs', value: jobStats.active, color: 'text-primary', bg: 'bg-primary/10' },
+               { icon: 'Users', label: 'Available Workers', value: workerCount, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+               { icon: 'Clock', label: 'Under Review', value: pipelineWorkers.filter(w => w.pipelineStatus === 'Under Review').length, color: 'text-review', bg: 'bg-success/10' },
+               { icon: 'UserCheck',label: 'Hired', value: pipelineWorkers.filter(w => w.pipelineStatus === 'hired').length,  color: 'text-success',bg: 'bg-warning/10' },
             ].map((m, i) => (
               <div key={i} className="card p-5 bg-card border-none shadow-sm flex items-center gap-4 group hover:translate-y-[-2px] transition-all">
                 <div className={`w-12 h-12 rounded-2xl ${m.bg} ${m.color} flex items-center justify-center`}>
@@ -159,7 +199,6 @@ const EmployerDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* --- LEFT COLUMN: CORE TABLES --- */}
             <div className="lg:col-span-8 space-y-8">
               <section className="card bg-card border-none shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-muted/50 flex justify-between items-center">
@@ -174,25 +213,35 @@ const EmployerDashboard = () => {
               <section>
                 <div className="flex items-center justify-between mb-4 px-1">
                   <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Icon name="Users" size={20} className="text-primary" /> Active Pipeline
+                    <Icon name="Users" size={20} className="text-primary" /> MyWorker List
                   </h3>
                 </div>
                 <WorkerManagementPanel
                   workers={pipelineWorkers}
                   onViewProfile={handleViewWorkerProfile}
+                  onRemoveWorker={async (workerId) => {
+                    if (!profile?.id) return;
+                    try {
+                      let savedWorkers = profile.savedWorkers || [];
+                      savedWorkers = savedWorkers.filter(id => id !== workerId);
+                      const updatedProfile = { ...profile, savedWorkers };
+                      await updateProfile(updatedProfile);
+                      dispatch(changeProfile(updatedProfile));
+                      setPipelineWorkers(prev => prev.filter(w => w.id !== workerId));
+                    } catch (err) {
+                      console.error("❌ Failed to remove worker", err);
+                    }
+                  }}
                 />
               </section>
             </div>
 
-            {/* --- RIGHT COLUMN: ANALYTICS & FEED --- */}
             <div className="lg:col-span-4 space-y-6">
-              {/* COMPANY OVERVIEW CARD */}
               <section className="card p-6 bg-card border-none shadow-sm relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                   <Icon name="TrendingUp" size={40} className="text-success" />
                 </div>
                 <h3 className="font-black text-sm text-muted-foreground uppercase tracking-widest mb-6">Recruitment Health</h3>
-                
                 <div className="space-y-6 relative z-10">
                   <div>
                     <div className="flex justify-between items-end mb-2">
@@ -203,7 +252,6 @@ const EmployerDashboard = () => {
                       <div className="h-full bg-success rounded-full" style={{ width: `${jobStats.fulfillmentRate}%` }} />
                     </div>
                   </div>
-
                   <div>
                     <div className="flex justify-between items-end mb-2">
                       <span className="text-[10px] font-bold text-muted-foreground uppercase">App Volume</span>
@@ -214,7 +262,6 @@ const EmployerDashboard = () => {
                     </div>
                   </div>
                 </div>
-
                 <div className="mt-8 pt-6 border-t border-muted flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-warning/10 text-warning flex items-center justify-center">
                     <Icon name="ShieldCheck" size={20} />
@@ -225,7 +272,6 @@ const EmployerDashboard = () => {
                   </div>
                 </div>
               </section>
-
               <section className="card p-0 bg-card border-none shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-muted/50 bg-muted/20">
                   <h3 className="text-xs font-black uppercase tracking-widest">Live Activity</h3>
@@ -237,7 +283,6 @@ const EmployerDashboard = () => {
         </div>
       </main>
 
-      {/* --- MODALS --- */}
       <WorkerProfileModal
         worker={selectedWorker}
         isOpen={showProfileModal}

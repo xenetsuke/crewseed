@@ -32,6 +32,7 @@ import CompanyOnboarding from "./pages/company-onboarding";
 
 import AssignmentDetails from "./pages/assignment-details";
 import NotificationsSystem from "./pages/notifications-system";
+import HRToolComingSoon from "./pages/hr-tool";
 
 const Routes = () => {
   return (
@@ -136,6 +137,7 @@ const Routes = () => {
             }
           />
 
+       
           <Route
             path="/worker-profile-setup"
             element={
@@ -165,6 +167,15 @@ const Routes = () => {
               </ProtectedRoute>
             }
           />
+
+          <Route
+  path="/hr-tool"
+  element={
+    <ProtectedRoute allowedRoles={["EMPLOYER"]}>
+      <HRToolComingSoon />
+    </ProtectedRoute>
+  }
+/>
 
           <Route
             path="/employer-requirements"

@@ -73,7 +73,7 @@ const ScheduleAvailability = ({ formData, onChange, errors }) => {
           error={errors?.startDate}
           onChange={(e) => onChange("startDate", e.target.value)}
         />
-<Select
+{/* <Select
           label="Job Duration"
           required
           value={formData?.contractDuration || ""}
@@ -88,7 +88,7 @@ const ScheduleAvailability = ({ formData, onChange, errors }) => {
               onChange("customDuration", "");
             }
           }}
-        />
+        /> */}
       </div>
 
       {formData.contractDuration === "CUSTOM" && (

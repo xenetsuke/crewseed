@@ -103,7 +103,7 @@ const CompensationBenefits = ({ formData, onChange, errors }) => {
         />
 
         <Input
-          label="Minimum Pay Rate"
+          label="Pay Rate"
           type="number"
           placeholder="500"
           value={formData?.minPay}
@@ -114,7 +114,7 @@ const CompensationBenefits = ({ formData, onChange, errors }) => {
           required
           description="₹ (Rupees)"
         />
-
+{/* 
         <Input
           label="Maximum Pay Rate"
           type="number"
@@ -125,7 +125,7 @@ const CompensationBenefits = ({ formData, onChange, errors }) => {
           min="0"
           step="50"
           description="₹ (Rupees)"
-        />
+        /> */}
       </div>
 
       {/* -------------------- Benefits Section -------------------- */}

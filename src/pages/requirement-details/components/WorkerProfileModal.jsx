@@ -12,7 +12,7 @@ const WorkerProfileModal = ({
   worker,
   isOpen,
   onClose,
-  onScheduleInterview = () => {}, 
+  // onScheduleInterview = () => {}, 
   onContact = () => {}, 
   onApprove = () => {}, 
   onReject = () => {}, 
@@ -215,7 +215,7 @@ const WorkerProfileModal = ({
         </div>
 
         {/* ACTION FOOTER */}
-        <div className="bg-muted/30 border-t border-border p-6">
+        {/* <div className="bg-muted/30 border-t border-border p-6">
           <div className="flex flex-wrap gap-3">
             <Button
               variant="outline"
@@ -228,9 +228,9 @@ const WorkerProfileModal = ({
             >
               Interview Worker
             </Button>
-            {/* Any other worker actions can be added here */}
+            {/* Any other worker actions can be added here 
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

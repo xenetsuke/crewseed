@@ -62,9 +62,9 @@ const JobDescription = ({ formData, onChange, errors }) => {
   };
 
   return (
-    <div className="card p-6 space-y-6">
+    <div className="card p-4 sm:p-6 space-y-6">
       <div className="flex items-center gap-3 pb-4 border-b border-border">
-        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+        <div className="w-10 h-10 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
           <span className="text-primary font-semibold">2</span>
         </div>
         <div>
@@ -76,12 +76,12 @@ const JobDescription = ({ formData, onChange, errors }) => {
       </div>
 
       {/* Switch Tabs */}
-      <div className="flex gap-2 border-b border-border">
+      <div className="flex gap-2 border-b border-border overflow-x-auto scrollbar-hide">
         {["description", "preview"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
+            className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
               activeTab === tab
                 ? "text-primary border-b-2 border-primary"
                 : "text-muted-foreground hover:text-foreground"
@@ -94,26 +94,30 @@ const JobDescription = ({ formData, onChange, errors }) => {
 
       {activeTab === "description" ? (
         <div className="space-y-4">
-          {/* Toolbar */}
-          <div className="flex flex-wrap gap-2 p-3 bg-muted rounded-lg">
-            <Button variant="ghost" size="sm" iconName="Bold" onClick={boldText}>
-              Bold
-            </Button>
-            <Button variant="ghost" size="sm" iconName="List" onClick={addBullet}>
-              Bullet
-            </Button>
-            <Button variant="ghost" size="sm" iconName="ListOrdered" onClick={addNumber}>
-              Number
-            </Button>
-            <div className="flex-1" />
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => insertTemplate("responsibilities")}>
+          {/* Toolbar - Improved Responsiveness */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-muted rounded-lg">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="ghost" size="sm" iconName="Bold" onClick={boldText}>
+                Bold
+              </Button>
+              <Button variant="ghost" size="sm" iconName="List" onClick={addBullet}>
+                Bullet
+              </Button>
+              <Button variant="ghost" size="sm" iconName="ListOrdered" onClick={addNumber}>
+                Number
+              </Button>
+            </div>
+            
+            <div className="hidden sm:block flex-1 border-l border-border h-6 mx-1" />
+            
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" className="text-[10px] sm:text-xs h-8 px-2" onClick={() => insertTemplate("responsibilities")}>
                 + Responsibilities
               </Button>
-              <Button variant="outline" size="sm" onClick={() => insertTemplate("requirements")}>
+              <Button variant="outline" size="sm" className="text-[10px] sm:text-xs h-8 px-2" onClick={() => insertTemplate("requirements")}>
                 + Requirements
               </Button>
-              <Button variant="outline" size="sm" onClick={() => insertTemplate("benefits")}>
+              <Button variant="outline" size="sm" className="text-[10px] sm:text-xs h-8 px-2" onClick={() => insertTemplate("benefits")}>
                 + Benefits
               </Button>
             </div>
@@ -130,11 +134,11 @@ const JobDescription = ({ formData, onChange, errors }) => {
               value={formData.description}
               onChange={(e) => onChange("description", e.target.value)}
               placeholder="Describe the job responsibilities, requirements, working conditions, and any other relevant details..."
-              className="w-full min-h-[300px] p-4 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+              className="w-full min-h-[250px] sm:min-h-[300px] p-3 sm:p-4 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring resize-y text-sm sm:text-base"
               maxLength={maxChars}
             />
 
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex flex-col sm:flex-row justify-between gap-1 text-[10px] sm:text-xs text-muted-foreground">
               <span>Supports **bold**, bullets (•), numbering (1.)</span>
               <span>{formData.description.length}/{maxChars} characters</span>
             </div>
@@ -145,9 +149,10 @@ const JobDescription = ({ formData, onChange, errors }) => {
           </div>
         </div>
       ) : (
-        <div className="prose prose-sm max-w-none p-6 bg-muted rounded-lg min-h-[300px]">
+        <div className="prose prose-sm max-w-none p-4 sm:p-6 bg-muted rounded-lg min-h-[250px] sm:min-h-[300px] overflow-wrap-anywhere">
           {formData.description ? (
             <div
+              className="break-words"
               dangerouslySetInnerHTML={{
                 __html: convertMarkdown(formData.description),
               }}

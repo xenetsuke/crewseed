@@ -2,11 +2,20 @@ import axios from "axios";
 import { removeUser } from "../features/UserSlice";
 import { removeJwt } from "../features/JwtSlice";
 
-// 🔹 Create Axios instance
 const axiosInstance = axios.create({
-  // Use the Vite proxy path
-  baseURL: "/api",
+  baseURL: "/api", // Use the Vite proxy path
 });
+
+// Log request URL before sending
+axiosInstance.interceptors.request.use((config) => {
+  console.log("🔁 Request URL:", config.url);
+  return config;
+});
+
+// Example request
+axiosInstance.get("/api")
+  .then((response) => console.log(response))
+  .catch((error) => console.error(error));
 
 // 🔹 REQUEST INTERCEPTOR (Attach JWT)
 axiosInstance.interceptors.request.use(

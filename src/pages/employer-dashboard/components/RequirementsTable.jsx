@@ -34,7 +34,7 @@ const RequirementsTable = ({ requirements = [] }) => {
           size="sm"
           iconName="Plus"
           className="font-black uppercase tracking-widest text-[10px] w-full sm:w-auto px-6 py-4 shadow-lg shadow-primary/20"
-          onClick={() => navigate('/post-job-requirement')}
+          onClick={() => navigate('/post-job-requirement/0')}
         >
           Post New Job
         </Button>

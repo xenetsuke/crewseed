@@ -8,6 +8,8 @@ const ApplicationSettings = ({ formData, onChange, errors }) => {
     { id: "pan", label: "PAN Card" },
     { id: "police", label: "Police Verification" },
     { id: "medical", label: "Medical Certificate" },
+    { id: "driving", label: "Driving Licence" },
+    
   ];
 
   const handleDocToggle = (doc) => {
@@ -35,7 +37,7 @@ const ApplicationSettings = ({ formData, onChange, errors }) => {
       </div>
 
       {/* 🔹 Deadline */}
-  <Input
+      <Input
         label="Application Deadline"
         type="date"
         min={new Date().toISOString().split("T")[0]}
@@ -76,7 +78,7 @@ const ApplicationSettings = ({ formData, onChange, errors }) => {
       </div>
 
       {/* 🔹 Policy Checkboxes */}
-      <div className="p-4 bg-muted rounded-lg space-y-3">
+      {/* <div className="p-4 bg-muted rounded-lg space-y-3">
         <Checkbox
           label="Allow Direct Applications"
           checked={formData?.allowDirectApplications}
@@ -99,11 +101,14 @@ const ApplicationSettings = ({ formData, onChange, errors }) => {
         <Checkbox
           label="Medical Fitness Required"
           checked={formData?.medicalFitnessRequired}
-          onChange={(e) =>
-            onChange("medicalFitnessRequired", e.target.checked)
-          }
+          onChange={(e) => onChange("medicalFitnessRequired", e.target.checked)}
         />
-      </div>
+        <Checkbox
+          label="Driving Licence"
+          checked={formData?.drivingLicence}
+          onChange={(e) => onChange("medicalFitnessRequired", e.target.checked)}
+        />
+      </div> */}
 
       {/* 🔹 Special instructions */}
       <Input
@@ -111,9 +116,7 @@ const ApplicationSettings = ({ formData, onChange, errors }) => {
         type="text"
         placeholder="e.g., Bring a hard copy of documents"
         value={formData?.additionalInstructions}
-        onChange={(e) =>
-          onChange("additionalInstructions", e.target.value)
-        }
+        onChange={(e) => onChange("additionalInstructions", e.target.value)}
       />
     </div>
   );
