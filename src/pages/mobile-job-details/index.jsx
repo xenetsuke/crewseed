@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux"; 
-import { getProfile, updateProfile } from "../../Services/ProfileService"; 
-import { setProfile, changeProfile } from "../../features/ProfileSlice"; 
+import { useSelector, useDispatch } from "react-redux";
+import { getProfile, updateProfile } from "../../Services/ProfileService";
+import { setProfile, changeProfile } from "../../features/ProfileSlice";
 import {
   MapPin,
   Clock,
@@ -24,10 +24,10 @@ import {
   MapPinned,
   ShieldCheck,
   Shirt,
-  HeartPulse
+  HeartPulse,
 } from "lucide-react";
 
-import { getJob, getJobsByCompany } from "../../Services/JobService"; 
+import { getJob, getJobsByCompany } from "../../Services/JobService";
 import JobApplicationModal from "../../components/JobApplicationModal";
 import ApplyNowButton from "../../components/ApplyNowButton";
 
@@ -35,16 +35,16 @@ const MobileJobDetails = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  
+
   const profile = useSelector((state) => state.profile);
   const user = useSelector((state) => state.user);
-  
+
   const [companyJobs, setCompanyJobs] = useState([]);
   const [jobData, setJobData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
-  const [hasApplied, setHasApplied] = useState(false); 
-  
+  const [hasApplied, setHasApplied] = useState(false);
+
   const searchParams = new URLSearchParams(location.search);
   const jobIdFromQuery = searchParams.get("id");
   const jobIdFromState = location?.state?.assignmentId;
@@ -93,8 +93,12 @@ const MobileJobDetails = () => {
   const mapJobToMobile = (res) => {
     if (!res) return null;
 
-    const userApp = res.applicants?.find(app => String(app.applicantId) === String(user?.id));
-    setHasApplied(!!(userApp || res.hasAppliedByUser || res.appliedStatus === "APPLIED"));
+    const userApp = res.applicants?.find(
+      (app) => String(app.applicantId) === String(user?.id)
+    );
+    setHasApplied(
+      !!(userApp || res.hasAppliedByUser || res.appliedStatus === "APPLIED")
+    );
 
     const employerFromBackend = res.employer;
     const employer = employerFromBackend
@@ -105,7 +109,9 @@ const MobileJobDetails = () => {
             ? `data:image/jpeg;base64,${employerFromBackend.picture}`
             : "https://img.rocket.new/generatedImages/rocket_default_company.png",
           established: employerFromBackend.establishedYear || "2015",
-          employees: employerFromBackend.totalEmployees ? `${employerFromBackend.totalEmployees}+` : "200+",
+          employees: employerFromBackend.totalEmployees
+            ? `${employerFromBackend.totalEmployees}+`
+            : "200+",
           rating: employerFromBackend.rating || 4.3,
           paymentReliability: employerFromBackend.paymentReliability || 95,
           reviews: employerFromBackend.reviews || [],
@@ -120,17 +126,52 @@ const MobileJobDetails = () => {
           reviews: [],
         };
 
-    const fullLocation = res.fullWorkAddress || [res.city, res.state, res.pincode].filter(Boolean).join(", ") || "Location not provided";
+    const fullLocation =
+      res.fullWorkAddress ||
+      [res.city, res.state, res.pincode].filter(Boolean).join(", ") ||
+      "Location not provided";
 
     const benefits = [
-      res.transportProvided && { icon: Bus, labelEn: res.transportDetails || "Free Transport", available: true },
-      res.foodProvided && { icon: Utensils, labelEn: res.foodDetails || "Meals Provided", available: true },
-      res.accommodationProvided && { icon: Home, labelEn: res.accommodationDetails || "Accommodation", available: true },
-      res.performanceIncentives && { icon: TrendingUp, labelEn: "Performance Incentives", available: true },
-      res.uniformProvided && { icon: Shirt, labelEn: "Uniform Provided", available: true },
-      res.medicalInsurance && { icon: HeartPulse, labelEn: "Medical Insurance", available: true },
-      res.esiPfBenefits && { icon: ShieldCheck, labelEn: "ESI & PF Benefits", available: true },
-      res.festivalBonuses && { icon: Award, labelEn: "Festival Bonuses", available: true },
+      res.transportProvided && {
+        icon: Bus,
+        labelEn: res.transportDetails || "Free Transport",
+        available: true,
+      },
+      res.foodProvided && {
+        icon: Utensils,
+        labelEn: res.foodDetails || "Meals Provided",
+        available: true,
+      },
+      res.accommodationProvided && {
+        icon: Home,
+        labelEn: res.accommodationDetails || "Accommodation",
+        available: true,
+      },
+      res.performanceIncentives && {
+        icon: TrendingUp,
+        labelEn: "Performance Incentives",
+        available: true,
+      },
+      res.uniformProvided && {
+        icon: Shirt,
+        labelEn: "Uniform Provided",
+        available: true,
+      },
+      res.medicalInsurance && {
+        icon: HeartPulse,
+        labelEn: "Medical Insurance",
+        available: true,
+      },
+      res.esiPfBenefits && {
+        icon: ShieldCheck,
+        labelEn: "ESI & PF Benefits",
+        available: true,
+      },
+      res.festivalBonuses && {
+        icon: Award,
+        labelEn: "Festival Bonuses",
+        available: true,
+      },
     ].filter(Boolean);
 
     return {
@@ -150,28 +191,54 @@ const MobileJobDetails = () => {
         overtimeTypeEn: "per hour",
       },
       shift: {
-        typeEn: res.shiftType ? (res.shiftType.charAt(0) + res.shiftType.slice(1).toLowerCase() + " Shift") : "Regular Shift",
-        timing: res.shiftStartTime && res.shiftEndTime 
-                 ? `${res.shiftStartTime.substring(0, 5)} - ${res.shiftEndTime.substring(0, 5)}` 
-                 : "Standard Hours",
+        typeEn: res.shiftType
+          ? res.shiftType.charAt(0) +
+            res.shiftType.slice(1).toLowerCase() +
+            " Shift"
+          : "Regular Shift",
+        timing:
+          res.shiftStartTime && res.shiftEndTime
+            ? `${res.shiftStartTime.substring(
+                0,
+                5
+              )} - ${res.shiftEndTime.substring(0, 5)}`
+            : "Standard Hours",
         weeklyOffEn: res.weeklyOffPattern || "Sunday",
       },
       duration: {
         typeEn: res.jobType || "Full-time",
-        startDateEn: res.contractDuration === "CUSTOM" && res.customDuration 
-                      ? res.customDuration 
-                      : (res.contractDuration?.replaceAll("_", " ") || "Immediate"),
+        startDateEn:
+          res.contractDuration === "CUSTOM" && res.customDuration
+            ? res.customDuration
+            : res.contractDuration?.replaceAll("_", " ") || "Immediate",
       },
-      description: { en: res.jobDescription || "Job description not provided." },
+      description: {
+        en: res.jobDescription || "Job description not provided.",
+      },
       responsibilities: (res.primarySkills || []).map((s) => ({ en: s })),
       requirements: {
-        skills: [...(res.primarySkills || []), ...(res.secondarySkills || [])].map((s) => ({ en: s })),
+        skills: [
+          ...(res.primarySkills || []),
+          ...(res.secondarySkills || []),
+        ].map((s) => ({ en: s })),
         education: { en: res.educationLevel || "Not specified" },
-        experience: { en: res.experienceLevel?.replaceAll("_", " ") || "Not specified" },
+        experience: {
+          en: res.experienceLevel?.replaceAll("_", " ") || "Not specified",
+        },
         physical: [{ en: "Basic physical fitness" }],
       },
-      benefits: benefits.length > 0 ? benefits : [{ icon: CheckCircle2, labelEn: "Standard Perks", available: true }],
-      documents: res.documentRequirements?.map((d) => ({ en: d, required: true })) || [],
+      benefits:
+        benefits.length > 0
+          ? benefits
+          : [
+              {
+                icon: CheckCircle2,
+                labelEn: "Standard Perks",
+                available: true,
+              },
+            ],
+      documents:
+        res.documentRequirements?.map((d) => ({ en: d, required: true })) || [],
       employer,
     };
   };
@@ -208,7 +275,9 @@ const MobileJobDetails = () => {
         const employerId = jobData?.employer?.id || jobData?.postedBy;
         if (!employerId) return;
         const res = await getJobsByCompany(employerId);
-        const filtered = Array.isArray(res) ? res.filter((j) => j.id !== jobData.id) : [];
+        const filtered = Array.isArray(res)
+          ? res.filter((j) => j.id !== jobData.id)
+          : [];
         setCompanyJobs(filtered);
       } catch (err) {
         console.error("Failed to load company jobs", err);
@@ -217,8 +286,18 @@ const MobileJobDetails = () => {
     loadCompanyJobs();
   }, [jobData]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-medium">Fetching Job Details...</div>;
-  if (!jobData) return <div className="min-h-screen flex items-center justify-center text-red-500">Job posting no longer exists</div>;
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center font-medium">
+        Fetching Job Details...
+      </div>
+    );
+  if (!jobData)
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-500">
+        Job posting no longer exists
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -228,10 +307,16 @@ const MobileJobDetails = () => {
           <ChevronLeft />
         </button>
         <div className="flex gap-4">
-          <Share2 onClick={handleShare} size={20} className="text-gray-600 cursor-pointer" />
+          <Share2
+            onClick={handleShare}
+            size={20}
+            className="text-gray-600 cursor-pointer"
+          />
           <Bookmark
             onClick={handleSaveJob}
-            className={`cursor-pointer ${isBookmarked ? "fill-blue-600 text-blue-600" : "text-gray-600"}`}
+            className={`cursor-pointer ${
+              isBookmarked ? "fill-blue-600 text-blue-600" : "text-gray-600"
+            }`}
           />
         </div>
       </div>
@@ -239,35 +324,50 @@ const MobileJobDetails = () => {
       {/* Job Header */}
       <div className="bg-white p-4 border-b">
         <div className="flex gap-3">
-          <img src={jobData.employer.logo} alt="Company" className="w-16 h-16 rounded-lg border shadow-sm flex-shrink-0" />
+          <img
+            src={jobData.employer.logo}
+            alt="Company"
+            className="w-16 h-16 rounded-lg border shadow-sm flex-shrink-0"
+          />
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-bold truncate">{jobData.titleEn}</h1>
             <div className="flex items-center gap-2">
-              <span className="text-gray-700 truncate">{jobData.companyEn}</span>
+              <span className="text-gray-700 truncate">
+                {jobData.companyEn}
+              </span>
               <BadgeCheck className="text-blue-600 flex-shrink-0" size={16} />
             </div>
             <div className="flex items-center gap-1 text-sm text-amber-600">
               <Star size={14} fill="currentColor" />
-              {jobData.rating} <span className="text-gray-400">({jobData.reviewCount} reviews)</span>
+              {jobData.rating}{" "}
+              <span className="text-gray-400">
+                ({jobData.reviewCount} reviews)
+              </span>
             </div>
           </div>
         </div>
         <div className="mt-3 flex items-center gap-2 text-gray-600 text-sm">
-          <MapPin size={14} className="flex-shrink-0" /> 
+          <MapPin size={14} className="flex-shrink-0" />
           <span className="truncate flex-1">{jobData.locationEn}</span>
-          <span className="text-blue-600 font-medium whitespace-nowrap">• {jobData.distanceEn}</span>
+          <span className="text-blue-600 font-medium whitespace-nowrap">
+            • {jobData.distanceEn}
+          </span>
         </div>
 
         {/* Wage Card */}
         <div className="bg-green-50 border border-green-100 p-4 mt-4 rounded-xl">
           <div className="flex items-baseline gap-2">
             <IndianRupee size={20} className="text-green-700 flex-shrink-0" />
-            <span className="text-2xl font-bold text-green-700">{jobData.wage.amount}</span>
-            <span className="text-green-600 text-sm">{jobData.wage.typeEn}</span>
+            <span className="text-2xl font-bold text-green-700">
+              {jobData.wage.amount}
+            </span>
+            <span className="text-green-600 text-sm">
+              {jobData.wage.typeEn}
+            </span>
           </div>
-          <div className="text-xs text-green-600 mt-1">
+          {/* <div className="text-xs text-green-600 mt-1">
             Overtime: ₹{jobData.wage.overtime} {jobData.wage.overtimeTypeEn}
-          </div>
+          </div> */}
         </div>
 
         {/* Quick Info Grid */}
@@ -277,16 +377,22 @@ const MobileJobDetails = () => {
               <Clock size={14} />
               <span className="text-xs font-bold uppercase">Shift</span>
             </div>
-            <div className="text-sm font-semibold truncate">{jobData.shift.typeEn}</div>
-            <div className="text-xs text-gray-500 truncate">{jobData.shift.timing}</div>
+            <div className="text-sm font-semibold truncate">
+              {jobData.shift.typeEn}
+            </div>
+            <div className="text-xs text-gray-500 truncate">
+              {jobData.shift.timing}
+            </div>
           </div>
           <div className="bg-purple-50 p-3 rounded-lg min-w-0">
             <div className="flex items-center gap-2 text-purple-700 mb-1">
               <Calendar size={14} />
               <span className="text-xs font-bold uppercase">Duration</span>
             </div>
-            <div className="text-sm font-semibold truncate">{jobData.duration.typeEn}</div>
-            <div className="text-xs text-gray-500 truncate">{jobData.duration.startDateEn}</div>
+            <div className="text-sm font-semibold truncate">
+              {jobData.duration.typeEn}
+            </div>
+            {/* <div className="text-xs text-gray-500 truncate">{jobData.duration.startDateEn}</div> */}
           </div>
         </div>
       </div>
@@ -296,8 +402,10 @@ const MobileJobDetails = () => {
         <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
           <FileText size={18} className="text-blue-600" /> Job Description
         </h2>
-        <p className="text-sm text-gray-600 leading-relaxed mb-4 break-words">{jobData.description.en}</p>
-        <div className="space-y-2">
+        <p className="text-sm text-gray-600 leading-relaxed mb-4 break-words">
+          {jobData.description.en}
+        </p>
+        {/* <div className="space-y-2">
           <h3 className="font-bold text-sm">Key Responsibilities:</h3>
           {jobData.responsibilities.map((item, i) => (
             <div key={i} className="flex gap-2 text-sm text-gray-600">
@@ -305,7 +413,7 @@ const MobileJobDetails = () => {
               <span className="break-words">{item.en}</span>
             </div>
           ))}
-        </div>
+        </div> */}
       </div>
 
       {/* Requirements */}
@@ -316,11 +424,15 @@ const MobileJobDetails = () => {
         <div className="grid grid-cols-1 gap-4">
           <div className="bg-gray-50 p-3 rounded-lg">
             <p className="text-xs text-gray-400">Education</p>
-            <p className="font-semibold text-sm break-words">{jobData.requirements.education.en}</p>
+            <p className="font-semibold text-sm break-words">
+              {jobData.requirements.education.en}
+            </p>
           </div>
           <div className="bg-gray-50 p-3 rounded-lg">
             <p className="text-xs text-gray-400">Experience</p>
-            <p className="font-semibold text-sm break-words">{jobData.requirements.experience.en}</p>
+            <p className="font-semibold text-sm break-words">
+              {jobData.requirements.experience.en}
+            </p>
           </div>
         </div>
       </div>
@@ -335,11 +447,20 @@ const MobileJobDetails = () => {
             <div
               key={i}
               className={`p-3 rounded-lg border-2 ${
-                benefit.available ? "bg-green-50 border-green-100" : "bg-gray-50 border-gray-100 opacity-50"
+                benefit.available
+                  ? "bg-green-50 border-green-100"
+                  : "bg-gray-50 border-gray-100 opacity-50"
               }`}
             >
-              <benefit.icon size={20} className={benefit.available ? "text-green-600" : "text-gray-400"} />
-              <p className="text-xs font-bold mt-1 truncate">{benefit.labelEn}</p>
+              <benefit.icon
+                size={20}
+                className={
+                  benefit.available ? "text-green-600" : "text-gray-400"
+                }
+              />
+              <p className="text-xs font-bold mt-1 truncate">
+                {benefit.labelEn}
+              </p>
             </div>
           ))}
         </div>
@@ -352,19 +473,27 @@ const MobileJobDetails = () => {
         </h2>
         <div className="bg-green-50 p-3 rounded-lg flex justify-between items-center mb-4">
           <span className="text-sm">Payment Reliability</span>
-          <span className="font-bold text-green-700">{jobData.employer.paymentReliability}%</span>
+          <span className="font-bold text-green-700">
+            {jobData.employer.paymentReliability}%
+          </span>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="p-2 bg-gray-50 rounded-lg min-w-0">
-            <p className="text-lg font-bold truncate">{jobData.employer.established}</p>
+            <p className="text-lg font-bold truncate">
+              {jobData.employer.established}
+            </p>
             <p className="text-[10px] text-gray-400 uppercase">Established</p>
           </div>
           <div className="p-2 bg-gray-50 rounded-lg min-w-0">
-            <p className="text-lg font-bold truncate">{jobData.employer.employees}</p>
+            <p className="text-lg font-bold truncate">
+              {jobData.employer.employees}
+            </p>
             <p className="text-[10px] text-gray-400 uppercase">Staff</p>
           </div>
           <div className="p-2 bg-gray-50 rounded-lg min-w-0">
-            <p className="text-lg font-bold truncate">{jobData.employer.rating}★</p>
+            <p className="text-lg font-bold truncate">
+              {jobData.employer.rating}★
+            </p>
             <p className="text-[10px] text-gray-400 uppercase">Rating</p>
           </div>
         </div>
@@ -383,13 +512,16 @@ const MobileJobDetails = () => {
       {/* 🔹 More Jobs Section (REVERTED CSS TO ORIGINAL) */}
       {companyJobs.length > 0 && (
         <div className="bg-white p-4 mt-2 border-b">
-          <h2 className="text-lg font-bold mb-4">More jobs from {jobData.companyEn}</h2>
+          <h2 className="text-lg font-bold mb-4">
+            More jobs from {jobData.companyEn}
+          </h2>
           <div className="space-y-4">
             {companyJobs.map((job) => {
               const companyLogo = job?.employer?.picture
                 ? `data:image/jpeg;base64,${job.employer.picture}`
                 : "https://img.rocket.new/generatedImages/rocket_default_company.png";
-              const companyName = job?.employer?.companyName || jobData.companyEn;
+              const companyName =
+                job?.employer?.companyName || jobData.companyEn;
               return (
                 <div
                   key={job.id}
@@ -402,22 +534,46 @@ const MobileJobDetails = () => {
                 >
                   <div className="flex gap-3">
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                      <img src={companyLogo} alt={companyName} className="w-full h-full object-cover" />
+                      <img
+                        src={companyLogo}
+                        alt={companyName}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-base truncate">{job.jobTitle}</h3>
-                      <p className="text-xs text-gray-500 truncate">{companyName}</p>
+                      <h3 className="font-semibold text-base truncate">
+                        {job.jobTitle}
+                      </h3>
+                      <p className="text-xs text-gray-500 truncate">
+                        {companyName}
+                      </p>
                       <p className="text-xs text-gray-500 mt-1 line-clamp-1">
                         {job.fullWorkAddress || "Location not specified"}
                       </p>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] text-gray-500">
-                        <span className="flex items-center gap-1">💼 {job.experienceLevel || "Any"}</span>
-                        <span className="flex items-center gap-1">⏰ {job.shiftStartTime && job.shiftEndTime ? `${job.shiftStartTime.substring(0, 5)} - ${job.shiftEndTime.substring(0, 5)}` : "Flexible"}</span>
-                        <span className="flex items-center gap-1">👥 {job.numberOfWorkers || 1} needed</span>
+                        <span className="flex items-center gap-1">
+                          💼 {job.experienceLevel || "Any"}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          ⏰{" "}
+                          {job.shiftStartTime && job.shiftEndTime
+                            ? `${job.shiftStartTime.substring(
+                                0,
+                                5
+                              )} - ${job.shiftEndTime.substring(0, 5)}`
+                            : "Flexible"}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          👥 {job.numberOfWorkers || 1} needed
+                        </span>
                       </div>
                       <div className="mt-2 bg-green-50 p-2 rounded-lg inline-block">
-                        <span className="font-bold text-green-700">₹{job.baseWageAmount}</span>
-                        <span className="text-[10px] text-green-600 ml-1 font-medium uppercase">{job.paymentFrequency?.toLowerCase() || "per day"}</span>
+                        <span className="font-bold text-green-700">
+                          ₹{job.baseWageAmount}
+                        </span>
+                        <span className="text-[10px] text-green-600 ml-1 font-medium uppercase">
+                          {job.paymentFrequency?.toLowerCase() || "per day"}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -429,7 +585,10 @@ const MobileJobDetails = () => {
       )}
 
       {/* Floating Action Buttons */}
-      <ApplyNowButton hasApplied={hasApplied} onApply={() => setShowApplicationModal(true)} />
+      <ApplyNowButton
+        hasApplied={hasApplied}
+        onApply={() => setShowApplicationModal(true)}
+      />
 
       <JobApplicationModal
         isOpen={showApplicationModal}
@@ -437,7 +596,7 @@ const MobileJobDetails = () => {
         jobData={jobData}
         workerProfile={workerProfile}
         onSubmit={() => {
-          setHasApplied(true); 
+          setHasApplied(true);
           setShowApplicationModal(false);
         }}
       />
