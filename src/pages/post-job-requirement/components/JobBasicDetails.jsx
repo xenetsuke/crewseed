@@ -1,39 +1,44 @@
-// src/pages/post-job/components/JobBasicDetails.jsx
 import React from "react";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 
 const JobBasicDetails = ({ formData, onChange, errors }) => {
-// Must match backend Enum: IndustryCategory
-const jobCategories = [
-  { value: "CONSTRUCTION", label: "Construction & Trades" },
-  { value: "MANUFACTURING", label: "Manufacturing & Production" },
-  { value: "LOGISTICS", label: "Logistics & Supply Chain" },
-  { value: "HOSPITALITY", label: "Hospitality & Services" },
-  { value: "RETAIL", label: "Retail & Shop Staff" },
+  // Automatically generated date for display purposes
+  // Formatted as "06 Jan 2026" to match your DTO's pattern
+  const today = new Date().toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 
-  { value: "AGRICULTURE", label: "Agriculture & Farming" },
-  { value: "INFRASTRUCTURE", label: "Infrastructure & Public Works" },
-  { value: "TRANSPORTATION", label: "Transportation & Driving" },
-  { value: "WAREHOUSING", label: "Warehousing & Storage" },
-  { value: "FACILITY_MANAGEMENT", label: "Facility Management & Housekeeping" },
-  { value: "HEALTHCARE_SUPPORT", label: "Healthcare Support Staff" },
-  { value: "AUTOMOBILE", label: "Automobile & Mechanics" },
-  { value: "TEXTILE_GARMENTS", label: "Textile & Garments" },
-  { value: "FOOD_PROCESSING", label: "Food Processing & Packaging" },
-  { value: "ENERGY_UTILITIES", label: "Energy, Electrical & Utilities" },
-  { value: "MINING", label: "Mining & Quarrying" },
-  { value: "WASTE_MANAGEMENT", label: "Waste Management & Sanitation" },
-  { value: "DOMESTIC_SERVICES", label: "Domestic & Home Services" },
-  { value: "BEAUTY_WELLNESS", label: "Beauty & Wellness" }
-];
-
+  // Must match backend Enum: IndustryCategory
+  const jobCategories = [
+    { value: "CONSTRUCTION", label: "Construction & Trades" },
+    { value: "MANUFACTURING", label: "Manufacturing & Production" },
+    { value: "LOGISTICS", label: "Logistics & Supply Chain" },
+    { value: "HOSPITALITY", label: "Hospitality & Services" },
+    { value: "RETAIL", label: "Retail & Shop Staff" },
+    { value: "AGRICULTURE", label: "Agriculture & Farming" },
+    { value: "INFRASTRUCTURE", label: "Infrastructure & Public Works" },
+    { value: "TRANSPORTATION", label: "Transportation & Driving" },
+    { value: "WAREHOUSING", label: "Warehousing & Storage" },
+    { value: "FACILITY_MANAGEMENT", label: "Facility Management & Housekeeping" },
+    { value: "HEALTHCARE_SUPPORT", label: "Healthcare Support Staff" },
+    { value: "AUTOMOBILE", label: "Automobile & Mechanics" },
+    { value: "TEXTILE_GARMENTS", label: "Textile & Garments" },
+    { value: "FOOD_PROCESSING", label: "Food Processing & Packaging" },
+    { value: "ENERGY_UTILITIES", label: "Energy, Electrical & Utilities" },
+    { value: "MINING", label: "Mining & Quarrying" },
+    { value: "WASTE_MANAGEMENT", label: "Waste Management & Sanitation" },
+    { value: "DOMESTIC_SERVICES", label: "Domestic & Home Services" },
+    { value: "BEAUTY_WELLNESS", label: "Beauty & Wellness" },
+  ];
 
   // Must match backend Enum: JobType
   const employmentTypes = [
     { value: "PERMANENT", label: "Permanent" },
     { value: "CONTRACT", label: "Contract" },
-    { value: "TEMPORARY", label: "Temporary" }
+    { value: "TEMPORARY", label: "Temporary" },
   ];
 
   // Must match backend Enum: ExperienceLevel
@@ -42,11 +47,11 @@ const jobCategories = [
     { value: "ONE_TO_TWO", label: "1–2 years" },
     { value: "TWO_TO_THREE", label: "2–3 years" },
     { value: "THREE_PLUS", label: "3+ years" },
-    { value: "EXPERT", label: "Expert (5+ years)" }
+    { value: "EXPERT", label: "Expert (5+ years)" },
   ];
 
   // Must match backend Enum: jobRole
-const jobRoles = [
+  const jobRoles = [
     { value: "GENERAL_WORKER", label: "General Worker" },
     { value: "LOADER", label: "Loader" },
     { value: "PACKER", label: "Packer" },
@@ -73,9 +78,8 @@ const jobRoles = [
     { value: "FACTORY_WORKER", label: "Factory Worker" },
     { value: "ROAD_SWEEPER", label: "Road Sweeper" },
     { value: "SHOP_ASSISTANT", label: "Shop Assistant" },
-    { value: "LAB_ASSISTANT", label: "Lab Assistant" }
-];
-
+    { value: "LAB_ASSISTANT", label: "Lab Assistant" },
+  ];
 
   return (
     <div className="card p-6 space-y-6">
@@ -92,6 +96,17 @@ const jobRoles = [
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Post Job Date (Read-Only) */}
+        <div className="md:col-span-2">
+          <Input
+            label="Job Post Date"
+            type="text"
+            value={today}
+            disabled
+            description="This date is automatically set based on your current time"
+          />
+        </div>
+
         {/* Job Title */}
         <div className="md:col-span-2">
           <Input
