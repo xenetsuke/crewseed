@@ -32,6 +32,7 @@ const EmployerRequirements = () => {
     data: null,
   });
   // 1. ADD THIS HELPER
+<<<<<<< Updated upstream
   const getRelativeTime = (dateValue) => {
     if (!dateValue) return "Recently";
     const posted = new Date(dateValue);
@@ -53,6 +54,25 @@ const EmployerRequirements = () => {
       year: "numeric",
     });
   };
+=======
+const getRelativeTime = (dateValue) => {
+  if (!dateValue) return "Recently";
+  const posted = new Date(dateValue);
+  const now = new Date();
+
+  if (isNaN(posted.getTime())) return dateValue;
+
+  const diffInMs = now - posted;
+  const diffInMins = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMins / 60);
+
+  if (diffInMins < 1) return "Just now";
+  if (diffInMins < 60) return `${diffInMins}m ago`;
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  
+  return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+>>>>>>> Stashed changes
 
   useEffect(() => {
     if (!user?.id) return;
@@ -66,10 +86,15 @@ const EmployerRequirements = () => {
           id: job.id,
           title: job.jobTitle || "Job Title Not Provided",
           location: job.fullWorkAddress || "Location not specified",
+<<<<<<< Updated upstream
           postedDate: getRelativeTime(job.postedDate || job.createdAt),
           expiryDate: job.applicationDeadline
             ? new Date(job.applicationDeadline).toDateString()
             : "Not specified",
+=======
+postedDate: getRelativeTime(job.postedDate || job.createdAt),    
+      expiryDate: job.applicationDeadline ? new Date(job.applicationDeadline).toDateString() : "Not specified",
+>>>>>>> Stashed changes
           status: job.jobStatus ? job.jobStatus.toLowerCase() : "draft",
           applications: job.applicants?.length ?? 0,
           views: Math.floor(Math.random() * 300) + 50,
@@ -156,6 +181,10 @@ const EmployerRequirements = () => {
         }`}
       >
         <div className="mx-auto w-full max-w-7xl px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
           {/* HEADER */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -216,18 +245,26 @@ const EmployerRequirements = () => {
             ) : requirements.length === 0 ? (
               <div className="text-center py-14 px-4">
                 <div className="inline-flex p-3 bg-muted rounded-full mb-4">
+<<<<<<< Updated upstream
                   <Icon
                     name="Briefcase"
                     size={28}
                     className="text-muted-foreground"
                   />
+=======
+                  <Icon name="Briefcase" size={28} className="text-muted-foreground" />
+>>>>>>> Stashed changes
                 </div>
                 <h3 className="text-base sm:text-lg font-bold">
                   No jobs posted yet
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground max-w-xs mx-auto mt-2">
+<<<<<<< Updated upstream
                   Start by creating your first job requirement to attract top
                   talent.
+=======
+                  Start by creating your first job requirement to attract top talent.
+>>>>>>> Stashed changes
                 </p>
                 <Button
                   variant="outline"

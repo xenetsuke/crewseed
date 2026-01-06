@@ -67,17 +67,28 @@ const RequirementDetailsPage = () => {
 
   const getRelativeTime = (dateValue) => {
     if (!dateValue) return "Recently";
+<<<<<<< Updated upstream
 
+=======
+    
+>>>>>>> Stashed changes
     // If backend sent "Just now" string, we try to use the actual date if available
     // but if that's all we have, we display it.
     if (dateValue === "Just now") return "Just now";
 
     // Handle "dd MMM yyyy, HH:mm" by removing the comma for JS Date parsing
     let cleanDate = dateValue;
+<<<<<<< Updated upstream
     if (typeof dateValue === "string") {
       cleanDate = dateValue.replace(",", "");
     }
 
+=======
+    if (typeof dateValue === 'string') {
+        cleanDate = dateValue.replace(',', '');
+    }
+    
+>>>>>>> Stashed changes
     const now = new Date();
     const posted = new Date(cleanDate);
 
@@ -97,11 +108,15 @@ const RequirementDetailsPage = () => {
       return `${diffInHours}h ago`;
     }
     // 3. Otherwise show Date
+<<<<<<< Updated upstream
     return posted.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
       year: "numeric",
     });
+=======
+    return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+>>>>>>> Stashed changes
   };
 
   // 🧩 JOB → UI MODEL
@@ -143,7 +158,11 @@ const RequirementDetailsPage = () => {
       const local = applicationStatuses[a.applicantId];
       return {
         ...a,
+<<<<<<< Updated upstream
         id: a.applicantId,
+=======
+        id: a.applicantId, 
+>>>>>>> Stashed changes
         fullName: a.name || a.fullName || "Anonymous Worker",
         profile: a.profile || {
           fullName: a.name || a.fullName,
@@ -161,25 +180,31 @@ const RequirementDetailsPage = () => {
   // 🔘 HANDLERS
   const handleApprove = async (app) => {
     try {
+<<<<<<< Updated upstream
       const payload = {
         id: job.id,
         applicantId: app.applicantId,
         applicationStatus: "UNDER_REVIEW",
       };
+=======
+      const payload = { id: job.id, applicantId: app.applicantId, applicationStatus: "UNDER_REVIEW" };
+>>>>>>> Stashed changes
       await changeAppStatus(payload);
-      setApplicationStatuses((prev) => ({
-        ...prev,
-        [app.applicantId]: { status: "UNDER_REVIEW" },
-      }));
+      setApplicationStatuses(prev => ({ ...prev, [app.applicantId]: { status: "UNDER_REVIEW" } }));
       toast.success("Application shortlisted");
+<<<<<<< Updated upstream
     } catch (err) {
       toast.error("Failed to shortlist");
     }
+=======
+    } catch (err) { toast.error("Failed to shortlist"); }
+>>>>>>> Stashed changes
   };
 
   const handleSelect = async (app) => {
     const appId = app?.applicantId || app?.id;
     try {
+<<<<<<< Updated upstream
       await changeAppStatus({
         id: job.id,
         applicantId: appId,
@@ -193,10 +218,17 @@ const RequirementDetailsPage = () => {
     } catch (err) {
       toast.error("Failed to mark Selected");
     }
+=======
+      await changeAppStatus({ id: job.id, applicantId: appId, applicationStatus: "SELECTED" });
+      setApplicationStatuses(prev => ({ ...prev, [appId]: { status: "SELECTED" } }));
+      toast.success("Worker Selected Successfully");
+    } catch (err) { toast.error("Failed to mark Selected"); }
+>>>>>>> Stashed changes
   };
 
   const handleChangeStatus = async (app) => {
     const appId = app?.applicantId || app?.id;
+<<<<<<< Updated upstream
     const currentStatus =
       applicationStatuses[appId]?.status || app.applicationStatus;
     const newStatus = prompt("Enter new status:", currentStatus);
@@ -215,10 +247,21 @@ const RequirementDetailsPage = () => {
     } catch (err) {
       toast.error("Failed to update status");
     }
+=======
+    const currentStatus = applicationStatuses[appId]?.status || app.applicationStatus;
+    const newStatus = prompt("Enter new status:", currentStatus);
+    if (!newStatus) return;
+    try {
+      await changeAppStatus({ id: job.id, applicantId: appId, applicationStatus: newStatus.toUpperCase() });
+      setApplicationStatuses(prev => ({ ...prev, [appId]: { status: newStatus.toUpperCase() } }));
+      toast.success(`Status updated`);
+    } catch (err) { toast.error("Failed to update status"); }
+>>>>>>> Stashed changes
   };
 
   const handleReject = async (app) => {
     try {
+<<<<<<< Updated upstream
       await changeAppStatus({
         id: job.id,
         applicantId: app.applicantId,
@@ -232,10 +275,17 @@ const RequirementDetailsPage = () => {
     } catch (err) {
       toast.error("Failed to reject");
     }
+=======
+      await changeAppStatus({ id: job.id, applicantId: app.applicantId, applicationStatus: "REJECTED" });
+      setApplicationStatuses(prev => ({ ...prev, [app.applicantId]: { status: "REJECTED" } }));
+      toast.success("Application rejected");
+    } catch (err) { toast.error("Failed to reject"); }
+>>>>>>> Stashed changes
   };
 
   const handleScheduleSubmit = async (data) => {
     try {
+<<<<<<< Updated upstream
       await changeAppStatus({
         id: job.id,
         applicantId: data.applicantId,
@@ -254,12 +304,28 @@ const RequirementDetailsPage = () => {
     } catch (err) {
       toast.error("Failed to schedule interview");
     }
+=======
+      await changeAppStatus({ id: job.id, applicantId: data.applicantId, applicationStatus: "INTERVIEWING", interviewTime: data.interviewTime });
+      setApplicationStatuses(prev => ({ ...prev, [data.applicantId]: { status: "INTERVIEWING", interviewTime: data.interviewTime } }));
+      toast.success("Interview scheduled");
+      setShowScheduleModal(false);
+    } catch (err) { toast.error("Failed to schedule interview"); }
+>>>>>>> Stashed changes
   };
 
-  const handleScheduleInterview = (worker) => {
-    setSelectedWorker(worker);
-    setShowScheduleModal(true);
+  const handleScheduleInterview = (worker) => { setSelectedWorker(worker); setShowScheduleModal(true); };
+  const handleViewProfile = (worker) => { setSelectedWorker(worker); setShowProfileModal(true); };
+
+  const handleCloseJob = async () => {
+    if (!window.confirm("Close this job?")) return;
+    try {
+      setLoading(true);
+      await updateJobStatus(id, "EXPIRED");
+      setJob(prev => ({ ...prev, jobStatus: "EXPIRED" }));
+      toast.success("Job closed");
+    } catch (err) { toast.error("Failed to close job"); } finally { setLoading(false); }
   };
+<<<<<<< Updated upstream
   const handleViewProfile = (worker) => {
     setSelectedWorker(worker);
     setShowProfileModal(true);
@@ -297,13 +363,26 @@ const RequirementDetailsPage = () => {
           sidebarCollapsed ? "sidebar-collapsed" : ""
         }`}
       >
+=======
+
+  if (!id) return <div className="p-10 text-center text-error font-bold">Invalid Job ID</div>;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <EmployerSidebar isCollapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
+      <main className={`main-content ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+>>>>>>> Stashed changes
         <div className="container mx-auto px-4 py-6 max-w-7xl">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+<<<<<<< Updated upstream
               <p className="text-muted-foreground">
                 Fetching requirement details...
               </p>
+=======
+              <p className="text-muted-foreground">Fetching requirement details...</p>
+>>>>>>> Stashed changes
             </div>
           ) : !job ? (
             <div className="text-center py-20">
@@ -317,6 +396,7 @@ const RequirementDetailsPage = () => {
             </div>
           ) : (
             <>
+<<<<<<< Updated upstream
               <RequirementHeader
                 requirement={requirement}
                 onEdit={() => navigate(`/post-job-requirement/${id}`)}
@@ -361,12 +441,25 @@ const RequirementDetailsPage = () => {
                       ],
                     }}
                   />
+=======
+              <RequirementHeader requirement={requirement} onEdit={() => navigate(`/post-job-requirement/${id}`)} onClose={handleCloseJob} />
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                  <RequirementDetails requirement={requirement} />
+                  <ApplicationsList applications={applications} onApprove={handleApprove} onReject={handleReject} onSelect={handleSelect} onChangeStatus={handleChangeStatus} onScheduleInterview={handleScheduleInterview} onViewProfile={handleViewProfile} />
+                  <CandidateComparison applications={applications} />
+                </div>
+                <div className="space-y-6">
+                  <QuickActions onSendMessage={() => toast.success("Message sent")} />
+                  <PerformanceAnalytics analytics={{ totalViews: "842", viewsGrowth: "+12%", totalApplications: applications.length, applicationsGrowth: "+8%", conversionRate: "3.6%", conversionChange: "-0.4%", avgMatchScore: "84%", matchScoreChange: "+2.1%", experienceMatch: "82%", skillsMatch: "88%", locationMatch: "76%", recommendations: ["Increase compensation", "Add clearer skills", "Extend posting", "High demand area"] }} />
+>>>>>>> Stashed changes
                 </div>
               </div>
             </>
           )}
         </div>
       </main>
+<<<<<<< Updated upstream
       <WorkerProfileModal
         worker={selectedWorker}
         isOpen={showProfileModal}
@@ -383,6 +476,10 @@ const RequirementDetailsPage = () => {
         onClose={() => setShowScheduleModal(false)}
         onSchedule={handleScheduleSubmit}
       />
+=======
+      <WorkerProfileModal worker={selectedWorker} isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} onScheduleInterview={handleScheduleInterview} onSelect={handleSelect} onChangeStatus={handleChangeStatus} onApprove={handleApprove} onReject={handleReject} />
+      <ScheduleInterviewModal worker={selectedWorker} isOpen={showScheduleModal} onClose={() => setShowScheduleModal(false)} onSchedule={handleScheduleSubmit} />
+>>>>>>> Stashed changes
     </div>
   );
 };
