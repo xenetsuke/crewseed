@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import Icon from "../../../components/AppIcon";
 import Button from "../../../components/ui/Button";
 
-const RequirementHeader = ({ requirement, onEdit, onClose }) => {
+const RequirementHeader = ({ requirement, onEdit, onClose, onDelete }) => {
 
   if (!requirement) {
     return <div className="card p-6 mb-6 animate-pulse bg-gray-100 h-40">Loading header...</div>;
@@ -21,21 +21,16 @@ const RequirementHeader = ({ requirement, onEdit, onClose }) => {
   const getRelativeTime = (dateValue) => {
     if (!dateValue) return "Recently";
     if (dateValue === "Just now") return "Just now";
-
     let cleanDate = dateValue;
     if (typeof dateValue === 'string') {
         cleanDate = dateValue.replace(',', '');
     }
-
     const now = new Date();
     const posted = new Date(cleanDate);
-
     if (isNaN(posted.getTime())) return dateValue;
-
     const diffInMs = now - posted;
     const diffInMins = Math.floor(diffInMs / (1000 * 60));
     const diffInHours = Math.floor(diffInMins / 60);
-
     if (diffInMins < 60) {
       return diffInMins <= 1 ? "Just now" : `${diffInMins}m ago`;
     }
@@ -78,6 +73,8 @@ const RequirementHeader = ({ requirement, onEdit, onClose }) => {
           {(rawStatus === "ACTIVE" || rawStatus === "OPEN") && (
             <Button variant="destructive" size="sm" iconName="XCircle" iconPosition="left" onClick={onClose}>Close</Button>
           )}
+          {/* 🔹 ADDED DELETE BUTTON */}
+          <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50" iconName="Trash2" iconPosition="left" onClick={onDelete}>Delete</Button>
         </div>
       </div>
 
