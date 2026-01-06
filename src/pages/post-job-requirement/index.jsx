@@ -82,6 +82,41 @@ const PostJobRequirement = () => {
     id: undefined, // For update
   });
 
+  // --- HELPER TO FORMAT DATE FOR YOUR DTO ---
+  const getFormattedDate = () => {
+    const now = new Date();
+    const options = { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    };
+    
+    // Returns format: "06 Jan 2026, 12:30" (Matching your @JsonFormat)
+    return now.toLocaleString('en-GB', options).replace(/,/g, '');
+  };
+  const getFormattedPostedDate = () => {
+  const now = new Date();
+  
+  // Day: 06
+  const day = now.getDate().toString().padStart(2, '0');
+  
+  // Month: Jan
+  const month = now.toLocaleString('en-GB', { month: 'short' });
+  
+  // Year: 2026
+  const year = now.getFullYear();
+  
+  // Time: 14:30
+  const hours = now.getHours().toString().padStart(2, '0');
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+
+  // Returns: "06 Jan 2026, 14:30"
+  return `${day} ${month} ${year}, ${hours}:${minutes}`;
+};
+
   // ---------------- EDIT MODE ----------------
 useEffect(() => {
     if (!jobId || jobId === 0) return; // New job
@@ -177,6 +212,7 @@ useEffect(() => {
 const buildJobDtoPayload = (status) => {
     console.log("Building job payload with status:", status);
     return {
+      postedDate: getFormattedPostedDate(),
       id: formData.id,
       postedBy: user.id,
       jobStatus: status,
