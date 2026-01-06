@@ -11,11 +11,7 @@ import CandidateComparison from "./components/CandidateComparison";
 import QuickActions from "./components/QuickActions";
 import WorkerProfileModal from "./components/WorkerProfileModal";
 import ScheduleInterviewModal from "./components/ScheduleInterviewModal";
-import {
-  getJobsPostedBy,
-  deleteJob,
-  updateJobStatus,
-} from "../../Services/JobService";
+import { getJobsPostedBy, deleteJob, updateJobStatus } from "../../Services/JobService";
 
 // 🔹 Backend API
 import { getJob, changeAppStatus } from "../../Services/JobService";
@@ -67,17 +63,17 @@ const RequirementDetailsPage = () => {
 
   const getRelativeTime = (dateValue) => {
     if (!dateValue) return "Recently";
-
+    
     // If backend sent "Just now" string, we try to use the actual date if available
     // but if that's all we have, we display it.
     if (dateValue === "Just now") return "Just now";
 
     // Handle "dd MMM yyyy, HH:mm" by removing the comma for JS Date parsing
     let cleanDate = dateValue;
-    if (typeof dateValue === "string") {
-      cleanDate = dateValue.replace(",", "");
+    if (typeof dateValue === 'string') {
+        cleanDate = dateValue.replace(',', '');
     }
-
+    
     const now = new Date();
     const posted = new Date(cleanDate);
 
@@ -97,11 +93,7 @@ const RequirementDetailsPage = () => {
       return `${diffInHours}h ago`;
     }
     // 3. Otherwise show Date
-    return posted.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+    return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   // 🧩 JOB → UI MODEL
@@ -143,7 +135,7 @@ const RequirementDetailsPage = () => {
       const local = applicationStatuses[a.applicantId];
       return {
         ...a,
-        id: a.applicantId,
+        id: a.applicantId, 
         fullName: a.name || a.fullName || "Anonymous Worker",
         profile: a.profile || {
           fullName: a.name || a.fullName,
@@ -151,7 +143,7 @@ const RequirementDetailsPage = () => {
           recentAssignments: a.recentAssignments || [],
           Workeravailability: a.isAvailable ?? true,
           about: a.about || a.bio,
-          certifications: a.certifications || [],
+          certifications: a.certifications || []
         },
         applicationStatus: local?.status || a.applicationStatus || "APPLIED",
         interviewTime: local?.interviewTime || a.interviewTime || null,
@@ -161,228 +153,101 @@ const RequirementDetailsPage = () => {
   // 🔘 HANDLERS
   const handleApprove = async (app) => {
     try {
-      const payload = {
-        id: job.id,
-        applicantId: app.applicantId,
-        applicationStatus: "UNDER_REVIEW",
-      };
+      const payload = { id: job.id, applicantId: app.applicantId, applicationStatus: "UNDER_REVIEW" };
       await changeAppStatus(payload);
-      setApplicationStatuses((prev) => ({
-        ...prev,
-        [app.applicantId]: { status: "UNDER_REVIEW" },
-      }));
+      setApplicationStatuses(prev => ({ ...prev, [app.applicantId]: { status: "UNDER_REVIEW" } }));
       toast.success("Application shortlisted");
-    } catch (err) {
-      toast.error("Failed to shortlist");
-    }
+    } catch (err) { toast.error("Failed to shortlist"); }
   };
 
   const handleSelect = async (app) => {
     const appId = app?.applicantId || app?.id;
     try {
-      await changeAppStatus({
-        id: job.id,
-        applicantId: appId,
-        applicationStatus: "SELECTED",
-      });
-      setApplicationStatuses((prev) => ({
-        ...prev,
-        [appId]: { status: "SELECTED" },
-      }));
+      await changeAppStatus({ id: job.id, applicantId: appId, applicationStatus: "SELECTED" });
+      setApplicationStatuses(prev => ({ ...prev, [appId]: { status: "SELECTED" } }));
       toast.success("Worker Selected Successfully");
-    } catch (err) {
-      toast.error("Failed to mark Selected");
-    }
+    } catch (err) { toast.error("Failed to mark Selected"); }
   };
 
   const handleChangeStatus = async (app) => {
     const appId = app?.applicantId || app?.id;
-    const currentStatus =
-      applicationStatuses[appId]?.status || app.applicationStatus;
+    const currentStatus = applicationStatuses[appId]?.status || app.applicationStatus;
     const newStatus = prompt("Enter new status:", currentStatus);
     if (!newStatus) return;
     try {
-      await changeAppStatus({
-        id: job.id,
-        applicantId: appId,
-        applicationStatus: newStatus.toUpperCase(),
-      });
-      setApplicationStatuses((prev) => ({
-        ...prev,
-        [appId]: { status: newStatus.toUpperCase() },
-      }));
+      await changeAppStatus({ id: job.id, applicantId: appId, applicationStatus: newStatus.toUpperCase() });
+      setApplicationStatuses(prev => ({ ...prev, [appId]: { status: newStatus.toUpperCase() } }));
       toast.success(`Status updated`);
-    } catch (err) {
-      toast.error("Failed to update status");
-    }
+    } catch (err) { toast.error("Failed to update status"); }
   };
 
   const handleReject = async (app) => {
     try {
-      await changeAppStatus({
-        id: job.id,
-        applicantId: app.applicantId,
-        applicationStatus: "REJECTED",
-      });
-      setApplicationStatuses((prev) => ({
-        ...prev,
-        [app.applicantId]: { status: "REJECTED" },
-      }));
+      await changeAppStatus({ id: job.id, applicantId: app.applicantId, applicationStatus: "REJECTED" });
+      setApplicationStatuses(prev => ({ ...prev, [app.applicantId]: { status: "REJECTED" } }));
       toast.success("Application rejected");
-    } catch (err) {
-      toast.error("Failed to reject");
-    }
+    } catch (err) { toast.error("Failed to reject"); }
   };
 
   const handleScheduleSubmit = async (data) => {
     try {
-      await changeAppStatus({
-        id: job.id,
-        applicantId: data.applicantId,
-        applicationStatus: "INTERVIEWING",
-        interviewTime: data.interviewTime,
-      });
-      setApplicationStatuses((prev) => ({
-        ...prev,
-        [data.applicantId]: {
-          status: "INTERVIEWING",
-          interviewTime: data.interviewTime,
-        },
-      }));
+      await changeAppStatus({ id: job.id, applicantId: data.applicantId, applicationStatus: "INTERVIEWING", interviewTime: data.interviewTime });
+      setApplicationStatuses(prev => ({ ...prev, [data.applicantId]: { status: "INTERVIEWING", interviewTime: data.interviewTime } }));
       toast.success("Interview scheduled");
       setShowScheduleModal(false);
-    } catch (err) {
-      toast.error("Failed to schedule interview");
-    }
+    } catch (err) { toast.error("Failed to schedule interview"); }
   };
 
-  const handleScheduleInterview = (worker) => {
-    setSelectedWorker(worker);
-    setShowScheduleModal(true);
-  };
-  const handleViewProfile = (worker) => {
-    setSelectedWorker(worker);
-    setShowProfileModal(true);
-  };
+  const handleScheduleInterview = (worker) => { setSelectedWorker(worker); setShowScheduleModal(true); };
+  const handleViewProfile = (worker) => { setSelectedWorker(worker); setShowProfileModal(true); };
 
   const handleCloseJob = async () => {
     if (!window.confirm("Close this job?")) return;
     try {
       setLoading(true);
       await updateJobStatus(id, "EXPIRED");
-      setJob((prev) => ({ ...prev, jobStatus: "EXPIRED" }));
+      setJob(prev => ({ ...prev, jobStatus: "EXPIRED" }));
       toast.success("Job closed");
-    } catch (err) {
-      toast.error("Failed to close job");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { toast.error("Failed to close job"); } finally { setLoading(false); }
   };
 
-  if (!id)
-    return (
-      <div className="p-10 text-center text-error font-bold">
-        Invalid Job ID
-      </div>
-    );
+  if (!id) return <div className="p-10 text-center text-error font-bold">Invalid Job ID</div>;
 
   return (
     <div className="min-h-screen bg-background">
-      <EmployerSidebar
-        isCollapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-      <main
-        className={`main-content ${
-          sidebarCollapsed ? "sidebar-collapsed" : ""
-        }`}
-      >
+      <EmployerSidebar isCollapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
+      <main className={`main-content ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
         <div className="container mx-auto px-4 py-6 max-w-7xl">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-muted-foreground">
-                Fetching requirement details...
-              </p>
+              <p className="text-muted-foreground">Fetching requirement details...</p>
             </div>
           ) : !job ? (
             <div className="text-center py-20">
               <p className="text-error font-bold text-xl">Job Not Found</p>
-              <button
-                onClick={() => navigate(-1)}
-                className="mt-4 text-primary hover:underline"
-              >
-                Go Back
-              </button>
+              <button onClick={() => navigate(-1)} className="mt-4 text-primary hover:underline">Go Back</button>
             </div>
           ) : (
             <>
-              <RequirementHeader
-                requirement={requirement}
-                onEdit={() => navigate(`/post-job-requirement/${id}`)}
-                onClose={handleCloseJob}
-              />
+              <RequirementHeader requirement={requirement} onEdit={() => navigate(`/post-job-requirement/${id}`)} onClose={handleCloseJob} />
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                   <RequirementDetails requirement={requirement} />
-                  <ApplicationsList
-                    applications={applications}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
-                    onSelect={handleSelect}
-                    onChangeStatus={handleChangeStatus}
-                    onScheduleInterview={handleScheduleInterview}
-                    onViewProfile={handleViewProfile}
-                  />
+                  <ApplicationsList applications={applications} onApprove={handleApprove} onReject={handleReject} onSelect={handleSelect} onChangeStatus={handleChangeStatus} onScheduleInterview={handleScheduleInterview} onViewProfile={handleViewProfile} />
                   <CandidateComparison applications={applications} />
                 </div>
                 <div className="space-y-6">
-                  <QuickActions
-                    onSendMessage={() => toast.success("Message sent")}
-                  />
-                  <PerformanceAnalytics
-                    analytics={{
-                      totalViews: "842",
-                      viewsGrowth: "+12%",
-                      totalApplications: applications.length,
-                      applicationsGrowth: "+8%",
-                      conversionRate: "3.6%",
-                      conversionChange: "-0.4%",
-                      avgMatchScore: "84%",
-                      matchScoreChange: "+2.1%",
-                      experienceMatch: "82%",
-                      skillsMatch: "88%",
-                      locationMatch: "76%",
-                      recommendations: [
-                        "Increase compensation",
-                        "Add clearer skills",
-                        "Extend posting",
-                        "High demand area",
-                      ],
-                    }}
-                  />
+                  <QuickActions onSendMessage={() => toast.success("Message sent")} />
+                  <PerformanceAnalytics analytics={{ totalViews: "842", viewsGrowth: "+12%", totalApplications: applications.length, applicationsGrowth: "+8%", conversionRate: "3.6%", conversionChange: "-0.4%", avgMatchScore: "84%", matchScoreChange: "+2.1%", experienceMatch: "82%", skillsMatch: "88%", locationMatch: "76%", recommendations: ["Increase compensation", "Add clearer skills", "Extend posting", "High demand area"] }} />
                 </div>
               </div>
             </>
           )}
         </div>
       </main>
-      <WorkerProfileModal
-        worker={selectedWorker}
-        isOpen={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-        onScheduleInterview={handleScheduleInterview}
-        onSelect={handleSelect}
-        onChangeStatus={handleChangeStatus}
-        onApprove={handleApprove}
-        onReject={handleReject}
-      />
-      <ScheduleInterviewModal
-        worker={selectedWorker}
-        isOpen={showScheduleModal}
-        onClose={() => setShowScheduleModal(false)}
-        onSchedule={handleScheduleSubmit}
-      />
+      <WorkerProfileModal worker={selectedWorker} isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} onScheduleInterview={handleScheduleInterview} onSelect={handleSelect} onChangeStatus={handleChangeStatus} onApprove={handleApprove} onReject={handleReject} />
+      <ScheduleInterviewModal worker={selectedWorker} isOpen={showScheduleModal} onClose={() => setShowScheduleModal(false)} onSchedule={handleScheduleSubmit} />
     </div>
   );
 };

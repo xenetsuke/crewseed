@@ -2,72 +2,74 @@ import axios from "axios";
 import { removeUser } from "../features/UserSlice";
 import { removeJwt } from "../features/JwtSlice";
 
-/* =========================
-   AXIOS INSTANCE
-========================= */
 const axiosInstance = axios.create({
-  // Use your production URL. 
-  // If you are using Vite Proxy in development, this can be "/api"
-  baseURL: "https://bluc-ysbf.onrender.com",
+  baseURL: "/api", // Use the Vite proxy path
 });
 
-/* =========================
-   REQUEST INTERCEPTOR
-   - Strips /api prefix if present
-   - Attaches JWT Token
-========================= */
+// Log request URL before sending
+axiosInstance.interceptors.request.use((config) => {
+  console.log("🔁 Request URL:", config.url);
+  return config;
+});
+
+// Example request
+axiosInstance
+  .get("/api")
+  .then((response) => console.log(response))
+  .catch((error) => console.error(error));
+
+// 🔹 REQUEST INTERCEPTOR (Attach JWT)
 axiosInstance.interceptors.request.use(
   (config) => {
-    /* 🔹 STRIP /api PREFIX 
-       Useful if your frontend services still use "/api/endpoint" 
-       but your baseURL already points to the root */
+    /* 🔹 STRIP /api PREFIX (Vite replacement logic) */
     if (config.url && config.url.startsWith("/api")) {
+      console.log("🔁 Stripping /api from URL:", config.url);
       config.url = config.url.replace("/api", "");
-      console.log("🔁 Stripped /api. New URL:", config.url);
     }
 
     /* 🔹 ATTACH JWT TOKEN */
     let token = localStorage.getItem("token");
 
-    if (token) {
-      try {
-        // Handle cases where token might be a JSON string
-        const parsedToken = JSON.parse(token);
-        token = parsedToken;
-      } catch (e) {
-        // token is already a plain string, do nothing
-      }
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      token = JSON.parse(token);
+    } catch {
+      // token is plain string
     }
 
-    console.log(`🚀 ${config.method?.toUpperCase()} Request to: ${config.url}`);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log("🔐 JWT attached");
+    }
+
+    console.log("🚀 Final API Request:", {
+      method: config.method?.toUpperCase(),
+      url: config.baseURL + config.url,
+    });
+
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 /* =========================
    RESPONSE INTERCEPTOR
-   - Handle 401 Unauthorized (Expired Session)
+   - Handle 401 Unauthorized
 ========================= */
 export const setupResponseInterceptor = (navigate, dispatch) => {
   axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
       if (error?.response?.status === 401) {
-        console.warn("🔐 Unauthorized - Redirecting to login...");
+        console.warn("🔐 Unauthorized - Session expired");
 
-        // Clear Redux State
+        // Clear Redux
         dispatch(removeUser());
         dispatch(removeJwt());
 
-        // Clear Local Storage
+        // Clear Storage
         localStorage.removeItem("token");
-        localStorage.removeItem("user");
 
-        // Redirect to Login
+        // Redirect
         navigate("/login");
       }
       return Promise.reject(error);
