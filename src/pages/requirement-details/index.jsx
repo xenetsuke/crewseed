@@ -63,36 +63,23 @@ const RequirementDetailsPage = () => {
 
   const getRelativeTime = (dateValue) => {
     if (!dateValue) return "Recently";
-    
-    // If backend sent "Just now" string, we try to use the actual date if available
-    // but if that's all we have, we display it.
     if (dateValue === "Just now") return "Just now";
-
-    // Handle "dd MMM yyyy, HH:mm" by removing the comma for JS Date parsing
     let cleanDate = dateValue;
     if (typeof dateValue === 'string') {
         cleanDate = dateValue.replace(',', '');
     }
-    
     const now = new Date();
     const posted = new Date(cleanDate);
-
-    // If parsing fails, return the raw string
     if (isNaN(posted.getTime())) return dateValue;
-
     const diffInMs = now - posted;
     const diffInMins = Math.floor(diffInMs / (1000 * 60));
     const diffInHours = Math.floor(diffInMins / 60);
-
-    // 1. Show Minutes if under 1 hour
     if (diffInMins < 60) {
       return diffInMins <= 1 ? "Just now" : `${diffInMins}m ago`;
     }
-    // 2. Show Hours if under 24 hours
     if (diffInHours < 24) {
       return `${diffInHours}h ago`;
     }
-    // 3. Otherwise show Date
     return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
@@ -103,7 +90,6 @@ const RequirementDetailsPage = () => {
         jobTitle: job.jobTitle || "Untitled Requirement",
         status: job.jobStatus || "DRAFT",
         location: job.fullWorkAddress || `${job.city}, ${job.state}`,
-        // Primary: postedDate from DTO, Fallback: createdAt
         postedDate: getRelativeTime(job.postedDate || job.createdAt),
         expiryDate: job.applicationDeadline
           ? new Date(job.applicationDeadline).toDateString()
@@ -211,6 +197,22 @@ const RequirementDetailsPage = () => {
     } catch (err) { toast.error("Failed to close job"); } finally { setLoading(false); }
   };
 
+  // 🔹 ADDED DELETE LOGIC
+  const handleDeleteJob = async () => {
+    if (!window.confirm("Are you sure you want to delete this job? This action cannot be undone.")) return;
+    try {
+      setLoading(true);
+      await deleteJob(id);
+      toast.success("Job deleted successfully");
+      navigate("/employer-requirements"); // Redirect to list after delete
+    } catch (err) {
+      console.error("Action failed:", err);
+      toast.error("Operation failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!id) return <div className="p-10 text-center text-error font-bold">Invalid Job ID</div>;
 
   return (
@@ -230,7 +232,12 @@ const RequirementDetailsPage = () => {
             </div>
           ) : (
             <>
-              <RequirementHeader requirement={requirement} onEdit={() => navigate(`/post-job-requirement/${id}`)} onClose={handleCloseJob} />
+              <RequirementHeader 
+                requirement={requirement} 
+                onEdit={() => navigate(`/post-job-requirement/${id}`)} 
+                onClose={handleCloseJob} 
+                onDelete={handleDeleteJob} 
+              />
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                   <RequirementDetails requirement={requirement} />
