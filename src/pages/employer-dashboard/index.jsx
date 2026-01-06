@@ -111,15 +111,26 @@ const EmployerDashboard = () => {
         fulfillmentRate: 72
       });
       
-      setRequirements(jobsRes.slice(0, 5).map(job => ({
-        id: job.id,
-        position: job.jobTitle || "Untitled Position",
-        location: job.fullWorkAddress || "Site Location",
-        icon: "HardHat",
-        applications: job.applicants?.length || 0,
-        status: job.jobStatus?.toLowerCase() || "draft",
-        postedDate: job.createdAt ? new Date(job.createdAt).toLocaleDateString() : "Recent",
-      })));
+      setRequirements(
+  jobsRes.slice(0, 5).map(job => ({
+    id: job.id,
+    position: job.jobTitle || "Untitled Position",
+    location: job.fullWorkAddress || "Site Location",
+    icon: "HardHat",
+    applications: job.applicants?.length || 0,
+
+    // 🔥 normalize backend status ONCE
+    status: job.jobStatus === "ACTIVE"
+      ? "active"
+      : job.jobStatus === "EXPIRED"
+      ? "expired"
+      : "draft",
+
+    postedDate: job.createdAt
+      ? new Date(job.createdAt).toLocaleDateString()
+      : "Recent",
+  }))
+);
 
     } catch (err) {
       console.error("Dashboard sync error:", err);
