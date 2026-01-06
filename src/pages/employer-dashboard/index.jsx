@@ -55,6 +55,27 @@ const EmployerDashboard = () => {
     }
   };
 
+  
+// 1. ADD THIS HELPER
+const getRelativeTime = (dateValue) => {
+  if (!dateValue) return "Recently";
+  const posted = new Date(dateValue);
+  const now = new Date();
+
+  if (isNaN(posted.getTime())) return dateValue;
+
+  const diffInMs = now - posted;
+  const diffInMins = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMins / 60);
+
+  if (diffInMins < 1) return "Just now";
+  if (diffInMins < 60) return `${diffInMins}m ago`;
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  
+  return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+
  const fetchData = async () => {
     if (!user?.id) return;
     setIsRefreshing(true);
@@ -111,15 +132,25 @@ const EmployerDashboard = () => {
         fulfillmentRate: 72
       });
       
-      setRequirements(jobsRes.slice(0, 5).map(job => ({
-        id: job.id,
-        position: job.jobTitle || "Untitled Position",
-        location: job.fullWorkAddress || "Site Location",
-        icon: "HardHat",
-        applications: job.applicants?.length || 0,
-        status: job.jobStatus?.toLowerCase() || "draft",
-        postedDate: job.createdAt ? new Date(job.createdAt).toLocaleDateString() : "Recent",
-      })));
+      setRequirements(
+  jobsRes.slice(0, 5).map(job => ({
+    id: job.id,
+    position: job.jobTitle || "Untitled Position",
+    location: job.fullWorkAddress || "Site Location",
+    icon: "HardHat",
+    applications: job.applicants?.length || 0,
+
+    // 🔥 normalize backend status ONCE
+    status: job.jobStatus === "ACTIVE"
+      ? "active"
+      : job.jobStatus === "EXPIRED"
+      ? "expired"
+      : "draft",
+
+  postedDate: getRelativeTime(job.postedDate || job.createdAt),
+
+  }))
+);
 
     } catch (err) {
       console.error("Dashboard sync error:", err);

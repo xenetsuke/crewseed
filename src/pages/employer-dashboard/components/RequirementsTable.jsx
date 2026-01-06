@@ -8,11 +8,11 @@ const RequirementsTable = ({ requirements = [] }) => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      active: { class: 'bg-success/10 text-success border-success/20', label: 'Active' },
-      pending: { class: 'bg-warning/10 text-warning border-warning/20', label: 'Pending' },
-      closed: { class: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Closed' },
-      draft: { class: 'bg-muted text-muted-foreground border-border', label: 'Draft' }
-    };
+  active: { class: 'bg-success/10 text-success border-success/20', label: 'Active' },
+  pending: { class: 'bg-warning/10 text-warning border-warning/20', label: 'Pending' },
+  expired: { class: 'bg-destructive/10 text-destructive border-destructive/20', label: 'Closed' },
+  draft: { class: 'bg-muted text-muted-foreground border-border', label: 'Draft' }
+};
     return statusConfig?.[status?.toLowerCase()] || statusConfig?.draft;
   };
 
