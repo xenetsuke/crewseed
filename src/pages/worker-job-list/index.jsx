@@ -53,6 +53,34 @@ function WorkerJobList() {
   }, [searchExpanded]);
 
   /* =========================================================
+      DATE LOGIC
+  ========================================================= */
+  const getRelativeTime = (dateValue) => {
+    if (!dateValue) return "Recently";
+    
+    // Handle the specific backend format "dd MMM yyyy, HH:mm" if necessary
+    let cleanDate = dateValue;
+    if (typeof dateValue === 'string') {
+        cleanDate = dateValue.replace(',', '');
+    }
+    
+    const posted = new Date(cleanDate);
+    const now = new Date();
+
+    if (isNaN(posted.getTime())) return dateValue;
+
+    const diffInMs = now - posted;
+    const diffInMins = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMins / 60);
+
+    if (diffInMins < 1) return "Just now";
+    if (diffInMins < 60) return `${diffInMins}m ago`;
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    
+    return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  /* =========================================================
       FETCH JOBS
   ========================================================= */
   const loadJobs = async () => {
@@ -201,7 +229,7 @@ function WorkerJobList() {
                   <Icon name="Search" size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                   <Input
                     ref={searchInputRef}
-                    placeholder="Search jobs, companies, or locations"
+                    placeholder="Search jobs, companies..."
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
@@ -236,27 +264,25 @@ function WorkerJobList() {
 
           {showAdvancedFilters && (
             <div className="border-t border-border bg-muted/30 p-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Industry</label>
-                <div className="flex flex-wrap gap-2">
-                  {industryOptions.map((ind) => (
-                    <label key={ind} className="flex items-center gap-2 bg-white px-3 py-1 rounded-md border cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={activeFilters.industry.includes(ind)}
-                        onChange={(e) => {
-                          const newInd = e.target.checked 
-                            ? [...activeFilters.industry, ind] 
-                            : activeFilters.industry.filter(i => i !== ind);
-                          const up = { ...activeFilters, industry: newInd };
-                          setActiveFilters(up);
-                          applyFilters(up);
-                        }}
-                      />
-                      <span className="text-sm">{ind}</span>
-                    </label>
-                  ))}
-                </div>
+              <label className="text-sm font-medium mb-2 block">Industry</label>
+              <div className="flex flex-wrap gap-2">
+                {industryOptions.map((ind) => (
+                  <label key={ind} className="flex items-center gap-2 bg-white px-3 py-1 rounded-md border cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={activeFilters.industry.includes(ind)}
+                      onChange={(e) => {
+                        const newInd = e.target.checked 
+                          ? [...activeFilters.industry, ind] 
+                          : activeFilters.industry.filter(i => i !== ind);
+                        const up = { ...activeFilters, industry: newInd };
+                        setActiveFilters(up);
+                        applyFilters(up);
+                      }}
+                    />
+                    <span className="text-sm">{ind}</span>
+                  </label>
+                ))}
               </div>
             </div>
           )}
@@ -275,8 +301,6 @@ function WorkerJobList() {
             <div className="grid grid-cols-1 gap-4">
               {filteredJobs.map((job) => {
                 const isSaved = profile.savedJobs?.includes(job.id);
-                
-                // 🔥 LOGIC TO GET APPLICATION STATUS
                 const userApplication = job.applicants?.find(app => app.applicantId === user?.id);
                 const appStatus = userApplication?.applicationStatus;
                 const isApplied = !!appStatus;
@@ -289,70 +313,76 @@ function WorkerJobList() {
                 return (
                   <div
                     key={job.id}
-                    className="card p-6 hover:shadow-lg cursor-pointer transition-all"
+                    className="card p-5 hover:shadow-md cursor-pointer transition-all border border-border bg-white rounded-xl"
                     onClick={() => handleViewJobDetails(job.id)}
                   >
                     <div className="flex gap-4">
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-muted flex-shrink-0">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border">
                         <Image src={companyLogo} alt={companyName} className="w-full h-full object-cover" />
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start gap-2">
-                          <h3 className="text-lg font-semibold truncate">{job.jobTitle}</h3>
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-lg font-bold truncate pr-2">{job.jobTitle}</h3>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleSaveJob(job.id); }}
-                            className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                              isSaved ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                            className={`p-2 rounded-full transition-colors ${
+                              isSaved ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted"
                             }`}
                           >
-                            <Icon name="Bookmark" size={14} />
-                            {isSaved ? "Saved" : "Save"}
+                            <Icon name="Bookmark" size={18} fill={isSaved ? "currentColor" : "none"} />
                           </button>
                         </div>
 
-                        <p className="text-sm text-muted-foreground truncate">{companyName}</p>
-                        <p className="text-sm text-muted-foreground truncate">{job.fullWorkAddress}</p>
+                        <p className="text-sm font-medium text-slate-600 truncate">{companyName}</p>
+                        
+                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                          <Icon name="MapPin" size={14} />
+                          <span className="truncate">{job.fullWorkAddress}</span>
+                        </div>
 
-                        <div className="mt-3 bg-primary/5 p-3 rounded-lg flex justify-between items-center">
+                        <div className="mt-4 bg-slate-50 p-3 rounded-lg flex justify-between items-center border border-slate-100">
                           <div>
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold">{job.paymentFrequency || 'Wage'}</p>
-                            <p className="text-xl font-bold text-primary">₹{job.baseWageAmount}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">
+                                {job.paymentFrequency || 'WAGE'}
+                            </p>
+                            <p className="text-lg font-black text-primary">₹{job.baseWageAmount}</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Experience</p>
-                            <p className="text-sm font-semibold">{job?.experienceLevel?.replace('_', ' ') || "Any"}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">EXPERIENCE</p>
+                            <p className="text-sm font-bold text-slate-700">{job?.experienceLevel?.replace('_', ' ') || "Freshers"}</p>
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-4 my-3">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Icon name="Clock" size={14} />
-                            <span>{job?.shiftStartTime || "Flexible"}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Icon name="Users" size={14} />
-                            <span>{job?.numberOfWorkers || 1} needed</span>
+                        <div className="flex items-center justify-between mt-4">
+                          <div className="flex flex-wrap gap-3">
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                              <Icon name="Clock" size={14} className="text-primary" />
+                              <span>{getRelativeTime(job?.postedDate || job?.createdAt)}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                              <Icon name="Users" size={14} className="text-blue-500" />
+                              <span>{job?.numberOfWorkers || 1} open</span>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="flex gap-2 mb-4">
-                          {job?.transportProvided && <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded flex items-center gap-1"><Icon name="Bus" size={12} /> Transport</span>}
-                          {job?.foodProvided && <span className="px-2 py-1 bg-orange-50 text-orange-700 text-xs rounded flex items-center gap-1"><Icon name="UtensilsCrossed" size={12} /> Food</span>}
-                          {job?.accommodationProvided && <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded flex items-center gap-1"><Icon name="Home" size={12} /> Stay</span>}
+                        <div className="flex gap-2 mt-3 mb-4 overflow-x-auto scrollbar-hide">
+                          {job?.transportProvided && <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded border border-blue-100 uppercase">Transport</span>}
+                          {job?.foodProvided && <span className="px-2 py-1 bg-orange-50 text-orange-600 text-[10px] font-bold rounded border border-orange-100 uppercase">Food</span>}
+                          {job?.accommodationProvided && <span className="px-2 py-1 bg-purple-50 text-purple-600 text-[10px] font-bold rounded border border-purple-100 uppercase">Stay</span>}
                         </div>
 
                         <div className="flex gap-3">
-                          <Button variant="outline" fullWidth onClick={(e) => { e.stopPropagation(); handleViewJobDetails(job.id); }}>
-                            View Details
+                          <Button variant="outline" fullWidth className="h-10 text-xs font-bold" onClick={(e) => { e.stopPropagation(); handleViewJobDetails(job.id); }}>
+                            Details
                           </Button>
                           <Button 
                             variant="default" 
                             fullWidth 
+                            className={`h-10 text-xs font-bold ${isApplied ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
                             disabled={isApplied}
-                            className={isApplied ? "!bg-green-600 !text-white !opacity-100" : ""}
                           >
-                            {/* 🔥 Displaying the dynamic status */}
                             {isApplied ? (appStatus === 'APPLIED' ? 'Applied' : appStatus.replace('_', ' ')) : "Apply Now"}
                           </Button>
                         </div>
@@ -366,9 +396,9 @@ function WorkerJobList() {
         </div>
 
         {(activeFilters.quickFilters.length > 0 || searchQuery) && (
-          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20">
-            <Button onClick={handleClearAllFilters} className="shadow-2xl rounded-full px-6">
-              Clear All Filters
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
+            <Button onClick={handleClearAllFilters} className="shadow-xl rounded-full px-6 py-2 h-auto text-sm font-bold">
+              Clear Filters
             </Button>
           </div>
         )}
@@ -377,4 +407,4 @@ function WorkerJobList() {
   );
 }
 
-export default WorkerJobList;   
+export default WorkerJobList;
