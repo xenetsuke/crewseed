@@ -3,7 +3,7 @@ import { removeUser } from "../features/UserSlice";
 import { removeJwt } from "../features/JwtSlice";
 
 const axiosInstance = axios.create({
-  baseURL: "/api", // Use the Vite proxy path
+  baseURL: "https://bluc-ysbf.onrender.com", // Use the Vite proxy path
 });
 
 // Log request URL before sending
