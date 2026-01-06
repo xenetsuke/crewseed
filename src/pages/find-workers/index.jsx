@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Users, Bookmark, Loader2, Search, Filter } from "lucide-react"; 
+import { Users, Bookmark, Loader2, Search, Filter } from "lucide-react";
 
 import EmployerSidebar from "../../components/navigation/EmployerSidebar";
 import DashboardMetrics from "../../components/ui/DashboardMetrics";
@@ -11,7 +11,11 @@ import ComparisonPanel from "./components/ComparisonPanel";
 import WorkerProfileModal from "../requirement-details/components/WorkerProfileModal";
 import ScheduleInterviewModal from "../requirement-details/components/ScheduleInterviewModal";
 
-import { getProfile, getAllProfiles, updateProfile } from "../../Services/ProfileService";
+import {
+  getProfile,
+  getAllProfiles,
+  updateProfile,
+} from "../../Services/ProfileService";
 import { setProfile, changeProfile } from "../../features/ProfileSlice";
 
 const FindWorkers = () => {
@@ -57,8 +61,9 @@ const FindWorkers = () => {
       try {
         setLoading(true);
         const res = await getAllProfiles();
-        const applicants = (res || [])
-          .filter((p) => p.accountType === "APPLICANT");
+        const applicants = (res || []).filter(
+          (p) => p.accountType === "APPLICANT"
+        );
 
         setWorkers(applicants);
         setFilteredWorkers(applicants);
@@ -68,7 +73,7 @@ const FindWorkers = () => {
         setTimeout(() => setLoading(false), 600);
       }
     };
-    
+
     if (user?.id) {
       fetchWorkers();
     }
@@ -95,14 +100,14 @@ const FindWorkers = () => {
     if (!profile?.id) return;
     try {
       let savedWorkers = profile.savedWorkers ? [...profile.savedWorkers] : [];
-      
+
       // Toggle logic: remove if exists, add if not
       savedWorkers = savedWorkers.includes(workerId)
         ? savedWorkers.filter((id) => id !== workerId)
         : [...savedWorkers, workerId];
 
       const updatedProfile = { ...profile, savedWorkers };
-      
+
       // Update Redux state immediately (Optimistic UI)
       dispatch(changeProfile(updatedProfile));
 
@@ -148,13 +153,21 @@ const FindWorkers = () => {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      <main className={`main-content transition-all duration-300 ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+      <main
+        className={`main-content transition-all duration-300 ${
+          sidebarCollapsed ? "sidebar-collapsed" : ""
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-6 py-8">
-          
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Find Talent</h1>
-              <p className="text-slate-500 mt-1">Discover and connect with top-rated workers for your requirements.</p>
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                Find Talent
+              </h1>
+              <p className="text-slate-500 mt-1">
+                Discover and connect with top-rated workers for your
+                requirements.
+              </p>
             </div>
           </div>
 
@@ -165,8 +178,12 @@ const FindWorkers = () => {
                 <div className="absolute w-16 h-16 border-2 border-primary/20 rounded-full"></div>
               </div>
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-slate-800">Searching Profiles</h3>
-                <p className="text-slate-500 text-sm">Curating the best candidates for you...</p>
+                <h3 className="text-lg font-semibold text-slate-800">
+                  Searching Profiles
+                </h3>
+                <p className="text-slate-500 text-sm">
+                  Curating the best candidates for you...
+                </p>
               </div>
             </div>
           ) : (
@@ -174,17 +191,17 @@ const FindWorkers = () => {
               <div className="mb-8">
                 <DashboardMetrics
                   metrics={[
-                    { 
-                        icon: <Users className="w-5 h-5" />, 
-                        label: "Available Workers", 
-                        value: filteredWorkers.length,
-                        color: "bg-blue-500" 
+                    {
+                      icon: <Users className="w-5 h-5" />,
+                      label: "Available Workers",
+                      value: filteredWorkers.length,
+                      color: "bg-blue-500",
                     },
                     {
-                        icon: <Bookmark className="w-5 h-5" />,
-                        label: "Bookmarked",
-                        value: profile?.savedWorkers?.length || 0,
-                        color: "bg-amber-500"
+                      icon: <Bookmark className="w-5 h-5" />,
+                      label: "Bookmarked",
+                      value: profile?.savedWorkers?.length || 0,
+                      color: "bg-amber-500",
                     },
                   ]}
                 />
@@ -220,11 +237,15 @@ const FindWorkers = () => {
                 </div>
               ) : (
                 <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
-                   <div className="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Search className="text-slate-400 w-8 h-8" />
-                   </div>
-                   <h3 className="text-lg font-medium text-slate-900">No workers found</h3>
-                   <p className="text-slate-500">Try adjusting your search keywords or filters.</p>
+                  <div className="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="text-slate-400 w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900">
+                    No workers found
+                  </h3>
+                  <p className="text-slate-500">
+                    Try adjusting your search keywords or filters.
+                  </p>
                 </div>
               )}
             </>
@@ -234,7 +255,9 @@ const FindWorkers = () => {
 
       <ComparisonPanel
         workers={compareList}
-        onRemove={(id) => setCompareList((prev) => prev.filter((w) => w.id !== id))}
+        onRemove={(id) =>
+          setCompareList((prev) => prev.filter((w) => w.id !== id))
+        }
         onClear={() => setCompareList([])}
       />
 
