@@ -55,6 +55,27 @@ const EmployerDashboard = () => {
     }
   };
 
+  
+// 1. ADD THIS HELPER
+const getRelativeTime = (dateValue) => {
+  if (!dateValue) return "Recently";
+  const posted = new Date(dateValue);
+  const now = new Date();
+
+  if (isNaN(posted.getTime())) return dateValue;
+
+  const diffInMs = now - posted;
+  const diffInMins = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMins / 60);
+
+  if (diffInMins < 1) return "Just now";
+  if (diffInMins < 60) return `${diffInMins}m ago`;
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  
+  return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+
  const fetchData = async () => {
     if (!user?.id) return;
     setIsRefreshing(true);
@@ -126,9 +147,8 @@ const EmployerDashboard = () => {
       ? "expired"
       : "draft",
 
-    postedDate: job.createdAt
-      ? new Date(job.createdAt).toLocaleDateString()
-      : "Recent",
+  postedDate: getRelativeTime(job.postedDate || job.createdAt),
+
   }))
 );
 
