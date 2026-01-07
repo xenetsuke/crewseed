@@ -20,6 +20,13 @@ const WorkerProfile = () => {
   const [activeTab, setActiveTab] = useState("personal");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+useEffect(() => {
+  document.querySelectorAll("path").forEach(p => {
+    if (p.getAttribute("d")?.includes("714")) {
+      console.error("❌ FOUND BAD SVG PATH:", p.getAttribute("d"));
+    }
+  });
+}, []);
 
   /** 📌 Fetch Profile from DB on mount */
   useEffect(() => {

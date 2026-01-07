@@ -1,28 +1,20 @@
 import React, { useEffect, useState } from "react";
 import {
   Building2,
-  MapPin,
-  Phone,
-  Mail,
   User,
   Edit2,
-  Plus,
-  Trash2,
-  Bell,
-  Shield,
-  LogOut,
-  ChevronRight,
-  Settings,
-  MessageSquare,
-  AlertCircle,
+  Mail,
+  Phone,
   CreditCard,
+  LogOut,
+  AlertCircle,
 } from "lucide-react";
 
 import EmployerSidebar from "../../components/navigation/EmployerSidebar";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
-import { Checkbox } from "../../components/ui/Checkbox";
+import Icon from "../../components/AppIcon"; // Re-using your Icon component
 
 import { useDispatch, useSelector } from "react-redux";
 import { getProfile, updateProfile } from "../../Services/ProfileService";
@@ -35,12 +27,12 @@ const EmployerProfile = () => {
   const user = useSelector((state) => state.user || {});
   const profile = useSelector((state) => state.profile);
 
+  const [activeTab, setActiveTab] = useState("business"); // Options: 'business', 'personal'
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isEditingCompany, setIsEditingCompany] = useState(false);
   const [isEditingUser, setIsEditingUser] = useState(false);
 
   const [userName, setUserName] = useState("");
-
   const [companyInfo, setCompanyInfo] = useState({
     companyName: "",
     gstNumber: "",
@@ -65,38 +57,40 @@ const EmployerProfile = () => {
     { value: "agriculture", label: "Agro-based Industries" },
   ];
 
+  /** 📌 Fetch Profile from DB on mount */
   useEffect(() => {
     const loadProfile = async () => {
       try {
         if (!user?.id) return;
-
         const res = await getProfile(user.id);
         dispatch(setProfile(res));
-
-        setCompanyInfo({
-          companyName: res.companyName || "",
-          gstNumber: res.gstNumber || "",
-          industryType: res.industryType || "",
-          contactPersonName: res.contactPersonName || "",
-          officialEmail: res.officialEmail || "",
-          phone: res.primaryPhone || "",
-          website: res.Companywebsite || "",
-          panNumber: res.panNumber || "",
-        });
-
-        setUserName(user.name || "");
       } catch (err) {
         console.error("❌ Failed to load employer profile:", err);
       }
     };
-
     loadProfile();
-  }, [user, dispatch]);
+  }, [user?.id, dispatch]);
+
+  /** 📌 Sync local state whenever Redux profile changes */
+  useEffect(() => {
+    if (profile) {
+      setCompanyInfo({
+        companyName: profile.companyName || "",
+        gstNumber: profile.gstNumber || "",
+        industryType: profile.industryType || "",
+        contactPersonName: profile.contactPersonName || "",
+        officialEmail: profile.officialEmail || "",
+        phone: profile.primaryPhone || "",
+        website: profile.Companywebsite || "",
+        panNumber: profile.panNumber || "",
+      });
+      setUserName(user.name || "");
+    }
+  }, [profile, user.name]);
 
   const handleSaveCompanyInfo = async () => {
     try {
       const cleanPhone = companyInfo.phone.replace(/\D/g, "").slice(-10);
-
       const payload = {
         ...profile,
         userId: user.id,
@@ -142,6 +136,11 @@ const EmployerProfile = () => {
     }
   };
 
+  const tabs = [
+    { id: "business", label: "Business Details" },
+    { id: "personal", label: "Personal Information" },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <EmployerSidebar
@@ -149,15 +148,26 @@ const EmployerProfile = () => {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      <main className={`main-content ${sidebarCollapsed ? "sidebar-collapsed" : ""} p-4 md:p-6 transition-all duration-300`}>
+      <main
+        className={`main-content ${
+          sidebarCollapsed ? "sidebar-collapsed" : ""
+        } p-4 md:p-6 transition-all duration-300`}
+      >
         <div className="max-w-5xl mx-auto">
           {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">Profile & Settings</h1>
-            <p className="text-sm md:text-base text-muted-foreground">Manage your Indian business entity details and preferences</p>
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold mb-2">Profile & Settings</h1>
+              <p className="text-sm md:text-base text-muted-foreground">
+                Manage your Indian business entity details and preferences
+              </p>
+            </div>
+            <Button variant="outline" onClick={handleLogout} className="text-red-600 border-red-200">
+              <LogOut className="w-4 h-4 mr-2" /> Logout
+            </Button>
           </div>
 
-          {/* Company Header */}
+          {/* Company Header Card */}
           <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 text-center md:text-left">
               <div className="relative">
@@ -180,113 +190,128 @@ const EmployerProfile = () => {
                   {profile?.industryType || "Industry"} · {profile?.city || "Location"}
                 </p>
                 <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-3">
-                   {profile?.gstNumber && (
-                     <span className="text-[10px] md:text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100">
-                       GST: {profile.gstNumber}
-                     </span>
-                   )}
+                  {profile?.gstNumber && (
+                    <span className="text-[10px] md:text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100">
+                      GST: {profile.gstNumber}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Account Holder Info */}
-          <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
-            <h2 className="text-lg md:text-xl font-semibold mb-4">Personal Information</h2>
-            <div className="w-full md:max-w-md">
-              <Input
-                label="Account Holder Name"
-                value={userName}
-                disabled={!isEditingUser}
-                onChange={(e) => setUserName(e.target.value)}
-                icon={<User className="w-5 h-5 text-gray-400" />}
-              />
+          {/* 📌 Tab Navigation (Matching Worker Profile Style) */}
+          <div className="border-b border-border mb-6">
+            <div className="flex overflow-x-auto scrollbar-hide">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-4 py-2 border-b-2 whitespace-nowrap text-sm transition-all ${
+                    activeTab === tab.id
+                      ? "border-primary text-primary font-medium"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Company Information */}
-          <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <h2 className="text-lg md:text-xl font-semibold">Business Details (India)</h2>
-              <Button
-                variant={isEditingCompany ? "default" : "outline"}
-                onClick={() => (isEditingCompany ? handleSaveCompanyInfo() : setIsEditingCompany(true))}
-                className="w-full sm:w-auto"
-              >
-                {isEditingCompany ? "Save Changes" : "Edit Details"}
-              </Button>
-            </div>
+          {/* Tab Content */}
+          <div className="animate-fade-in">
+            {activeTab === "personal" && (
+              <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
+                <h2 className="text-lg md:text-xl font-semibold mb-4">Personal Information</h2>
+                <div className="w-full md:max-w-md">
+                  <Input
+                    label="Account Holder Name"
+                    value={userName}
+                    disabled={!isEditingUser}
+                    onChange={(e) => setUserName(e.target.value)}
+                    icon={<User className="w-5 h-5 text-gray-400" />}
+                  />
+                </div>
+              </div>
+            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <Input
-                label="Company Name (as per PAN/GST)"
-                value={companyInfo.companyName}
-                disabled={!isEditingCompany}
-                onChange={(e) => setCompanyInfo({ ...companyInfo, companyName: e.target.value })}
-              />
-              <Input
-                label="GSTIN"
-                placeholder="22AAAAA0000A1Z5"
-                value={companyInfo.gstNumber}
-                disabled={!isEditingCompany}
-                onChange={(e) => setCompanyInfo({ ...companyInfo, gstNumber: e.target.value })}
-              />
-              <Input
-                label="Company PAN"
-                placeholder="ABCDE1234F"
-                value={companyInfo.panNumber}
-                disabled={!isEditingCompany}
-                onChange={(e) => setCompanyInfo({ ...companyInfo, panNumber: e.target.value })}
-                icon={<CreditCard className="w-4 h-4 text-gray-400" />}
-              />
-              <Select
-                label="Industry Type"
-                options={industryOptions}
-                value={companyInfo.industryType}
-                disabled={!isEditingCompany}
-                onChange={(value) => setCompanyInfo({ ...companyInfo, industryType: value })}
-              />
-              <Input
-                label="Primary Contact Person"
-                value={companyInfo.contactPersonName}
-                disabled={!isEditingCompany}
-                onChange={(e) => setCompanyInfo({ ...companyInfo, contactPersonName: e.target.value })}
-              />
-              <Input
-                label="Official Email Address"
-                value={companyInfo.officialEmail}
-                disabled={!isEditingCompany}
-                onChange={(e) => setCompanyInfo({ ...companyInfo, officialEmail: e.target.value })}
-                icon={<Mail className="w-4 h-4 text-gray-400" />}
-              />
-              <Input
-                label="Mobile Number"
-                placeholder="+91 00000 00000"
-                value={companyInfo.phone.startsWith('+91') ? companyInfo.phone : `+91 ${companyInfo.phone}`}
-                disabled={!isEditingCompany}
-                onChange={(e) => {
-                    const val = e.target.value.replace('+91 ', '');
-                    setCompanyInfo({ ...companyInfo, phone: val });
-                }}
-                icon={<Phone className="w-4 h-4 text-gray-400" />}
-              />
-              <Input
-                label="Company Website"
-                placeholder="https://www.example.in"
-                value={companyInfo.website}
-                disabled={!isEditingCompany}
-                onChange={(e) => setCompanyInfo({ ...companyInfo, website: e.target.value })}
-              />
-            </div>
-          </div>
+            {activeTab === "business" && (
+              <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                  <h2 className="text-lg md:text-xl font-semibold">Business Details (India)</h2>
+                  <Button
+                    variant={isEditingCompany ? "default" : "outline"}
+                    onClick={() => (isEditingCompany ? handleSaveCompanyInfo() : setIsEditingCompany(true))}
+                    className="w-full sm:w-auto"
+                  >
+                    {isEditingCompany ? "Save Changes" : "Edit Details"}
+                  </Button>
+                </div>
 
-          {/* Account */}
-          <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
-            <h2 className="text-lg md:text-xl font-semibold mb-4">Account Management</h2>
-            <Button variant="destructive" className="w-full" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out from Portal
-            </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  <Input
+                    label="Company Name"
+                    value={companyInfo.companyName}
+                    disabled={!isEditingCompany}
+                    onChange={(e) => setCompanyInfo({ ...companyInfo, companyName: e.target.value })}
+                  />
+                  <Input
+                    label="GSTIN"
+                    placeholder="22AAAAA0000A1Z5"
+                    value={companyInfo.gstNumber}
+                    disabled={!isEditingCompany}
+                    onChange={(e) => setCompanyInfo({ ...companyInfo, gstNumber: e.target.value })}
+                  />
+                  <Input
+                    label="Company PAN"
+                    placeholder="ABCDE1234F"
+                    value={companyInfo.panNumber}
+                    disabled={!isEditingCompany}
+                    onChange={(e) => setCompanyInfo({ ...companyInfo, panNumber: e.target.value })}
+                    icon={<CreditCard className="w-4 h-4 text-gray-400" />}
+                  />
+                  <Select
+                    label="Industry Type"
+                    options={industryOptions}
+                    value={companyInfo.industryType}
+                    disabled={!isEditingCompany}
+                    onChange={(value) => setCompanyInfo({ ...companyInfo, industryType: value })}
+                  />
+                  <Input
+                    label="Primary Contact Person"
+                    value={companyInfo.contactPersonName}
+                    disabled={!isEditingCompany}
+                    onChange={(e) => setCompanyInfo({ ...companyInfo, contactPersonName: e.target.value })}
+                  />
+                  <Input
+                    label="Official Email Address"
+                    value={companyInfo.officialEmail}
+                    disabled={!isEditingCompany}
+                    onChange={(e) => setCompanyInfo({ ...companyInfo, officialEmail: e.target.value })}
+                    icon={<Mail className="w-4 h-4 text-gray-400" />}
+                  />
+                  <Input
+                    label="Mobile Number"
+                    placeholder="+91 00000 00000"
+                    value={companyInfo.phone.startsWith("+91") ? companyInfo.phone : `+91 ${companyInfo.phone}`}
+                    disabled={!isEditingCompany}
+                    onChange={(e) => {
+                      const val = e.target.value.replace("+91 ", "");
+                      setCompanyInfo({ ...companyInfo, phone: val });
+                    }}
+                    icon={<Phone className="w-4 h-4 text-gray-400" />}
+                  />
+                  <Input
+                    label="Company Website"
+                    placeholder="https://www.example.in"
+                    value={companyInfo.website}
+                    disabled={!isEditingCompany}
+                    onChange={(e) => setCompanyInfo({ ...companyInfo, website: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>

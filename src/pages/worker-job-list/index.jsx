@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { useQuery } from "@tanstack/react-query"; // ✅ Added React Query
 
 import WorkerSidebar from "../../components/navigation/WorkerSidebar";
 import Icon from "../../components/AppIcon";
@@ -23,9 +24,8 @@ function WorkerJobList() {
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  const [jobs, setJobs] = useState([]);
+  // ✅ Local state for filtered results only
   const [filteredJobs, setFilteredJobs] = useState([]);
 
   const [activeFilters, setActiveFilters] = useState({
@@ -46,6 +46,21 @@ function WorkerJobList() {
 
   const industryOptions = ['Construction', 'Manufacturing', 'Hospitality', 'Retail', 'Healthcare', 'Transportation'];
 
+  /* =========================================================
+      REACT QUERY: CACHED FETCHING
+  ========================================================= */
+  const { data: jobs = [], isLoading: loading } = useQuery({
+    queryKey: ["allJobs"],
+    queryFn: getAllJobs,
+    staleTime: 5 * 60 * 1000, // 5 mins cache: Stops refetch on tab switch/back button
+    refetchOnWindowFocus: false, // Prevents re-fetching when you click back into the tab
+  });
+
+  // Sync filteredJobs whenever the master 'jobs' list changes
+  useEffect(() => {
+    if (jobs) applyFilters(activeFilters, searchQuery);
+  }, [jobs]);
+
   useEffect(() => {
     if (searchExpanded && searchInputRef?.current) {
       searchInputRef.current.focus();
@@ -57,52 +72,21 @@ function WorkerJobList() {
   ========================================================= */
   const getRelativeTime = (dateValue) => {
     if (!dateValue) return "Recently";
-    
-    // Handle the specific backend format "dd MMM yyyy, HH:mm" if necessary
-    let cleanDate = dateValue;
-    if (typeof dateValue === 'string') {
-        cleanDate = dateValue.replace(',', '');
-    }
-    
+    let cleanDate = typeof dateValue === 'string' ? dateValue.replace(',', '') : dateValue;
     const posted = new Date(cleanDate);
     const now = new Date();
-
     if (isNaN(posted.getTime())) return dateValue;
-
     const diffInMs = now - posted;
     const diffInMins = Math.floor(diffInMs / (1000 * 60));
     const diffInHours = Math.floor(diffInMins / 60);
-
     if (diffInMins < 1) return "Just now";
     if (diffInMins < 60) return `${diffInMins}m ago`;
     if (diffInHours < 24) return `${diffInHours}h ago`;
-    
     return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   /* =========================================================
-      FETCH JOBS
-  ========================================================= */
-  const loadJobs = async () => {
-    setLoading(true);
-    try {
-      const res = await getAllJobs();
-      if (Array.isArray(res)) {
-        setJobs(res);
-        setFilteredJobs(res);
-      }
-    } catch (err) {
-      console.error("Error loading jobs:", err);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadJobs();
-  }, []);
-
-  /* =========================================================
-      FETCH PROFILE
+      FETCH PROFILE (Redux sync)
   ========================================================= */
   useEffect(() => {
     const fetchProfile = async () => {
@@ -119,7 +103,7 @@ function WorkerJobList() {
   }, [profile, user, dispatch]);
 
   /* =========================================================
-      FILTER LOGIC
+      FILTER LOGIC (UI stays the same)
   ========================================================= */
   const applyFilters = (filters = activeFilters, query = searchQuery) => {
     let updated = [...jobs];
@@ -289,7 +273,7 @@ function WorkerJobList() {
         </div>
 
         <div className="p-4">
-          {loading ? (
+          {loading && jobs.length === 0 ? (
             <div className="text-center py-10">Loading jobs...</div>
           ) : filteredJobs.length === 0 ? (
             <div className="text-center py-12">

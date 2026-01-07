@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"; // ✅ Added React Query hooks
 
 import EmployerSidebar from "../../components/navigation/EmployerSidebar";
 import DashboardMetrics from "../../components/ui/DashboardMetrics";
@@ -19,34 +20,29 @@ import {
 
 const EmployerRequirements = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient(); // ✅ Used for cache invalidation
   const user = useSelector((state) => state.user);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [requirements, setRequirements] = useState([]);
   const [viewMode, setViewMode] = useState("table");
-  const [loading, setLoading] = useState(true);
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     title: "",
     message: "",
     data: null,
   });
-  // 1. ADD THIS HELPER
+
   const getRelativeTime = (dateValue) => {
     if (!dateValue) return "Recently";
     const posted = new Date(dateValue);
     const now = new Date();
-
     if (isNaN(posted.getTime())) return dateValue;
-
     const diffInMs = now - posted;
     const diffInMins = Math.floor(diffInMs / (1000 * 60));
     const diffInHours = Math.floor(diffInMins / 60);
-
     if (diffInMins < 1) return "Just now";
     if (diffInMins < 60) return `${diffInMins}m ago`;
     if (diffInHours < 24) return `${diffInHours}h ago`;
-
     return posted.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -54,48 +50,39 @@ const EmployerRequirements = () => {
     });
   };
 
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const loadJobs = async () => {
-      try {
-        setLoading(true);
-        const res = await getJobsPostedBy(user.id);
-
-        const mappedJobs = (res || []).map((job) => ({
-          id: job.id,
-          title: job.jobTitle || "Job Title Not Provided",
-          location: job.fullWorkAddress || "Location not specified",
-          postedDate: getRelativeTime(job.postedDate || job.createdAt),
-          expiryDate: job.applicationDeadline
-            ? new Date(job.applicationDeadline).toDateString()
-            : "Not specified",
-          status: job.jobStatus ? job.jobStatus.toLowerCase() : "draft",
-          applications: job.applicants?.length ?? 0,
-          views: Math.floor(Math.random() * 300) + 50,
-          recentApplicants:
-            job.applicants?.slice(0, 3).map((a) => ({
-              name: a?.name || "Applicant",
-              time: "Recently applied",
-            })) || [],
-          metrics: {
-            applicationRate: "18%",
-            responseTime: "4.2 hrs",
-            qualityScore: "8.3",
-          },
-        }));
-
-        setRequirements(mappedJobs);
-      } catch (err) {
-        console.error("Failed to load employer jobs:", err);
-        setRequirements([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadJobs();
-  }, [user]);
+  /* =========================================================
+      REACT QUERY INTEGRATION
+  ========================================================= */
+  const { data: requirements = [], isLoading: loading } = useQuery({
+    queryKey: ["employerRequirements", user?.id],
+    queryFn: async () => {
+      const res = await getJobsPostedBy(user.id);
+      return (res || []).map((job) => ({
+        id: job.id,
+        title: job.jobTitle || "Job Title Not Provided",
+        location: job.fullWorkAddress || "Location not specified",
+        postedDate: getRelativeTime(job.postedDate || job.createdAt),
+        expiryDate: job.applicationDeadline
+          ? new Date(job.applicationDeadline).toDateString()
+          : "Not specified",
+        status: job.jobStatus ? job.jobStatus.toLowerCase() : "draft",
+        applications: job.applicants?.length ?? 0,
+        views: Math.floor(Math.random() * 300) + 50,
+        recentApplicants:
+          job.applicants?.slice(0, 3).map((a) => ({
+            name: a?.name || "Applicant",
+            time: "Recently applied",
+          })) || [],
+        metrics: {
+          applicationRate: "18%",
+          responseTime: "4.2 hrs",
+          qualityScore: "8.3",
+        },
+      }));
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // Cache for 5 mins
+  });
 
   const handleEdit = (id) => navigate(`/post-job-requirement/${id}`);
   const handleViewDetails = (id) => navigate(`/requirement-details/${id}`);
@@ -113,32 +100,26 @@ const EmployerRequirements = () => {
     setConfirmModal({
       isOpen: true,
       title: "Close Job",
-      message:
-        "Are you sure you want to close this job? It will be marked as EXPIRED and hidden from applicants.",
+      message: "Are you sure you want to close this job? It will be marked as EXPIRED and hidden from applicants.",
       data: id,
     });
   };
 
   const handleConfirmAction = async () => {
     const jobId = confirmModal.data;
-    setLoading(true);
     try {
       if (confirmModal.title === "Delete Job") {
         await deleteJob(jobId);
-        setRequirements((prev) => prev.filter((req) => req.id !== jobId));
       } else if (confirmModal.title === "Close Job") {
         await updateJobStatus(jobId, "EXPIRED");
-        setRequirements((prev) =>
-          prev.map((req) =>
-            req.id === jobId ? { ...req, status: "expired" } : req
-          )
-        );
       }
+      // ✅ Invalidate cache to trigger a clean background update
+      queryClient.invalidateQueries(["employerRequirements", user?.id]);
+      queryClient.invalidateQueries(["employerDashboardData", user?.id]);
     } catch (err) {
       console.error("Action failed:", err);
       alert("Operation failed. Please try again.");
     } finally {
-      setLoading(false);
       setConfirmModal({ isOpen: false, title: "", message: "", data: null });
     }
   };
@@ -156,7 +137,6 @@ const EmployerRequirements = () => {
         }`}
       >
         <div className="mx-auto w-full max-w-7xl px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
-          {/* HEADER */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">
@@ -226,8 +206,7 @@ const EmployerRequirements = () => {
                   No jobs posted yet
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground max-w-xs mx-auto mt-2">
-                  Start by creating your first job requirement to attract top
-                  talent.
+                  Start by creating your first job requirement to attract top talent.
                 </p>
                 <Button
                   variant="outline"
