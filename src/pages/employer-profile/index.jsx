@@ -149,12 +149,20 @@ const EmployerProfile = () => {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      <main className={`main-content ${sidebarCollapsed ? "sidebar-collapsed" : ""} p-4 md:p-6 transition-all duration-300`}>
+      <main
+        className={`main-content ${
+          sidebarCollapsed ? "sidebar-collapsed" : ""
+        } p-4 md:p-6 transition-all duration-300`}
+      >
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">Profile & Settings</h1>
-            <p className="text-sm md:text-base text-muted-foreground">Manage your Indian business entity details and preferences</p>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">
+              Profile & Settings
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground">
+              Manage your Indian business entity details and preferences
+            </p>
           </div>
 
           {/* Company Header */}
@@ -163,28 +171,40 @@ const EmployerProfile = () => {
               <div className="relative">
                 <div className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-4 border-primary/20 shadow">
                   <img
-                    src={profile?.picture ? `data:image/jpeg;base64,${profile.picture}` : "/avatar.png"}
+                    src={
+                      profile?.picture
+                        ? `data:image/jpeg;base64,${profile.picture}`
+                        : "/Avatar.png"
+                    }
                     alt="Company Logo"
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <label className="absolute bottom-0 right-0 w-8 h-8 md:w-9 md:h-9 bg-primary rounded-full cursor-pointer flex items-center justify-center shadow">
                   <Edit2 className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                  <input type="file" accept="image/*" className="hidden" onChange={handleCompanyLogoUpload} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleCompanyLogoUpload}
+                  />
                 </label>
               </div>
 
               <div className="flex-1 w-full">
-                <h1 className="text-xl md:text-2xl font-bold">{profile?.companyName || "Company Name"}</h1>
+                <h1 className="text-xl md:text-2xl font-bold">
+                  {profile?.companyName || "Company Name"}
+                </h1>
                 <p className="text-sm md:text-base text-muted-foreground">
-                  {profile?.industryType || "Industry"} · {profile?.city || "Location"}
+                  {profile?.industryType || "Industry"} ·{" "}
+                  {profile?.city || "Location"}
                 </p>
                 <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-3">
-                   {profile?.gstNumber && (
-                     <span className="text-[10px] md:text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100">
-                       GST: {profile.gstNumber}
-                     </span>
-                   )}
+                  {profile?.gstNumber && (
+                    <span className="text-[10px] md:text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100">
+                      GST: {profile.gstNumber}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -192,7 +212,9 @@ const EmployerProfile = () => {
 
           {/* Account Holder Info */}
           <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
-            <h2 className="text-lg md:text-xl font-semibold mb-4">Personal Information</h2>
+            <h2 className="text-lg md:text-xl font-semibold mb-4">
+              Personal Information
+            </h2>
             <div className="w-full md:max-w-md">
               <Input
                 label="Account Holder Name"
@@ -207,10 +229,16 @@ const EmployerProfile = () => {
           {/* Company Information */}
           <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <h2 className="text-lg md:text-xl font-semibold">Business Details (India)</h2>
+              <h2 className="text-lg md:text-xl font-semibold">
+                Business Details (India)
+              </h2>
               <Button
                 variant={isEditingCompany ? "default" : "outline"}
-                onClick={() => (isEditingCompany ? handleSaveCompanyInfo() : setIsEditingCompany(true))}
+                onClick={() =>
+                  isEditingCompany
+                    ? handleSaveCompanyInfo()
+                    : setIsEditingCompany(true)
+                }
                 className="w-full sm:w-auto"
               >
                 {isEditingCompany ? "Save Changes" : "Edit Details"}
@@ -222,21 +250,30 @@ const EmployerProfile = () => {
                 label="Company Name (as per PAN/GST)"
                 value={companyInfo.companyName}
                 disabled={!isEditingCompany}
-                onChange={(e) => setCompanyInfo({ ...companyInfo, companyName: e.target.value })}
+                onChange={(e) =>
+                  setCompanyInfo({
+                    ...companyInfo,
+                    companyName: e.target.value,
+                  })
+                }
               />
               <Input
                 label="GSTIN"
                 placeholder="22AAAAA0000A1Z5"
                 value={companyInfo.gstNumber}
                 disabled={!isEditingCompany}
-                onChange={(e) => setCompanyInfo({ ...companyInfo, gstNumber: e.target.value })}
+                onChange={(e) =>
+                  setCompanyInfo({ ...companyInfo, gstNumber: e.target.value })
+                }
               />
               <Input
                 label="Company PAN"
                 placeholder="ABCDE1234F"
                 value={companyInfo.panNumber}
                 disabled={!isEditingCompany}
-                onChange={(e) => setCompanyInfo({ ...companyInfo, panNumber: e.target.value })}
+                onChange={(e) =>
+                  setCompanyInfo({ ...companyInfo, panNumber: e.target.value })
+                }
                 icon={<CreditCard className="w-4 h-4 text-gray-400" />}
               />
               <Select
@@ -244,29 +281,45 @@ const EmployerProfile = () => {
                 options={industryOptions}
                 value={companyInfo.industryType}
                 disabled={!isEditingCompany}
-                onChange={(value) => setCompanyInfo({ ...companyInfo, industryType: value })}
+                onChange={(value) =>
+                  setCompanyInfo({ ...companyInfo, industryType: value })
+                }
               />
               <Input
                 label="Primary Contact Person"
                 value={companyInfo.contactPersonName}
                 disabled={!isEditingCompany}
-                onChange={(e) => setCompanyInfo({ ...companyInfo, contactPersonName: e.target.value })}
+                onChange={(e) =>
+                  setCompanyInfo({
+                    ...companyInfo,
+                    contactPersonName: e.target.value,
+                  })
+                }
               />
               <Input
                 label="Official Email Address"
                 value={companyInfo.officialEmail}
                 disabled={!isEditingCompany}
-                onChange={(e) => setCompanyInfo({ ...companyInfo, officialEmail: e.target.value })}
+                onChange={(e) =>
+                  setCompanyInfo({
+                    ...companyInfo,
+                    officialEmail: e.target.value,
+                  })
+                }
                 icon={<Mail className="w-4 h-4 text-gray-400" />}
               />
               <Input
                 label="Mobile Number"
                 placeholder="+91 00000 00000"
-                value={companyInfo.phone.startsWith('+91') ? companyInfo.phone : `+91 ${companyInfo.phone}`}
+                value={
+                  companyInfo.phone.startsWith("+91")
+                    ? companyInfo.phone
+                    : `+91 ${companyInfo.phone}`
+                }
                 disabled={!isEditingCompany}
                 onChange={(e) => {
-                    const val = e.target.value.replace('+91 ', '');
-                    setCompanyInfo({ ...companyInfo, phone: val });
+                  const val = e.target.value.replace("+91 ", "");
+                  setCompanyInfo({ ...companyInfo, phone: val });
                 }}
                 icon={<Phone className="w-4 h-4 text-gray-400" />}
               />
@@ -275,15 +328,23 @@ const EmployerProfile = () => {
                 placeholder="https://www.example.in"
                 value={companyInfo.website}
                 disabled={!isEditingCompany}
-                onChange={(e) => setCompanyInfo({ ...companyInfo, website: e.target.value })}
+                onChange={(e) =>
+                  setCompanyInfo({ ...companyInfo, website: e.target.value })
+                }
               />
             </div>
           </div>
 
           {/* Account */}
           <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
-            <h2 className="text-lg md:text-xl font-semibold mb-4">Account Management</h2>
-            <Button variant="destructive" className="w-full" onClick={handleLogout}>
+            <h2 className="text-lg md:text-xl font-semibold mb-4">
+              Account Management
+            </h2>
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={handleLogout}
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out from Portal
             </Button>
