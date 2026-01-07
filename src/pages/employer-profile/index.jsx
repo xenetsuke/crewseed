@@ -163,7 +163,7 @@ const EmployerProfile = () => {
               <div className="relative">
                 <div className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-4 border-primary/20 shadow">
                   <img
-                    src={profile?.picture ? `data:image/jpeg;base64,${profile.picture}` : "/avatar.png"}
+                    src={profile?.picture ? `data:image/jpeg;base64,${profile.picture}` : "/Avatar.png"}
                     alt="Company Logo"
                     className="w-full h-full object-cover"
                   />
