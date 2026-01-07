@@ -1,20 +1,21 @@
-  import React, { useState, useEffect } from 'react';
-  import { useNavigate } from 'react-router-dom';
-  import { useDispatch, useSelector } from "react-redux";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from "react-redux";
+import { useQuery } from "@tanstack/react-query"; // ✅ Added React Query
 
-  import WorkerSidebar from '../../components/navigation/WorkerSidebar';
-  import Icon from '../../components/AppIcon';
-  import Button from '../../components/ui/Button';
-  import Input from '../../components/ui/Input';
-  import Select from '../../components/ui/Select';
-  import Image from '../../components/AppImage';
+import WorkerSidebar from '../../components/navigation/WorkerSidebar';
+import Icon from '../../components/AppIcon';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
+import Image from '../../components/AppImage';
 
-  // Service & Redux Imports
-  import { getAllJobs } from "../../Services/JobService";
-  import { updateProfile, getProfile } from "../../Services/ProfileService";
-  import { changeProfile, setProfile } from "../../features/ProfileSlice";
+// Service & Redux Imports
+import { getAllJobs } from "../../Services/JobService";
+import { updateProfile, getProfile } from "../../Services/ProfileService";
+import { changeProfile, setProfile } from "../../features/ProfileSlice";
 
-  const WorkerAssignments = () => {
+const WorkerAssignments = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
 
@@ -25,7 +26,6 @@
     // UI State
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [activeTab, setActiveTab] = useState('active'); 
-    const [loading, setLoading] = useState(false);
 
     // Data State
     const [activeAssignments, setActiveAssignments] = useState([]);
@@ -33,61 +33,68 @@
     const [savedJobs, setSavedJobs] = useState([]);
 
     /* =========================================================
-        BACKEND DATA FETCHING
+        REACT QUERY: SHARED CACHED FETCHING
+    ========================================================= */
+    const { data: allJobs = [], isLoading: loading } = useQuery({
+      queryKey: ["allJobs"],
+      queryFn: getAllJobs,
+      staleTime: 5 * 60 * 1000, // 5 mins cache
+      refetchOnWindowFocus: false,
+    });
+
+    /* =========================================================
+        DATA PROCESSING LOGIC
     ========================================================= */
     useEffect(() => {
-      const fetchData = async () => {
-        if (!user?.id) return;
-        setLoading(true);
-        
-        try {
-          if (!profile?.id) {
-            const userProfile = await getProfile(user.id);
-            dispatch(setProfile(userProfile));
-          }
+        if (!user?.id || !allJobs) return;
 
-          const allJobs = await getAllJobs() || [];
-
-          // 1. Identify Applied Jobs (to exclude them from Saved Tab)
-          const appliedJobs = allJobs.filter(job => 
+        // 1. Identify Applied Jobs
+        const appliedJobs = allJobs.filter(job => 
             job.applicants?.some(app => app.applicantId === user.id)
-          );
+        );
 
-          const appliedIds = new Set(appliedJobs.map(j => j.id));
+        const appliedIds = new Set(appliedJobs.map(j => j.id));
 
-          // 2. Filter Active: Added optional chaining (?.) to status check
-          const active = appliedJobs.filter(job => {
+        // 2. Filter Active
+        const active = appliedJobs.filter(job => {
             const myApp = job.applicants?.find(a => a.applicantId === user.id);
             return ['APPLIED', 'UNDER_REVIEW', 'INTERVIEWING'].includes(myApp?.applicationStatus);
-          }).map(job => formatJobData(job, user.id));
+        }).map(job => formatJobData(job, user.id));
 
-          // 3. Filter Completed: Added optional chaining (?.) to status check
-          const completed = appliedJobs.filter(job => {
+        // 3. Filter Completed
+        const completed = appliedJobs.filter(job => {
             const myApp = job.applicants?.find(a => a.applicantId === user.id);
             return ['SELECTED', 'REJECTED', 'JOINED', 'NO_SHOW'].includes(myApp?.applicationStatus);
-          }).map(job => formatJobData(job, user.id));
+        }).map(job => formatJobData(job, user.id));
 
-          // 4. Process Saved Jobs
-          if (profile?.savedJobs) {
+        // 4. Process Saved Jobs
+        if (profile?.savedJobs) {
             const saved = allJobs
-              .filter(job => profile.savedJobs.includes(job.id) && !appliedIds.has(job.id))
-              .map(job => formatJobData(job, user.id));
+                .filter(job => profile.savedJobs.includes(job.id) && !appliedIds.has(job.id))
+                .map(job => formatJobData(job, user.id));
             setSavedJobs(saved);
-          }
-
-          // State update
-          setActiveAssignments(active);
-          setCompletedAssignments(completed);
-
-        } catch (err) {
-          console.error("Error loading assignments:", err);
-        } finally {
-          setLoading(false);
         }
-      };
 
-      fetchData();
-    }, [user?.id, profile?.savedJobs, profile?.id, dispatch]);
+        setActiveAssignments(active);
+        setCompletedAssignments(completed);
+    }, [allJobs, user?.id, profile?.savedJobs]);
+
+    /* =========================================================
+        PROFILE SYNC
+    ========================================================= */
+    useEffect(() => {
+        const fetchProfile = async () => {
+            if (user?.id && !profile?.id) {
+                try {
+                    const userProfile = await getProfile(user.id);
+                    dispatch(setProfile(userProfile));
+                } catch (err) {
+                    console.error("Failed to fetch profile:", err);
+                }
+            }
+        };
+        fetchProfile();
+    }, [user?.id, profile?.id, dispatch]);
 
     const formatJobData = (job, userId) => {
       const myApp = job.applicants?.find(a => a.applicantId === userId);
@@ -125,7 +132,6 @@
     /* =========================================================
         RENDER FUNCTIONS
     ========================================================= */
-
     const renderJobCard = (job, isSavedTab = false) => (
       <div key={job.id} className="card p-4 hover:shadow-md transition-shadow relative">
         <div className="flex gap-4">
@@ -240,7 +246,7 @@
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-6">
-                {loading ? (
+                {loading && allJobs.length === 0 ? (
                   <div className="col-span-full py-20 text-center text-muted-foreground">Loading...</div>
                 ) : activeTab === 'active' ? (
                   activeAssignments.length === 0 ? <div className="col-span-full text-center py-20">No active applications.</div> : activeAssignments.map(job => renderJobCard(job))
@@ -255,6 +261,6 @@
         </main>
       </div>
     );
-  };
+};
 
-  export default WorkerAssignments;
+export default WorkerAssignments;

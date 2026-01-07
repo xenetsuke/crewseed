@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Users, Bookmark, Loader2, Search, Filter } from "lucide-react";
+import { Users, Bookmark, Loader2, Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query"; // ✅ Added for caching
 
 import EmployerSidebar from "../../components/navigation/EmployerSidebar";
 import DashboardMetrics from "../../components/ui/DashboardMetrics";
@@ -24,16 +25,25 @@ const FindWorkers = () => {
   const user = useSelector((state) => state.user);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [workers, setWorkers] = useState([]);
-  const [filteredWorkers, setFilteredWorkers] = useState([]);
-  const [loading, setLoading] = useState(true);
-
   const [searchQuery, setSearchQuery] = useState("");
   const [compareList, setCompareList] = useState([]);
 
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+
+  /* =========================================================
+      FETCH ALL WORKER PROFILES (REACT QUERY CACHING)
+  ========================================================= */
+  const { data: allWorkers = [], isLoading: loading } = useQuery({
+    queryKey: ["workerProfiles"],
+    queryFn: async () => {
+      const res = await getAllProfiles();
+      return (res || []).filter((p) => p.accountType === "APPLICANT");
+    },
+    staleTime: 1000 * 60 * 5, // ✅ Cache data for 5 minutes
+    enabled: !!user?.id,      // Only fetch if user exists
+  });
 
   /* =========================================================
       FETCH CURRENT USER (EMPLOYER) PROFILE
@@ -53,45 +63,17 @@ const FindWorkers = () => {
   }, [profile?.id, user?.id, dispatch]);
 
   /* =========================================================
-      FETCH ALL WORKER PROFILES 
-      (Fixed: Dependency changed to prevent page rolling on save)
+      SEARCH & FILTER LOGIC (MEMOIZED)
   ========================================================= */
-  useEffect(() => {
-    const fetchWorkers = async () => {
-      try {
-        setLoading(true);
-        const res = await getAllProfiles();
-        const applicants = (res || []).filter(
-          (p) => p.accountType === "APPLICANT"
-        );
-
-        setWorkers(applicants);
-        setFilteredWorkers(applicants);
-      } catch (err) {
-        console.error("❌ Failed to load workers", err);
-      } finally {
-        setTimeout(() => setLoading(false), 600);
-      }
-    };
-
-    if (user?.id) {
-      fetchWorkers();
-    }
-  }, [user?.id]); // Removed 'profile' to prevent re-fetching/rolling when saving
-
-  /* =========================================================
-      SEARCH LOGIC
-  ========================================================= */
-  useEffect(() => {
+  const filteredWorkers = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    setFilteredWorkers(
-      workers.filter(
-        (w) =>
-          w.fullName?.toLowerCase().includes(q) ||
-          w.primaryJobRole?.toLowerCase().includes(q)
-      )
+    if (!q) return allWorkers;
+    return allWorkers.filter(
+      (w) =>
+        w.fullName?.toLowerCase().includes(q) ||
+        w.primaryJobRole?.toLowerCase().includes(q)
     );
-  }, [searchQuery, workers]);
+  }, [searchQuery, allWorkers]);
 
   /* =========================================================
       SAVE / BOOKMARK WORKER LOGIC
@@ -101,17 +83,14 @@ const FindWorkers = () => {
     try {
       let savedWorkers = profile.savedWorkers ? [...profile.savedWorkers] : [];
 
-      // Toggle logic: remove if exists, add if not
       savedWorkers = savedWorkers.includes(workerId)
         ? savedWorkers.filter((id) => id !== workerId)
         : [...savedWorkers, workerId];
 
       const updatedProfile = { ...profile, savedWorkers };
 
-      // Update Redux state immediately (Optimistic UI)
+      // Optimistic Update
       dispatch(changeProfile(updatedProfile));
-
-      // Update backend in background
       await updateProfile(updatedProfile);
     } catch (err) {
       console.error("❌ Failed to save worker", err);
@@ -165,8 +144,7 @@ const FindWorkers = () => {
                 Find Talent
               </h1>
               <p className="text-slate-500 mt-1">
-                Discover and connect with top-rated workers for your
-                requirements.
+                Discover and connect with top-rated workers.
               </p>
             </div>
           </div>
@@ -175,15 +153,9 @@ const FindWorkers = () => {
             <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
               <div className="relative flex items-center justify-center">
                 <Loader2 className="w-12 h-12 text-primary animate-spin" />
-                <div className="absolute w-16 h-16 border-2 border-primary/20 rounded-full"></div>
               </div>
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-slate-800">
-                  Searching Profiles
-                </h3>
-                <p className="text-slate-500 text-sm">
-                  Curating the best candidates for you...
-                </p>
+                <h3 className="text-lg font-semibold text-slate-800">Searching Profiles</h3>
               </div>
             </div>
           ) : (
@@ -240,12 +212,7 @@ const FindWorkers = () => {
                   <div className="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Search className="text-slate-400 w-8 h-8" />
                   </div>
-                  <h3 className="text-lg font-medium text-slate-900">
-                    No workers found
-                  </h3>
-                  <p className="text-slate-500">
-                    Try adjusting your search keywords or filters.
-                  </p>
+                  <h3 className="text-lg font-medium text-slate-900">No workers found</h3>
                 </div>
               )}
             </>
@@ -255,9 +222,7 @@ const FindWorkers = () => {
 
       <ComparisonPanel
         workers={compareList}
-        onRemove={(id) =>
-          setCompareList((prev) => prev.filter((w) => w.id !== id))
-        }
+        onRemove={(id) => setCompareList((prev) => prev.filter((w) => w.id !== id))}
         onClear={() => setCompareList([])}
       />
 

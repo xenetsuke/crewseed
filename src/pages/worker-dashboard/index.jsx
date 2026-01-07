@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
@@ -17,8 +16,9 @@ const WorkerDashboard = () => {
   const user = useSelector((state) => state.user);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  // Synchronized with backend field 'availabilityStatus'
-  const [isAvailable, setIsAvailable] = useState(profile?.availabilityStatus ?? true);
+  
+  // 📌 Updated: Synchronized with backend field 'Workeravailability'
+  const [isAvailable, setIsAvailable] = useState(profile?.Workeravailability ?? true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [recommendedJobs, setRecommendedJobs] = useState([]);
@@ -74,20 +74,19 @@ const WorkerDashboard = () => {
     return activities.slice(0, 5);
   };
 
-  // Sync internal state when profile loads from Redux/Backend
+  // 📌 Updated: Sync internal state with 'Workeravailability' from Redux
   useEffect(() => {
     if (profile && profile.Workeravailability !== undefined) {
       setIsAvailable(profile.Workeravailability);
     }
   }, [profile]);
 
+  // 📌 Updated: Handle toggle specifically for 'Workeravailability'
   const handleAvailabilityToggle = async () => {
     const newStatus = !isAvailable;
-    // Optimistic UI update
     setIsAvailable(newStatus);
     
     try {
-      // Create payload matching your updateProfile requirements
       const updatedProfile = { 
         ...profile, 
         id: user.id || profile.id, 
@@ -98,7 +97,6 @@ const WorkerDashboard = () => {
       dispatch(setProfile(savedProfile));
     } catch (err) {
       console.error("Failed to update availability:", err);
-      // Revert UI on error
       setIsAvailable(!newStatus);
     }
   };
@@ -299,7 +297,6 @@ const WorkerDashboard = () => {
                 </div>
               </section>
 
-              {/* FINANCIAL PART */}
               <section className="card p-6 bg-card border-none shadow-sm relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                     <Icon name="TrendingUp" size={40} className="text-success" />
@@ -346,4 +343,5 @@ const WorkerDashboard = () => {
     </div>
   );
 };
+
 export default WorkerDashboard;

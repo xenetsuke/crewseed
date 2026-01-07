@@ -27,65 +27,41 @@ const JobApplicationModal = ({ isOpen, onClose, jobData, onSubmit }) => {
 
   /**
    * 🛠 EFFECT: AUTO-FILL LOGIC
-   * This effect runs every time the Modal opens OR the backendProfile changes.
-   * If Redux was empty when the modal first opened, this will "re-fill" the form
-   * as soon as the data arrives from the backend.
    */
   useEffect(() => {
     if (isOpen) {
-      console.log("📂 Modal Opened. Checking Redux Profile Data...", backendProfile);
-
       if (backendProfile && Object.keys(backendProfile).length > 0) {
-        // Extract nested objects safely
         const prof = backendProfile?.professionalInfo || {};
         const docs = backendProfile?.documents || {};
         const history = backendProfile?.workHistory || {};
 
         const filledData = {
-          // PERSONAL INFO
           fullName: backendProfile?.fullName || "",
           phone: backendProfile?.primaryPhone || "",
           alternatePhone: backendProfile?.alternatePhone || "",
           email: backendProfile?.email || "",
-
-          // ADDRESS
           address: backendProfile?.address || "",
           city: backendProfile?.currentCity || "",
           state: backendProfile?.currentState || "",
           pincode: backendProfile?.pincode || "",
-
-          // PROFESSIONAL INFO
           primaryJobRole: backendProfile?.primaryJobRole || "",
           skills: Array.isArray(prof?.skills) ? prof.skills.join(", ") : "",
           experience: prof?.yearsExperience || "",
           education: prof?.education || "",
           expectedWage: prof?.expectedDailyWage || "",
           shiftPreference: prof?.shiftPreference || "",
-
-          // DOCUMENTS
           aadhaarNumber: docs?.aadhaar?.number || "",
           panNumber: docs?.pan?.number || "",
-
-          // WORK HISTORY
-          previousCompanies:
-            history?.recentAssignments?.map((a) => a?.company)?.join(", ") || "",
-
-          // DEFAULT/CUSTOM FIELDS
+          previousCompanies: history?.recentAssignments?.map((a) => a?.company)?.join(", ") || "",
           availableFrom: new Date().toISOString().split("T")[0],
-          coverLetter: formData.coverLetter || "", // Retain typed text if already present
+          coverLetter: formData.coverLetter || "", 
         };
 
         setFormData(filledData);
-        console.log("✅ Form Data Auto-Filled successfully:", filledData);
-      } else {
-        console.warn("⚠️ Modal is open but Redux 'profile' is empty. Ensure getProfile is called in the parent component.");
       }
     }
-  }, [isOpen, backendProfile]); // Dependency array ensures it re-runs when profile data arrives
+  }, [isOpen, backendProfile]); 
 
-  // ----------------------------
-  // HANDLERS
-  // ----------------------------
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -95,9 +71,6 @@ const JobApplicationModal = ({ isOpen, onClose, jobData, onSubmit }) => {
     const e = {};
     if (!formData.fullName?.trim()) e.fullName = "Full name required";
     if (!formData.phone) e.phone = "Phone number required";
-    if (formData.phone && !/^[+]?[0-9]{10,15}$/.test(String(formData.phone).replace(/\s/g, ""))) {
-      e.phone = "Invalid phone number";
-    }
     if (!formData.address?.trim()) e.address = "Address required";
 
     setErrors(e);
@@ -107,7 +80,6 @@ const JobApplicationModal = ({ isOpen, onClose, jobData, onSubmit }) => {
   const handleSubmit = async () => {
     if (!validateForm()) return;
     setIsSubmitting(true);
-    console.log("🚀 Submitting Application for User ID:", user?.id);
 
     try {
       const applicantDTO = {
@@ -115,14 +87,13 @@ const JobApplicationModal = ({ isOpen, onClose, jobData, onSubmit }) => {
         name: formData.fullName || "",
         email: formData.email || "",
         phone: Number(formData.phone) || 0,
-        resume: "", // Add logic for file upload if needed
+        resume: "", 
         coverLetter: formData.coverLetter || "",
         timestamp: new Date().toISOString(),
-        applicationStatus: "UNDER_REVIEW",
+        applicationStatus: "APPLIED", // Changed to match typical backend status
       };
 
       await applyJob(applicantDTO, jobData?.id);
-      console.log("🎉 Application Submitted Successfully!");
       
       if (onSubmit) onSubmit();
       onClose();
@@ -137,9 +108,6 @@ const JobApplicationModal = ({ isOpen, onClose, jobData, onSubmit }) => {
 
   if (!isOpen) return null;
 
-  // ----------------------------
-  // HELPER COMPONENT FOR FIELDS
-  // ----------------------------
   const renderField = (label, field, IconComp, type = "text") => {
     const value = formData[field] || "";
     const editing = isEditing[field];
@@ -197,20 +165,17 @@ const JobApplicationModal = ({ isOpen, onClose, jobData, onSubmit }) => {
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4">
       <div className="bg-white w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         
-        {/* HEADER */}
         <div className="p-5 border-b flex justify-between items-center bg-gray-50">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Apply for {jobData?.title}</h2>
-            <p className="text-sm text-blue-600 font-medium">{jobData?.company?.name || "Premium Employer"}</p>
+            <h2 className="text-xl font-bold text-gray-900">Apply for {jobData?.titleEn}</h2>
+            <p className="text-sm text-blue-600 font-medium">{jobData?.companyEn || "Premium Employer"}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
             <X className="w-6 h-6 text-gray-500" />
           </button>
         </div>
 
-        {/* SCROLLABLE FORM BODY */}
         <div className="p-6 overflow-y-auto flex-1">
-          {/* Section: Personal */}
           <div className="mb-8">
             <h3 className="font-bold mb-4 flex gap-2 text-gray-800 border-b pb-2">
               <User className="w-5 h-5 text-blue-600" /> Personal Information
@@ -222,7 +187,6 @@ const JobApplicationModal = ({ isOpen, onClose, jobData, onSubmit }) => {
             </div>
           </div>
 
-          {/* Section: Address */}
           <div className="mb-8">
             <h3 className="font-bold mb-4 flex gap-2 text-gray-800 border-b pb-2">
               <MapPin className="w-5 h-5 text-blue-600" /> Location Details
@@ -234,7 +198,6 @@ const JobApplicationModal = ({ isOpen, onClose, jobData, onSubmit }) => {
             </div>
           </div>
 
-          {/* Section: Professional */}
           <div className="mb-8">
             <h3 className="font-bold mb-4 flex gap-2 text-gray-800 border-b pb-2">
               <Briefcase className="w-5 h-5 text-blue-600" /> Professional Info
@@ -247,7 +210,6 @@ const JobApplicationModal = ({ isOpen, onClose, jobData, onSubmit }) => {
             </div>
           </div>
 
-          {/* Section: Cover Letter */}
           <div className="mb-4">
             <label className="block text-sm font-bold text-gray-700 mb-2 flex gap-2">
               <FileText className="w-4 h-4 text-blue-600" /> Why should we hire you? (Cover Letter)
@@ -269,7 +231,6 @@ const JobApplicationModal = ({ isOpen, onClose, jobData, onSubmit }) => {
           )}
         </div>
 
-        {/* FOOTER ACTIONS */}
         <div className="p-4 bg-gray-50 border-t flex gap-3">
           <button
             onClick={onClose}

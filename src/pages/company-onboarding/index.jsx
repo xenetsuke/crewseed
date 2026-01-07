@@ -6,7 +6,7 @@ import {
   Mail,
   User,
   FileText,
-  MapPinned,
+  // MapPin,
   ChevronLeft,
   ChevronRight,
   Check
@@ -306,7 +306,7 @@ const CompanyOnboarding = () => {
           onChange={(e) => handleInputChange('pincode', e.target.value)}
           error={errors.pincode}
           maxLength={6}
-          icon={<MapPinned className="w-5 h-5 text-gray-400" />}
+          icon={<MapPin className="w-5 h-5 text-gray-400" />}
         />
       </div>
 

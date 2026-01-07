@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
+import { useQuery } from '@tanstack/react-query'; // ✅ Added for caching
 import EmployerSidebar from '../../components/navigation/EmployerSidebar';
 import RequirementsTable from './components/RequirementsTable';
 import ActivityFeed from './components/ActivityFeed';
@@ -21,17 +22,78 @@ const EmployerDashboard = () => {
   const dispatch = useDispatch();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [workerCount, setWorkerCount] = useState(0);
-  const [jobStats, setJobStats] = useState({ active: 0, totalApplicants: 0, fulfillmentRate: 65 });
-  const [requirements, setRequirements] = useState([]);
-  const [pipelineWorkers, setPipelineWorkers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+
+  /* =========================================================
+      DATA FETCHING & CACHING (REACT QUERY)
+  ========================================================= */
+  const { data, isLoading: loading, refetch } = useQuery({
+    queryKey: ["employerDashboardData", user?.id],
+    queryFn: async () => {
+      const [profileRes, jobsRes] = await Promise.all([
+        getAllProfiles(),
+        getJobsPostedBy(user.id)
+      ]);
+
+      const allWorkers = (profileRes || []).filter(p => p.accountType === "APPLICANT");
+      
+      const workerStatusMap = {};
+      jobsRes.forEach(job => {
+        job.applicants?.forEach(app => {
+          workerStatusMap[app.applicantId] = app.applicationStatus?.toUpperCase();
+        });
+      });
+
+      // Maintain original mapping logic
+      const pipeline = allWorkers.map((w) => {
+        const status = workerStatusMap[w.id];
+        if (["APPLIED", "UNDER_REVIEW", "INTERVIEWING"].includes(status)) {
+          return { ...w, applicationStatus: status, pipelineStatus: 'Under Review' };
+        }
+        if (["SELECTED", "JOINED"].includes(status)) {
+          return { ...w, applicationStatus: status, pipelineStatus: 'hired' };
+        }
+        if (profile?.savedWorkers?.includes(w.id)) {
+          return { ...w, pipelineStatus: 'saved' };
+        }
+        return { ...w, pipelineStatus: 'unassigned' };
+      });
+
+      const formattedRequirements = jobsRes.slice(0, 5).map(job => ({
+        id: job.id,
+        position: job.jobTitle || "Untitled Position",
+        location: job.fullWorkAddress || "Site Location",
+        icon: "HardHat",
+        applications: job.applicants?.length || 0,
+        status: job.jobStatus === "ACTIVE" ? "active" : job.jobStatus === "EXPIRED" ? "expired" : "draft",
+        postedDate: getRelativeTime(job.postedDate || job.createdAt),
+      }));
+
+      return {
+        pipelineWorkers: pipeline,
+        requirements: formattedRequirements,
+        workerCount: allWorkers.length,
+        jobStats: {
+          active: jobsRes.filter(j => j.jobStatus?.toLowerCase() === 'active').length,
+          totalApplicants: jobsRes.reduce((sum, job) => sum + (job.applicants?.length || 0), 0),
+          fulfillmentRate: 72
+        }
+      };
+    },
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    enabled: !!user?.id,
+  });
+
+  // Extract data with fallbacks for first render
+  const pipelineWorkers = data?.pipelineWorkers || [];
+  const requirements = data?.requirements || [];
+  const workerCount = data?.workerCount || 0;
+  const jobStats = data?.jobStats || { active: 0, totalApplicants: 0, fulfillmentRate: 65 };
 
   const getGreeting = () => {
     const hour = currentTime.getHours();
@@ -55,127 +117,30 @@ const EmployerDashboard = () => {
     }
   };
 
-  
-// 1. ADD THIS HELPER
-const getRelativeTime = (dateValue) => {
-  if (!dateValue) return "Recently";
-  const posted = new Date(dateValue);
-  const now = new Date();
+  function getRelativeTime(dateValue) {
+    if (!dateValue) return "Recently";
+    const posted = new Date(dateValue);
+    const now = new Date();
+    if (isNaN(posted.getTime())) return dateValue;
+    const diffInMs = now - posted;
+    const diffInMins = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMins / 60);
+    if (diffInMins < 1) return "Just now";
+    if (diffInMins < 60) return `${diffInMins}m ago`;
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
 
-  if (isNaN(posted.getTime())) return dateValue;
-
-  const diffInMs = now - posted;
-  const diffInMins = Math.floor(diffInMs / (1000 * 60));
-  const diffInHours = Math.floor(diffInMins / 60);
-
-  if (diffInMins < 1) return "Just now";
-  if (diffInMins < 60) return `${diffInMins}m ago`;
-  if (diffInHours < 24) return `${diffInHours}h ago`;
-  
-  return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-};
-
-
- const fetchData = async () => {
-    if (!user?.id) return;
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    try {
-      setLoading(true);
-      const [profileRes, jobsRes] = await Promise.all([
-        getAllProfiles(),
-        getJobsPostedBy(user.id)
-      ]);
-
-      const allWorkers = (profileRes || []).filter(p => p.accountType === "APPLICANT");
-      setWorkerCount(allWorkers.length);
-
-      // Create a map of workerId -> applicationStatus across all employer's jobs
-      const workerStatusMap = {};
-      jobsRes.forEach(job => {
-        job.applicants?.forEach(app => {
-          // Store the status for this worker (assuming one application per worker for simplicity)
-          workerStatusMap[app.applicantId] = app.applicationStatus?.toUpperCase();
-        });
-      });
-
-      /* =========================================================
-          STRICT PIPELINE MAPPING LOGIC
-      ========================================================= */
-      const pipeline = allWorkers.map((w) => {
-        // 1. Get status from our mapped applications
-        const status = workerStatusMap[w.id];
-
-        // 2. Map Under Review (Logic from WorkerAssignments 'active')
-        if (["APPLIED", "UNDER_REVIEW", "INTERVIEWING"].includes(status)) {
-          return { ...w, applicationStatus: status, pipelineStatus: 'Under Review' };
-        }
-
-        // 3. Map Hired/Completed (Logic from WorkerAssignments 'completed')
-        if (["SELECTED", "JOINED"].includes(status)) {
-          return { ...w, applicationStatus: status, pipelineStatus: 'hired' };
-        }
-
-        // 4. Check if Saved (Only if not already in an active application state, 
-        // or you can prioritize Saved status depending on your preference)
-        if (profile?.savedWorkers?.includes(w.id)) {
-          return { ...w, pipelineStatus: 'saved' };
-        }
-
-        return { ...w, pipelineStatus: 'unassigned' };
-      });
-
-      setPipelineWorkers(pipeline);
-
-      setJobStats({
-        active: jobsRes.filter(j => j.jobStatus?.toLowerCase() === 'active').length,
-        totalApplicants: jobsRes.reduce((sum, job) => sum + (job.applicants?.length || 0), 0),
-        fulfillmentRate: 72
-      });
-      
-      setRequirements(
-  jobsRes.slice(0, 5).map(job => ({
-    id: job.id,
-    position: job.jobTitle || "Untitled Position",
-    location: job.fullWorkAddress || "Site Location",
-    icon: "HardHat",
-    applications: job.applicants?.length || 0,
-
-    // 🔥 normalize backend status ONCE
-    status: job.jobStatus === "ACTIVE"
-      ? "active"
-      : job.jobStatus === "EXPIRED"
-      ? "expired"
-      : "draft",
-
-  postedDate: getRelativeTime(job.postedDate || job.createdAt),
-
-  }))
-);
-
-    } catch (err) {
-      console.error("Dashboard sync error:", err);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
+    await refetch();
+    setIsRefreshing(false);
   };
-  useEffect(() => {
-    if (!profile?.savedWorkers?.length || pipelineWorkers.length === 0) return;
-
-    setPipelineWorkers(prev =>
-      prev.map(worker =>
-        profile.savedWorkers.includes(worker.id)
-          ? { ...worker, pipelineStatus: 'saved' }
-          : worker
-      )
-    );
-  }, [profile?.savedWorkers]);
 
   useEffect(() => {
-    fetchData();
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
-  }, [user?.id]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -198,7 +163,7 @@ const getRelativeTime = (dateValue) => {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <button onClick={fetchData} className="p-2.5 rounded-xl border bg-card hover:bg-muted transition-all active:scale-95 shadow-sm">
+              <button onClick={handleRefresh} className="p-2.5 rounded-xl border bg-card hover:bg-muted transition-all active:scale-95 shadow-sm">
                 <Icon name="RefreshCw" size={20} className={isRefreshing ? "animate-spin text-primary" : "text-muted-foreground"} />
               </button>
               <button
@@ -258,7 +223,7 @@ const getRelativeTime = (dateValue) => {
                       const updatedProfile = { ...profile, savedWorkers };
                       await updateProfile(updatedProfile);
                       dispatch(changeProfile(updatedProfile));
-                      setPipelineWorkers(prev => prev.filter(w => w.id !== workerId));
+                      refetch(); // ✅ Refresh the query data
                     } catch (err) {
                       console.error("❌ Failed to remove worker", err);
                     }
@@ -334,4 +299,4 @@ const getRelativeTime = (dateValue) => {
   );
 };
 
-export default EmployerDashboard;
+export default EmployerDashboard; 

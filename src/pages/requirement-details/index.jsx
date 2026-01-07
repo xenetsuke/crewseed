@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"; // ✅ Added React Query hooks
 import toast from "react-hot-toast";
 
 import EmployerSidebar from "../../components/navigation/EmployerSidebar";
@@ -11,177 +12,134 @@ import CandidateComparison from "./components/CandidateComparison";
 import QuickActions from "./components/QuickActions";
 import WorkerProfileModal from "./components/WorkerProfileModal";
 import ScheduleInterviewModal from "./components/ScheduleInterviewModal";
-import { getJobsPostedBy, deleteJob, updateJobStatus } from "../../Services/JobService";
 
 // 🔹 Backend API
-import { getJob, changeAppStatus } from "../../Services/JobService";
+import { getJob, changeAppStatus, updateJobStatus, deleteJob } from "../../Services/JobService";
 
 const RequirementDetailsPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const queryClient = useQueryClient(); // ✅ For cache management
 
-  // 🧠 STATE
+  // 🧠 UI STATE (Kept minimal as per instructions)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [job, setJob] = useState(null);
-  const [loading, setLoading] = useState(true);
-
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
 
-  const [applicationStatuses, setApplicationStatuses] = useState({});
+  /* =========================================================
+      REACT QUERY FETCHING
+  ========================================================= */
+  const { data: job, isLoading: loading, refetch } = useQuery({
+    queryKey: ["requirementDetail", id],
+    queryFn: () => getJob(id),
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
 
-  // 🔥 FETCH JOB
-  useEffect(() => {
-    const loadJob = async () => {
-      if (!id) return;
-      try {
-        setLoading(true);
-        const res = await getJob(id);
-        console.log("DEBUG: API Response:", res);
-        setJob(res);
-      } catch (err) {
-        console.error("❌ Failed to fetch job:", err);
-        toast.error("Failed to load requirement details");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadJob();
-  }, [id]);
+  // ✅ Mutation for updating application statuses
+  const statusMutation = useMutation({
+    mutationFn: (payload) => changeAppStatus(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["requirementDetail", id]);
+    },
+  });
 
-  // 🧩 HELPERS
+  // 🧩 HELPERS (Maintain original logic)
   const formatEnum = (val) =>
-    val
-      ? val
-          .replace(/_/g, " ")
-          .toLowerCase()
-          .split(" ")
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join(" ")
-      : "Not Specified";
+    val ? val.replace(/_/g, " ").toLowerCase().split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "Not Specified";
 
   const getRelativeTime = (dateValue) => {
     if (!dateValue) return "Recently";
     if (dateValue === "Just now") return "Just now";
-    let cleanDate = dateValue;
-    if (typeof dateValue === 'string') {
-        cleanDate = dateValue.replace(',', '');
-    }
+    let cleanDate = typeof dateValue === 'string' ? dateValue.replace(',', '') : dateValue;
     const now = new Date();
     const posted = new Date(cleanDate);
     if (isNaN(posted.getTime())) return dateValue;
     const diffInMs = now - posted;
     const diffInMins = Math.floor(diffInMs / (1000 * 60));
     const diffInHours = Math.floor(diffInMins / 60);
-    if (diffInMins < 60) {
-      return diffInMins <= 1 ? "Just now" : `${diffInMins}m ago`;
-    }
-    if (diffInHours < 24) {
-      return `${diffInHours}h ago`;
-    }
+    if (diffInMins < 60) return diffInMins <= 1 ? "Just now" : `${diffInMins}m ago`;
+    if (diffInHours < 24) return `${diffInHours}h ago`;
     return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   // 🧩 JOB → UI MODEL
-  const requirement = job
-    ? {
-        ...job,
-        jobTitle: job.jobTitle || "Untitled Requirement",
-        status: job.jobStatus || "DRAFT",
-        location: job.fullWorkAddress || `${job.city}, ${job.state}`,
-        postedDate: getRelativeTime(job.postedDate || job.createdAt),
-        expiryDate: job.applicationDeadline
-          ? new Date(job.applicationDeadline).toDateString()
-          : "Not specified",
-        compensation: job.baseWageAmount
-          ? `₹${job.baseWageAmount} / ${job.paymentFrequency?.toLowerCase()}`
-          : "Not disclosed",
-        experience: formatEnum(job.experienceLevel),
-        duration:
-          job.contractDuration === "CUSTOM"
-            ? job.customDuration
-            : formatEnum(job.contractDuration),
-        shift: formatEnum(job.shiftType),
-        skills: [...(job.primarySkills || []), ...(job.secondarySkills || [])],
-        requirements: job.documentRequirements || [],
-        benefits: [
-          job.transportProvided && "Transport Provided",
-          job.foodProvided && "Food Provided",
-          job.accommodationProvided && "Accommodation Provided",
-          job.medicalInsurance && "Medical Insurance",
-          job.esiPfBenefits && "ESI & PF Benefits",
-        ].filter(Boolean),
-      }
-    : null;
+  const requirement = job ? {
+    ...job,
+    jobTitle: job.jobTitle || "Untitled Requirement",
+    status: job.jobStatus || "DRAFT",
+    location: job.fullWorkAddress || `${job.city}, ${job.state}`,
+    postedDate: getRelativeTime(job.postedDate || job.createdAt),
+    expiryDate: job.applicationDeadline ? new Date(job.applicationDeadline).toDateString() : "Not specified",
+    compensation: job.baseWageAmount ? `₹${job.baseWageAmount} / ${job.paymentFrequency?.toLowerCase()}` : "Not disclosed",
+    experience: formatEnum(job.experienceLevel),
+    duration: job.contractDuration === "CUSTOM" ? job.customDuration : formatEnum(job.contractDuration),
+    shift: formatEnum(job.shiftType),
+    skills: [...(job.primarySkills || []), ...(job.secondarySkills || [])],
+    requirements: job.documentRequirements || [],
+    benefits: [
+      job.transportProvided && "Transport Provided",
+      job.foodProvided && "Food Provided",
+      job.accommodationProvided && "Accommodation Provided",
+      job.medicalInsurance && "Medical Insurance",
+      job.esiPfBenefits && "ESI & PF Benefits",
+    ].filter(Boolean),
+  } : null;
 
   // 👥 APPLICATIONS MAPPING
-  const applications =
-    job?.applicants?.map((a) => {
-      const local = applicationStatuses[a.applicantId];
-      return {
-        ...a,
-        id: a.applicantId, 
-        fullName: a.name || a.fullName || "Anonymous Worker",
-        profile: a.profile || {
-          fullName: a.name || a.fullName,
-          skills: a.skills || [],
-          recentAssignments: a.recentAssignments || [],
-          Workeravailability: a.isAvailable ?? true,
-          about: a.about || a.bio,
-          certifications: a.certifications || []
-        },
-        applicationStatus: local?.status || a.applicationStatus || "APPLIED",
-        interviewTime: local?.interviewTime || a.interviewTime || null,
-      };
-    }) || [];
+  const applications = job?.applicants?.map((a) => ({
+    ...a,
+    id: a.applicantId,
+    fullName: a.name || a.fullName || "Anonymous Worker",
+    profile: a.profile || {
+      fullName: a.name || a.fullName,
+      skills: a.skills || [],
+      recentAssignments: a.recentAssignments || [],
+      Workeravailability: a.isAvailable ?? true,
+      about: a.about || a.bio,
+      certifications: a.certifications || []
+    },
+    applicationStatus: a.applicationStatus || "APPLIED",
+    interviewTime: a.interviewTime || null,
+  })) || [];
 
-  // 🔘 HANDLERS
+  // 🔘 HANDLERS (Migrated to Mutation for cache updates)
   const handleApprove = async (app) => {
-    try {
-      const payload = { id: job.id, applicantId: app.applicantId, applicationStatus: "UNDER_REVIEW" };
-      await changeAppStatus(payload);
-      setApplicationStatuses(prev => ({ ...prev, [app.applicantId]: { status: "UNDER_REVIEW" } }));
-      toast.success("Application shortlisted");
-    } catch (err) { toast.error("Failed to shortlist"); }
+    statusMutation.mutate({ id: job.id, applicantId: app.applicantId, applicationStatus: "UNDER_REVIEW" }, {
+      onSuccess: () => toast.success("Application shortlisted")
+    });
   };
 
   const handleSelect = async (app) => {
     const appId = app?.applicantId || app?.id;
-    try {
-      await changeAppStatus({ id: job.id, applicantId: appId, applicationStatus: "SELECTED" });
-      setApplicationStatuses(prev => ({ ...prev, [appId]: { status: "SELECTED" } }));
-      toast.success("Worker Selected Successfully");
-    } catch (err) { toast.error("Failed to mark Selected"); }
+    statusMutation.mutate({ id: job.id, applicantId: appId, applicationStatus: "SELECTED" }, {
+      onSuccess: () => toast.success("Worker Selected Successfully")
+    });
   };
 
   const handleChangeStatus = async (app) => {
     const appId = app?.applicantId || app?.id;
-    const currentStatus = applicationStatuses[appId]?.status || app.applicationStatus;
-    const newStatus = prompt("Enter new status:", currentStatus);
+    const newStatus = prompt("Enter new status:", app.applicationStatus);
     if (!newStatus) return;
-    try {
-      await changeAppStatus({ id: job.id, applicantId: appId, applicationStatus: newStatus.toUpperCase() });
-      setApplicationStatuses(prev => ({ ...prev, [appId]: { status: newStatus.toUpperCase() } }));
-      toast.success(`Status updated`);
-    } catch (err) { toast.error("Failed to update status"); }
+    statusMutation.mutate({ id: job.id, applicantId: appId, applicationStatus: newStatus.toUpperCase() }, {
+      onSuccess: () => toast.success("Status updated")
+    });
   };
 
   const handleReject = async (app) => {
-    try {
-      await changeAppStatus({ id: job.id, applicantId: app.applicantId, applicationStatus: "REJECTED" });
-      setApplicationStatuses(prev => ({ ...prev, [app.applicantId]: { status: "REJECTED" } }));
-      toast.success("Application rejected");
-    } catch (err) { toast.error("Failed to reject"); }
+    statusMutation.mutate({ id: job.id, applicantId: app.applicantId, applicationStatus: "REJECTED" }, {
+      onSuccess: () => toast.success("Application rejected")
+    });
   };
 
   const handleScheduleSubmit = async (data) => {
-    try {
-      await changeAppStatus({ id: job.id, applicantId: data.applicantId, applicationStatus: "INTERVIEWING", interviewTime: data.interviewTime });
-      setApplicationStatuses(prev => ({ ...prev, [data.applicantId]: { status: "INTERVIEWING", interviewTime: data.interviewTime } }));
-      toast.success("Interview scheduled");
-      setShowScheduleModal(false);
-    } catch (err) { toast.error("Failed to schedule interview"); }
+    statusMutation.mutate({ id: job.id, applicantId: data.applicantId, applicationStatus: "INTERVIEWING", interviewTime: data.interviewTime }, {
+      onSuccess: () => {
+        toast.success("Interview scheduled");
+        setShowScheduleModal(false);
+      }
+    });
   };
 
   const handleScheduleInterview = (worker) => { setSelectedWorker(worker); setShowScheduleModal(true); };
@@ -190,27 +148,20 @@ const RequirementDetailsPage = () => {
   const handleCloseJob = async () => {
     if (!window.confirm("Close this job?")) return;
     try {
-      setLoading(true);
       await updateJobStatus(id, "EXPIRED");
-      setJob(prev => ({ ...prev, jobStatus: "EXPIRED" }));
+      queryClient.invalidateQueries(["requirementDetail", id]);
       toast.success("Job closed");
-    } catch (err) { toast.error("Failed to close job"); } finally { setLoading(false); }
+    } catch (err) { toast.error("Failed to close job"); }
   };
 
-  // 🔹 ADDED DELETE LOGIC
   const handleDeleteJob = async () => {
-    if (!window.confirm("Are you sure you want to delete this job? This action cannot be undone.")) return;
+    if (!window.confirm("Are you sure you want to delete this job?")) return;
     try {
-      setLoading(true);
       await deleteJob(id);
+      queryClient.invalidateQueries(["employerRequirements"]); // Refresh the list cache
       toast.success("Job deleted successfully");
-      navigate("/employer-requirements"); // Redirect to list after delete
-    } catch (err) {
-      console.error("Action failed:", err);
-      toast.error("Operation failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+      navigate("/employer-requirements");
+    } catch (err) { toast.error("Operation failed"); }
   };
 
   if (!id) return <div className="p-10 text-center text-error font-bold">Invalid Job ID</div>;
