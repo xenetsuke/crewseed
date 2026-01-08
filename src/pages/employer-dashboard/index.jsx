@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { useQuery } from '@tanstack/react-query'; // ✅ Added for caching
+import { useQuery } from '@tanstack/react-query'; 
 import EmployerSidebar from '../../components/navigation/EmployerSidebar';
 import RequirementsTable from './components/RequirementsTable';
 import ActivityFeed from './components/ActivityFeed';
@@ -23,7 +23,10 @@ const EmployerDashboard = () => {
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Collapsible States
+  const [requirementsOpen, setRequirementsOpen] = useState(true);
+  const [workersOpen, setWorkersOpen] = useState(true);
 
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -32,7 +35,7 @@ const EmployerDashboard = () => {
   /* =========================================================
       DATA FETCHING & CACHING (REACT QUERY)
   ========================================================= */
-  const { data, isLoading: loading, refetch } = useQuery({
+  const { data, isLoading: loading, isFetching, refetch } = useQuery({
     queryKey: ["employerDashboardData", user?.id],
     queryFn: async () => {
       const [profileRes, jobsRes] = await Promise.all([
@@ -49,7 +52,6 @@ const EmployerDashboard = () => {
         });
       });
 
-      // Maintain original mapping logic
       const pipeline = allWorkers.map((w) => {
         const status = workerStatusMap[w.id];
         if (["APPLIED", "UNDER_REVIEW", "INTERVIEWING"].includes(status)) {
@@ -85,11 +87,10 @@ const EmployerDashboard = () => {
         }
       };
     },
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 1000 * 60 * 5,
     enabled: !!user?.id,
   });
 
-  // Extract data with fallbacks for first render
   const pipelineWorkers = data?.pipelineWorkers || [];
   const requirements = data?.requirements || [];
   const workerCount = data?.workerCount || 0;
@@ -131,10 +132,8 @@ const EmployerDashboard = () => {
     return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
+  const handleRefresh = () => {
+    refetch();
   };
 
   useEffect(() => {
@@ -149,9 +148,14 @@ const EmployerDashboard = () => {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''} p-4 lg:p-8`}>
+      <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''} p-4 lg:p-8 relative`}>
+        {isFetching && (
+          <div className="absolute top-0 left-0 right-0 h-1 bg-muted overflow-hidden z-50">
+            <div className="h-full bg-primary animate-pulse w-full origin-left" />
+          </div>
+        )}
+
         <div className="max-w-7xl mx-auto">
-          
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
               <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight">
@@ -163,8 +167,16 @@ const EmployerDashboard = () => {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <button onClick={handleRefresh} className="p-2.5 rounded-xl border bg-card hover:bg-muted transition-all active:scale-95 shadow-sm">
-                <Icon name="RefreshCw" size={20} className={isRefreshing ? "animate-spin text-primary" : "text-muted-foreground"} />
+              <button 
+                onClick={handleRefresh} 
+                disabled={isFetching}
+                className="p-2.5 rounded-xl border bg-card hover:bg-muted transition-all active:scale-95 shadow-sm disabled:opacity-50"
+              >
+                <Icon 
+                  name="RefreshCw" 
+                  size={20} 
+                  className={isFetching ? "animate-spin text-primary" : "text-muted-foreground"} 
+                />
               </button>
               <button
                 onClick={() => navigate('/post-job-requirement/0')}
@@ -188,7 +200,9 @@ const EmployerDashboard = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{m.label}</p>
-                  <p className="text-2xl font-black">{m.value}</p>
+                  <p className="text-2xl font-black">
+                    {loading ? <span className="animate-pulse">...</span> : m.value}
+                  </p>
                 </div>
               </div>
             ))}
@@ -196,39 +210,55 @@ const EmployerDashboard = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-8">
-              <section className="card bg-card border-none shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-muted/50 flex justify-between items-center">
+              {/* Requirements Section */}
+              <section className="card bg-card border-none shadow-sm overflow-hidden transition-all">
+                <div 
+                  className="p-6 border-b border-muted/50 flex justify-between items-center cursor-pointer hover:bg-muted/10"
+                  onClick={() => setRequirementsOpen(!requirementsOpen)}
+                >
                    <h3 className="font-bold text-lg flex items-center gap-2 uppercase tracking-tight">
                      <Icon name="List" size={20} className="text-primary" /> Recent Requirements
                    </h3>
-                   <button onClick={() => navigate('/employer-requirements')} className="text-[10px] font-black text-primary hover:underline">VIEW ALL</button>
+                   <div className="flex items-center gap-4">
+                     <button onClick={(e) => { e.stopPropagation(); navigate('/employer-requirements'); }} className="text-[10px] font-black text-primary hover:underline mr-2">VIEW ALL</button>
+                     <Icon name={requirementsOpen ? "ChevronUp" : "ChevronDown"} size={20} className="text-muted-foreground" />
+                   </div>
                 </div>
-                <RequirementsTable requirements={requirements} />
+                <div className={`${requirementsOpen ? 'block' : 'hidden'}`}>
+                  <RequirementsTable requirements={requirements} />
+                </div>
               </section>
 
-              <section>
-                <div className="flex items-center justify-between mb-4 px-1">
+              {/* Workers Section */}
+              <section className="transition-all">
+                <div 
+                  className="flex items-center justify-between mb-4 px-1 cursor-pointer group"
+                  onClick={() => setWorkersOpen(!workersOpen)}
+                >
                   <h3 className="font-bold text-lg flex items-center gap-2">
                     <Icon name="Users" size={20} className="text-primary" /> MyWorker List
+                    <Icon name={workersOpen ? "ChevronUp" : "ChevronDown"} size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
                   </h3>
                 </div>
-                <WorkerManagementPanel
-                  workers={pipelineWorkers}
-                  onViewProfile={handleViewWorkerProfile}
-                  onRemoveWorker={async (workerId) => {
-                    if (!profile?.id) return;
-                    try {
-                      let savedWorkers = profile.savedWorkers || [];
-                      savedWorkers = savedWorkers.filter(id => id !== workerId);
-                      const updatedProfile = { ...profile, savedWorkers };
-                      await updateProfile(updatedProfile);
-                      dispatch(changeProfile(updatedProfile));
-                      refetch(); // ✅ Refresh the query data
-                    } catch (err) {
-                      console.error("❌ Failed to remove worker", err);
-                    }
-                  }}
-                />
+                <div className={`${workersOpen ? 'block' : 'hidden'}`}>
+                  <WorkerManagementPanel
+                    workers={pipelineWorkers}
+                    onViewProfile={handleViewWorkerProfile}
+                    onRemoveWorker={async (workerId) => {
+                      if (!profile?.id) return;
+                      try {
+                        let savedWorkers = profile.savedWorkers || [];
+                        savedWorkers = savedWorkers.filter(id => id !== workerId);
+                        const updatedProfile = { ...profile, savedWorkers };
+                        await updateProfile(updatedProfile);
+                        dispatch(changeProfile(updatedProfile));
+                        refetch(); 
+                      } catch (err) {
+                        console.error("❌ Failed to remove worker", err);
+                      }
+                    }}
+                  />
+                </div>
               </section>
             </div>
 
@@ -299,4 +329,4 @@ const EmployerDashboard = () => {
   );
 };
 
-export default EmployerDashboard; 
+export default EmployerDashboard;
