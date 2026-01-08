@@ -82,6 +82,38 @@ const MobileJobDetails = () => {
       });
     }
   };
+  /* =========================================================
+    STABLE LIFECYCLE (Prevents Infinite Loop)
+========================================================= */
+useEffect(() => {
+  const loadJobAndProfile = async () => {
+    if (!jobId) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await getJob(jobId);
+      const mappedData = mapJobToMobile(res);
+      setJobData(mappedData);
+
+      // FIX: Only fetch profile if the ID is missing. 
+      // Do NOT include 'profile' in the dependency array below.
+      if (user?.id && !profile?.id) { 
+        const profileRes = await getProfile(user.id);
+        dispatch(setProfile(profileRes));
+      }
+    } catch (err) {
+      console.error("❌ Failed to load job details:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadJobAndProfile();
+  // We only re-run if the Job ID or User ID changes.
+  // Including 'profile' here causes the infinite loop.
+}, [jobId, user?.id, dispatch]);
 
   /* =========================================================
       DATA MAPPING LOGIC
@@ -232,8 +264,10 @@ const MobileJobDetails = () => {
     },
   };
 
+// ... (keep all imports and logic the same until the return statement)
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 pb-24"> {/* Added padding-bottom to prevent content from being hidden behind footer */}
       {/* Sticky Header */}
       <div className="bg-white border-b sticky top-0 z-50 p-4 flex justify-between items-center">
         <button onClick={() => navigate(-1)} className="p-1">
@@ -367,8 +401,10 @@ const MobileJobDetails = () => {
         </div>
       )}
 
-      {/* Footer Actions */}
-      <ApplyNowButton hasApplied={hasApplied} onApply={() => setShowApplicationModal(true)} />
+      {/* FIXED FOOTER APPLY BUTTON */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-50">
+        <ApplyNowButton hasApplied={hasApplied} onApply={() => setShowApplicationModal(true)} />
+      </div>
 
       <JobApplicationModal
         isOpen={showApplicationModal}
@@ -383,6 +419,8 @@ const MobileJobDetails = () => {
     </div>
   );
 };
+
+// ... (keep the rest of the sub-components exactly the same)
 
 /* =========================================================
     SUB-COMPONENTS (For Cleanliness)
