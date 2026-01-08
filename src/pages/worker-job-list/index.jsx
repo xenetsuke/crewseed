@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react"; // Switched useCallback to useMemo
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { useQuery } from "@tanstack/react-query"; // ✅ Added React Query
+import { useQuery } from "@tanstack/react-query";
 
 import WorkerSidebar from "../../components/navigation/WorkerSidebar";
 import Icon from "../../components/AppIcon";
@@ -25,9 +25,7 @@ function WorkerJobList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  // ✅ Local state for filtered results only
-  const [filteredJobs, setFilteredJobs] = useState([]);
-
+  // REMOVED: setFilteredJobs state (this was causing the loop)
   const [activeFilters, setActiveFilters] = useState({
     quickFilters: [],
     industry: [],
@@ -52,14 +50,38 @@ function WorkerJobList() {
   const { data: jobs = [], isLoading: loading } = useQuery({
     queryKey: ["allJobs"],
     queryFn: getAllJobs,
-    staleTime: 5 * 60 * 1000, // 5 mins cache: Stops refetch on tab switch/back button
-    refetchOnWindowFocus: false, // Prevents re-fetching when you click back into the tab
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
-  // Sync filteredJobs whenever the master 'jobs' list changes
-  useEffect(() => {
-    if (jobs) applyFilters(activeFilters, searchQuery);
-  }, [jobs]);
+  /* =========================================================
+      DERIVED STATE: FILTERING (Fix: No more loop)
+  ========================================================= */
+  const filteredJobs = useMemo(() => {
+    let updated = [...jobs];
+
+    if (searchQuery.trim()) {
+      const lowQuery = searchQuery.toLowerCase();
+      updated = updated.filter(
+        (job) =>
+          job.jobTitle?.toLowerCase().includes(lowQuery) ||
+          job.fullWorkAddress?.toLowerCase().includes(lowQuery) ||
+          job?.employer?.companyName?.toLowerCase().includes(lowQuery)
+      );
+    }
+
+    if (activeFilters.industry.length > 0) {
+      updated = updated.filter((job) => 
+        activeFilters.industry.includes(job.industryCategory)
+      );
+    }
+
+    if (activeFilters.quickFilters.includes("highPay")) {
+      updated.sort((a, b) => (b?.baseWageAmount || 0) - (a?.baseWageAmount || 0));
+    }
+
+    return updated;
+  }, [jobs, activeFilters, searchQuery]); // Automatically recalculates when these change
 
   useEffect(() => {
     if (searchExpanded && searchInputRef?.current) {
@@ -86,10 +108,10 @@ function WorkerJobList() {
   };
 
   /* =========================================================
-      FETCH PROFILE (Redux sync)
+      FETCH PROFILE (Watch IDs only)
   ========================================================= */
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileData = async () => {
       try {
         if (user?.id) {
           const userProfile = await getProfile(user.id);
@@ -99,52 +121,24 @@ function WorkerJobList() {
         console.error("Failed to fetch profile:", err);
       }
     };
-    if (user?.id && !profile?.id) fetchProfile();
-  }, [profile, user, dispatch]);
+    if (user?.id && !profile?.id) fetchProfileData();
+  }, [user?.id, profile?.id, dispatch]);
 
   /* =========================================================
-      FILTER LOGIC (UI stays the same)
+      EVENT HANDLERS
   ========================================================= */
-  const applyFilters = (filters = activeFilters, query = searchQuery) => {
-    let updated = [...jobs];
-
-    if (query.trim()) {
-      updated = updated.filter(
-        (job) =>
-          job.jobTitle?.toLowerCase().includes(query.toLowerCase()) ||
-          job.fullWorkAddress?.toLowerCase().includes(query.toLowerCase()) ||
-          job?.employer?.companyName?.toLowerCase().includes(query.toLowerCase())
-      );
-    }
-
-    if (filters.quickFilters.includes("highPay")) {
-      updated.sort((a, b) => (b?.baseWageAmount || 0) - (a?.baseWageAmount || 0));
-    }
-
-    if (filters.industry.length > 0) {
-      updated = updated.filter((job) => 
-        filters.industry.includes(job.industryCategory)
-      );
-    }
-
-    setFilteredJobs(updated);
-  };
-
   const handleQuickFilterToggle = (id) => {
-    const newFilters = activeFilters.quickFilters.includes(id)
-      ? activeFilters.quickFilters.filter((f) => f !== id)
-      : [...activeFilters.quickFilters, id];
-
-    const updatedState = { ...activeFilters, quickFilters: newFilters };
-    setActiveFilters(updatedState);
-    applyFilters(updatedState);
+    setActiveFilters(prev => ({
+      ...prev,
+      quickFilters: prev.quickFilters.includes(id)
+        ? prev.quickFilters.filter((f) => f !== id)
+        : [...prev.quickFilters, id]
+    }));
   };
 
   const handleClearAllFilters = () => {
-    const reset = { quickFilters: [], industry: [], jobType: [], shiftTiming: [] };
-    setActiveFilters(reset);
+    setActiveFilters({ quickFilters: [], industry: [], jobType: [], shiftTiming: [] });
     setSearchQuery('');
-    setFilteredJobs(jobs);
   };
 
   const handleSaveJob = async (jobId) => {
@@ -215,14 +209,11 @@ function WorkerJobList() {
                     ref={searchInputRef}
                     placeholder="Search jobs, companies..."
                     value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      applyFilters(activeFilters, e.target.value);
-                    }}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10"
                   />
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => {setSearchExpanded(false); setSearchQuery(''); applyFilters(activeFilters, '');}}>
+                <Button variant="ghost" size="sm" onClick={() => {setSearchExpanded(false); setSearchQuery('');}}>
                   Cancel
                 </Button>
               </div>
@@ -259,9 +250,7 @@ function WorkerJobList() {
                         const newInd = e.target.checked 
                           ? [...activeFilters.industry, ind] 
                           : activeFilters.industry.filter(i => i !== ind);
-                        const up = { ...activeFilters, industry: newInd };
-                        setActiveFilters(up);
-                        applyFilters(up);
+                        setActiveFilters({ ...activeFilters, industry: newInd });
                       }}
                     />
                     <span className="text-sm">{ind}</span>
