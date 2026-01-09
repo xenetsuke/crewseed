@@ -45,11 +45,11 @@ const JobApplicationModal = ({ isOpen, onClose, jobData, onSubmit }) => {
           state: backendProfile?.currentState || "",
           pincode: backendProfile?.pincode || "",
           primaryJobRole: backendProfile?.primaryJobRole || "",
-          skills: Array.isArray(prof?.skills) ? prof.skills.join(", ") : "",
-          experience: prof?.yearsExperience || "",
-          education: prof?.education || "",
-          expectedWage: prof?.expectedDailyWage || "",
-          shiftPreference: prof?.shiftPreference || "",
+          skills: Array.isArray(backendProfile?.skills) ? backendProfile.skills.join(", ") : "",
+          experience: backendProfile?.totalExperience || "",
+          education: backendProfile?.education || "",
+          // expectedWage: prof?.expectedDailyWage || "",
+          shiftPreference: backendProfile?.shiftPreference || "",
           aadhaarNumber: docs?.aadhaar?.number || "",
           panNumber: docs?.pan?.number || "",
           previousCompanies: history?.recentAssignments?.map((a) => a?.company)?.join(", ") || "",
@@ -206,7 +206,7 @@ const JobApplicationModal = ({ isOpen, onClose, jobData, onSubmit }) => {
             {renderField("Skills (Comma separated)", "skills", Briefcase)}
             <div className="grid grid-cols-2 gap-4">
               {renderField("Experience (Years)", "experience", Briefcase, "number")}
-              {renderField("Expected Daily Wage", "expectedWage", Briefcase, "number")}
+            {/* //  {renderField("Expected Daily Wage", "expectedWage", Briefcase, "number")} */}
             </div>
           </div>
 
