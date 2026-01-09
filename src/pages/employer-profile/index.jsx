@@ -18,8 +18,10 @@ import Icon from "../../components/AppIcon"; // Re-using your Icon component
 
 import { useDispatch, useSelector } from "react-redux";
 import { getProfile, updateProfile } from "../../Services/ProfileService";
-import { setProfile } from "../../features/ProfileSlice";
+import { setProfile,clearProfile } from "../../features/ProfileSlice";
 import { removeUser } from "../../features/UserSlice";
+import { removeJwt } from "../../features/JwtSlice";      // ✅ FIX
+import { persistor } from "../../Store";     
 
 const EmployerProfile = () => {
   const dispatch = useDispatch();
@@ -113,12 +115,25 @@ const EmployerProfile = () => {
     }
   };
 
-  const handleLogout = () => {
+ const handleLogout = async () => {
+  try {
+    // Clear Redux state first
     dispatch(removeUser());
-    localStorage.clear();
-    window.location.href = "/login";
-  };
+    dispatch(clearProfile());
+    dispatch(removeJwt());
 
+    // Clear all persistence
+    await persistor.purge();
+    localStorage.clear(); // This removes "jwt", "user", "profile", and "persist:root"
+    sessionStorage.clear();
+
+    window.location.replace("/login");
+  } catch (err) {
+    console.error("Logout failed:", err);
+    // Fallback if purge fails
+    window.location.href = "/login";
+  }
+};
   const handleCompanyLogoUpload = async (e) => {
     const file = e?.target?.files?.[0];
     if (!file) return;
@@ -158,9 +173,9 @@ const EmployerProfile = () => {
           <div className="flex justify-between items-start mb-6">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold mb-2">Profile & Settings</h1>
-              <p className="text-sm md:text-base text-muted-foreground">
+              {/* <p className="text-sm md:text-base text-muted-foreground">
                 Manage your Indian business entity details and preferences
-              </p>
+              </p> */}
             </div>
             <Button variant="outline" onClick={handleLogout} className="text-red-600 border-red-200">
               <LogOut className="w-4 h-4 mr-2" /> Logout
@@ -239,7 +254,7 @@ const EmployerProfile = () => {
             {activeTab === "business" && (
               <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                  <h2 className="text-lg md:text-xl font-semibold">Business Details (India)</h2>
+                  <h2 className="text-lg md:text-xl font-semibold">Account Details</h2>
                   <Button
                     variant={isEditingCompany ? "default" : "outline"}
                     onClick={() => (isEditingCompany ? handleSaveCompanyInfo() : setIsEditingCompany(true))}

@@ -29,11 +29,13 @@ const profileSlice = createSlice({
     },
 
     // Optional: clear profile
-    // clearProfile: () => {
-    //   return {};
-    // },
+    clearProfile: () => {
+      return {};
+    },
+    // clearProfile: () => initialState,
+
   },
 });
 
-export const { setProfile, changeProfile, updateProfileState } = profileSlice.actions;
+export const { setProfile, changeProfile, updateProfileState ,clearProfile} = profileSlice.actions;
 export default profileSlice.reducer;
