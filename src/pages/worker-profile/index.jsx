@@ -9,7 +9,7 @@ import WorkHistoryTab from "./components/WorkHistoryTab";
 import Button from "../../components/ui/Button";
 import Icon from "../../components/AppIcon";
 import { getProfile, updateProfile } from "../../Services/ProfileService";
-import { setProfile } from "../../features/ProfileSlice";
+import { setProfile,clearProfile } from "../../features/ProfileSlice";
 import { removeUser } from "../../features/UserSlice";
 
 const WorkerProfile = () => {
@@ -33,6 +33,7 @@ useEffect(() => {
     const loadProfile = async () => {
       try {
         if (!user?.id) return console.warn("User not loaded yet");
+  dispatch(clearProfile()); // 🔥 clear first
 
         const res = await getProfile(user.id);
         dispatch(setProfile(res));
@@ -58,12 +59,25 @@ useEffect(() => {
   /** 📌 Logout handlers */
   const handleLogoutClick = () => setShowLogoutConfirm(true);
 
-const handleLogout = () => {
-  dispatch(removeUser()); // clear user from redux
-  localStorage.clear();    // clear any persisted data in localStorage (optional)
-  window.location.href = "/login";  // Redirect to login page after logging out
-};
+ const handleLogout = async () => {
+  try {
+    // Clear Redux state first
+    dispatch(removeUser());
+    dispatch(clearProfile());
+    dispatch(removeJwt());
 
+    // Clear all persistence
+    await persistor.purge();
+    localStorage.clear(); // This removes "jwt", "user", "profile", and "persist:root"
+    sessionStorage.clear();
+
+    window.location.replace("/login");
+  } catch (err) {
+    console.error("Logout failed:", err);
+    // Fallback if purge fails
+    window.location.href = "/login";
+  }
+};
   /** 📌 Tabs configuration */
   const tabs = [
     { id: "personal", label: "Personal Details" },

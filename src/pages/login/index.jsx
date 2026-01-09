@@ -8,19 +8,22 @@ import ResetPassword from "./ResetPassword";
 // 🔹 Services
 import { loginWithEmail } from "../../Services/AuthService";
 import { loginValidation } from "../../Services/FormValidation";
+import { getProfile } from "../../Services/ProfileService"; // ✅ Imported getProfile
 
 // 🔹 Redux
 import { useDispatch } from "react-redux";
 import { setUser } from "../../features/UserSlice";
 import { setJwt } from "../../features/JwtSlice";
+import { setProfile, clearProfile } from "../../features/ProfileSlice"; 
+import { removeJwt } from "../../features/JwtSlice";
 
 // 🔹 JWT
-import jwtDecode from "jwt-decode"; // <-- WITHOUT curly braces
+import jwtDecode from "jwt-decode"; 
 
 const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
+  
   const [userRole, setUserRole] = useState("worker"); // Default to worker
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -52,29 +55,31 @@ const Login = () => {
   };
 
   // 🚀 LOGIN (JWT FLOW)
-// 🚀 LOGIN (JWT FLOW)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     try {
       setLoading(true);
+      dispatch(clearProfile());
+      dispatch(removeJwt());
 
-      // Call login service for authentication
+      // 1. Call login service
       const res = await loginWithEmail(formData);
       
       // ✅ Access JWT safely
       const token = res?.data?.jwt;
+
       if (!token) {
         throw new Error("Login failed: JWT not returned from backend");
       }
 
-      // 🧠 1. Decode FIRST to verify role before saving anything
+      // 🧠 2. Decode JWT
       const decoded = jwtDecode(token);
       const isApplicant = decoded.accountType === "APPLICANT";
       const isEmployer = decoded.accountType === "EMPLOYER";
 
-      // 🛑 2. Check Role Mismatch
+      // 🛑 3. Role Mismatch Check
       if (isApplicant && userRole !== "worker") {
         throw new Error("This is a Worker account. Please switch to 'Worker Login'.");
       }
@@ -82,16 +87,33 @@ const Login = () => {
         throw new Error("This is an Employer account. Please switch to 'Employer Login'.");
       }
 
-      // ✅ 3. Only if role matches, save JWT and User to Redux/Storage
-      dispatch(setJwt(token));
-      dispatch(
-        setUser({
-          ...decoded,
-          email: decoded.sub,
-        })
-      );
+      // ✅ 4. Prepare User Object
+      const userData = {
+        ...decoded,
+        email: decoded.sub,
+      };
 
-      // 🔀 4. Redirect by role
+      // 💾 5. Save Auth Data to Redux & LocalStorage
+      dispatch(setJwt(token));
+      dispatch(setUser(userData));
+      localStorage.setItem("jwt", token);
+      localStorage.setItem("user", JSON.stringify(userData));
+
+      // 🔍 6. Fetch Full Profile Separately using profileId from Token
+      if (decoded.profileId) {
+        try {
+          const fullProfileData = await getProfile(decoded.profileId);
+          if (fullProfileData) {
+            dispatch(setProfile(fullProfileData));
+            localStorage.setItem("profile", JSON.stringify(fullProfileData));
+          }
+        } catch (profileErr) {
+          console.error("Failed to fetch full profile details:", profileErr);
+          // Fallback: If fetch fails, profile remains empty or you can set basic userData
+        }
+      }
+
+      // 🔀 7. Redirect by role
       if (isApplicant) {
         navigate("/worker-profile");
       } else if (isEmployer) {
@@ -100,16 +122,14 @@ const Login = () => {
 
     } catch (err) {
       console.error("❌ Login failed:", err);
-      // Show the specific error message (like "This is a Worker account...") 
-      // or the backend error message
       alert(err.message || err?.response?.data?.errorMessage || "Invalid credentials");
     } finally {
       setLoading(false);
     }
   };
+
   // 🔁 Switch role
   const handleRoleSwitch = () => {
-    // Switch between "worker" and "employer"
     setUserRole((prev) => (prev === "worker" ? "employer" : "worker"));
     setFormData({ email: "", password: "" });
     setErrors({});
