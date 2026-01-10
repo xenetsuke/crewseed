@@ -89,8 +89,13 @@ const Login = () => {
 const handlePostLogin = async (token) => {
   const decoded = jwtDecode(token);
 
+  // 🔹 ADD THIS LINE: Ensure token is stored for the Axios Interceptor
+  localStorage.setItem("token", JSON.stringify(token));
+
   dispatch(setJwt(token));
   dispatch(setUser(decoded));
+
+
 
   // 🟢 FIRST TIME USER → NO PROFILE YET
   if (!decoded.profileId) {
