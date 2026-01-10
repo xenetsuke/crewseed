@@ -90,7 +90,9 @@ const handlePostLogin = async (token) => {
   const decoded = jwtDecode(token);
 
   // 🔹 ADD THIS LINE: Ensure token is stored for the Axios Interceptor
-  localStorage.setItem("token", token);
+  // localStorage.setItem("token", token);
+  localStorage.setItem("token", JSON.stringify(token));
+// localStorage.setItem("token", token);
 
   dispatch(setJwt(token));
   dispatch(setUser(decoded));
