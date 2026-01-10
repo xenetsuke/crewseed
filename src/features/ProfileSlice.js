@@ -1,8 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { updateProfile } from "../Services/ProfileService"; // backend API call
 
-
-
 const profileSlice = createSlice({
   name: "profile",
   initialState: {},
@@ -14,13 +12,18 @@ const profileSlice = createSlice({
 
     // ✅ Updates the profile and syncs with backend
     changeProfile: (state, action) => {
+      const updatedProfile = {
+        ...state,          // 🔐 preserve existing fields like accountType
+        ...action.payload, // apply changes
+      };
+
       // Call backend API to persist changes
-      updateProfile(action.payload).catch((err) => {
+      updateProfile(updatedProfile).catch((err) => {
         console.error("Failed to update profile on backend:", err);
       });
 
       // Update Redux state immediately
-      return { ...action.payload };
+      return { ...updatedProfile };
     },
 
     // Optional: just updates Redux state without calling backend
@@ -32,10 +35,9 @@ const profileSlice = createSlice({
     clearProfile: () => {
       return {};
     },
-    // clearProfile: () => initialState,
-
   },
 });
 
-export const { setProfile, changeProfile, updateProfileState ,clearProfile} = profileSlice.actions;
+export const { setProfile, changeProfile, updateProfileState, clearProfile } =
+  profileSlice.actions;
 export default profileSlice.reducer;

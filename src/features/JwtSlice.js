@@ -5,22 +5,29 @@ import {
   removeItem,
 } from "../Services/LocalStorageService";
 
+// import { createSlice } from "@reduxjs/toolkit";
+
 const jwtSlice = createSlice({
   name: "jwt",
 
-  // 🔹 Initialize token from localStorage safely
-  initialState: getItem("token") || "",
+  // ✅ Load token as plain string
+  initialState: localStorage.getItem("token") || "",
 
   reducers: {
-    // ✅ Save token
+    // ✅ Save token correctly
     setJwt: (state, action) => {
-      setItem("token", action.payload);
-      return action.payload;
+      const token =
+        typeof action.payload === "string"
+          ? action.payload.replace(/^"+|"+$/g, "")
+          : action.payload;
+
+      localStorage.setItem("token", token);
+      return token;
     },
 
     // ❌ Remove token
     removeJwt: () => {
-      removeItem("token");
+      localStorage.removeItem("token");
       return "";
     },
   },

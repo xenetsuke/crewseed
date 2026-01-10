@@ -8,9 +8,12 @@ const getProfile = async (id) => {
     .get(`/profiles/get/${id}`)
     .then((result) => result.data)
     .catch((error) => {
+      if (!id) return null;
       throw error;
     });
+  // return axiosInstance.get(`/profiles/get/${id}`).then(r => r.data);
 };
+
 
 /* =========================
    Update Profile
