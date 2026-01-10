@@ -27,7 +27,7 @@ import { removeJwt } from "../../features/JwtSlice";
 // 🔹 JWT
 import jwtDecode from "jwt-decode";
 
-// 🟢 Moved Outside to Fix ReferenceError
+// 🟢 Moved Outside to Fix ReferenceErrorh
 const formatPhoneNumber = (number) => {
   const cleaned = number.replace(/\D/g, "");
   if (cleaned.length === 10) return "+91" + cleaned;
@@ -89,8 +89,13 @@ const Login = () => {
 const handlePostLogin = async (token) => {
   const decoded = jwtDecode(token);
 
+  // 🔹 ADD THIS LINE: Ensure token is stored for the Axios Interceptor
+  localStorage.setItem("token", JSON.stringify(token));
+
   dispatch(setJwt(token));
   dispatch(setUser(decoded));
+
+
 
   // 🟢 FIRST TIME USER → NO PROFILE YET
   if (!decoded.profileId) {
