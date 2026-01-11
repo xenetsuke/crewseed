@@ -39,8 +39,6 @@ const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const recaptchaVerifierRef = useRef(null);
-
   const [userRole, setUserRole] = useState("worker");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -56,80 +54,57 @@ const Login = () => {
     password: "",
   });
 
+  // 🟢 FIX (MANDATORY) — Initialize reCAPTCHA ONCE
   useEffect(() => {
-    const initRecaptcha = () => {
-      const btn = document.getElementById("phone-otp-btn");
-      if (btn && !recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current = new RecaptchaVerifier(
-            auth,
-            "phone-otp-btn",
-            {
-              size: "invisible",
-              callback: () => console.log("reCAPTCHA solved"),
-            }
-          );
-        } catch (error) {
-          console.error("reCAPTCHA init error:", error);
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(
+        auth,
+        "recaptcha-container",
+        {
+          size: "invisible",
         }
-      }
-    };
-
-    const timer = setTimeout(initRecaptcha, 500);
-
-    return () => {
-      clearTimeout(timer);
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
-      }
-    };
-  }, [loginMethod]);
-
-const handlePostLogin = async (token) => {
-  const decoded = jwtDecode(token);
-
-  // 🔹 ADD THIS LINE: Ensure token is stored for the Axios Interceptor
-  // localStorage.setItem("token", token);
-  // localStorage.setItem("token", JSON.stringify(token));
-localStorage.setItem("token", token);
-
-  dispatch(setJwt(token));
-  dispatch(setUser(decoded));
-
-
-
-  // 🟢 FIRST TIME USER → NO PROFILE YET
-  if (!decoded.profileId) {
-    if (decoded.accountType === "APPLICANT") {
-      navigate("/worker-profile-setup");
-    } else {
-      navigate("/company-onboarding");
+      );
     }
-    return; // 🚫 STOP HERE
-  }
+  }, []);
 
-  // 🟢 EXISTING USER → FETCH PROFILE
-  const profile = await getProfile(decoded.profileId);
-  dispatch(setProfile(profile));
+  const handlePostLogin = async (token) => {
+    const decoded = jwtDecode(token);
 
-  if (!profile.completed) {
-    if (decoded.accountType === "APPLICANT") {
-      navigate("/worker-profile-setup");
-    } else {
-      navigate("/company-onboarding");
+    localStorage.setItem("token", token);
+
+    dispatch(setJwt(token));
+    dispatch(setUser(decoded));
+
+    // 🟢 FIRST TIME USER → NO PROFILE YET
+    if (!decoded.profileId) {
+      if (decoded.accountType === "APPLICANT") {
+        navigate("/worker-profile-setup");
+      } else {
+        navigate("/company-onboarding");
+      }
+      return; // 🚫 STOP HERE
     }
-    return;
-  }
 
-  // ✅ DASHBOARD
-  if (decoded.accountType === "APPLICANT") {
-    navigate("/worker-profile");
-  } else {
-    navigate("/employer-dashboard");
-  }
-};
+    // 🟢 EXISTING USER → FETCH PROFILE
+    const profile = await getProfile(decoded.profileId);
+    dispatch(setProfile(profile));
 
+    if (!profile.completed) {
+      if (decoded.accountType === "APPLICANT") {
+        navigate("/worker-profile-setup");
+      } else {
+        navigate("/company-onboarding");
+      }
+      return;
+    }
+
+    // ✅ DASHBOARD
+    if (decoded.accountType === "APPLICANT") {
+      navigate("/worker-profile");
+    } else {
+      navigate("/employer-dashboard");
+    }
+  };
 
   const handleGoogleLogin = async () => {
     try {
@@ -154,10 +129,11 @@ localStorage.setItem("token", token);
 
     try {
       setLoading(true);
+      // 🟢 FIX (MANDATORY) — Use window.recaptchaVerifier
       const confirmation = await signInWithPhoneNumber(
         auth,
         formattedPhone,
-        recaptchaVerifierRef.current
+        window.recaptchaVerifier
       );
       window.confirmationResult = confirmation;
       setShowOtpField(true);
@@ -408,6 +384,9 @@ localStorage.setItem("token", token);
         opened={isResetModalOpen}
         close={() => setIsResetModalOpen(false)}
       />
+
+      {/* 🟢 FIX (MANDATORY) — Static container for reCAPTCHA */}
+      <div id="recaptcha-container"></div>
     </div>
   );
 };
