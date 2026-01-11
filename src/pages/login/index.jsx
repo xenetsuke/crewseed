@@ -53,7 +53,10 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  
+  // 🔹 Animation States
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isSettling, setIsSettling] = useState(false);
 
   const [loginMethod, setLoginMethod] = useState("email");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -86,11 +89,7 @@ const Login = () => {
     dispatch(setUser(decoded));
 
     if (!decoded.profileId) {
-      if (decoded.accountType === "APPLICANT") {
-        navigate("/worker-profile-setup");
-      } else {
-        navigate("/company-onboarding");
-      }
+      navigate(decoded.accountType === "APPLICANT" ? "/worker-profile-setup" : "/company-onboarding");
       return;
     }
 
@@ -98,19 +97,11 @@ const Login = () => {
     dispatch(setProfile(profile));
 
     if (!profile.completed) {
-      if (decoded.accountType === "APPLICANT") {
-        navigate("/worker-profile-setup");
-      } else {
-        navigate("/company-onboarding");
-      }
+      navigate(decoded.accountType === "APPLICANT" ? "/worker-profile-setup" : "/company-onboarding");
       return;
     }
 
-    if (decoded.accountType === "APPLICANT") {
-      navigate("/worker-profile");
-    } else {
-      navigate("/employer-dashboard");
-    }
+    navigate(decoded.accountType === "APPLICANT" ? "/worker-profile" : "/employer-dashboard");
   };
 
   const handleGoogleLogin = async () => {
@@ -121,8 +112,7 @@ const Login = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
-      if (res?.data?.jwt)
-        await handlePostLogin(res.data.jwt, res.data.isNewUser);
+      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
     } catch (err) {
       alert(err.message || "Google login failed");
     } finally {
@@ -136,14 +126,9 @@ const Login = () => {
 
     try {
       setLoading(true);
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        formattedPhone,
-        window.recaptchaVerifier
-      );
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
       window.confirmationResult = confirmation;
       setShowOtpField(true);
-      alert("OTP sent successfully");
     } catch (err) {
       alert(err.message || "OTP send failed");
     } finally {
@@ -153,7 +138,6 @@ const Login = () => {
 
   const handleVerifyOtp = async () => {
     if (!otp) return alert("Please enter the OTP");
-
     try {
       setLoading(true);
       dispatch(clearProfile());
@@ -161,9 +145,7 @@ const Login = () => {
       const result = await window.confirmationResult.confirm(otp);
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
-      if (res?.data?.jwt) {
-        await handlePostLogin(res.data.jwt, res.data.isNewUser);
-      }
+      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
     } catch (err) {
       alert("Invalid OTP");
     } finally {
@@ -183,7 +165,7 @@ const Login = () => {
       dispatch(clearProfile());
       dispatch(removeJwt());
       const res = await loginWithEmail(formData);
-      if (res?.data?.jwt) await handlePostLogin(res.data.jwt, false);
+      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
     } catch (err) {
       alert(err.message || "Invalid credentials");
     } finally {
@@ -192,66 +174,67 @@ const Login = () => {
   };
 
   const handleRoleSwitch = () => {
+    if (isAnimating) return;
     setIsAnimating(true);
+    
+    // Slow transition: Phase 1 Out
     setTimeout(() => {
       setUserRole((prev) => (prev === "worker" ? "employer" : "worker"));
       setFormData({ email: "", password: "" });
       setErrors({});
       setIsAnimating(false);
-    }, 600); // Slightly longer to accommodate both flip and ash effects
+      setIsSettling(true); // Phase 2 In
+
+      setTimeout(() => setIsSettling(false), 800);
+    }, 1200); 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 py-8 overflow-hidden relative" style={{ perspective: "1000px" }}>
+    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 py-8 overflow-hidden relative" style={{ perspective: "2000px" }}>
       
-      {/* 🔹 Ash + Flip Effect CSS */}
       <style>
         {`
           @keyframes ashFlipOut {
-            0% { 
-              opacity: 1; 
-              filter: blur(0px); 
-              transform: rotateY(0deg) scale(1); 
-            }
-            100% { 
-              opacity: 0; 
-              filter: blur(15px); 
-              transform: rotateY(180deg) translateY(-40px) scale(0.9); 
-            }
+            0% { opacity: 1; filter: blur(0px); transform: rotateY(0deg) scale(1); }
+            100% { opacity: 0; filter: blur(25px); transform: rotateY(110deg) translateY(-60px) scale(0.85); }
           }
-          .animate-ash-flip {
-            animation: ashFlipOut 0.6s forwards cubic-bezier(0.4, 0, 0.2, 1);
+          @keyframes ashFlipIn {
+            0% { opacity: 0; filter: blur(15px); transform: rotateY(-30deg) translateY(30px); }
+            100% { opacity: 1; filter: blur(0px); transform: rotateY(0deg) translateY(0); }
+          }
+          .animate-ash-out {
+            animation: ashFlipOut 1.2s forwards cubic-bezier(0.4, 0, 0.2, 1);
             pointer-events: none;
+          }
+          .animate-ash-in {
+            animation: ashFlipIn 0.8s forwards ease-out;
           }
         `}
       </style>
 
-      {/* Dynamic Animated Background Blobs */}
+      {/* Background Blobs */}
       <div className={`absolute top-[-10%] right-[-5%] w-96 h-96 rounded-full blur-[100px] transition-colors duration-1000 ${userRole === "worker" ? "bg-blue-200" : "bg-teal-200"}`} />
       <div className={`absolute bottom-[-10%] left-[-5%] w-96 h-96 rounded-full blur-[100px] transition-colors duration-1000 ${userRole === "worker" ? "bg-indigo-100" : "bg-cyan-100"}`} />
 
-      <div className={`w-full max-w-md relative z-10 transition-all duration-500 ${loading ? "scale-[0.98] opacity-90" : "scale-100 opacity-100"}`}>
+      <div className="w-full max-w-md relative z-10">
         
         <div className={`
           bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white 
-          transition-transform duration-500
-          ${isAnimating ? "animate-ash-flip" : "opacity-100"}
-          ${loading ? "ring-2 ring-blue-400 ring-offset-2 animate-pulse" : "ring-1 ring-black/5"}
+          transition-all duration-700
+          ${isAnimating ? "animate-ash-out" : ""}
+          ${isSettling ? "animate-ash-in" : ""}
+          ${loading ? "opacity-90 scale-[0.99]" : "opacity-100 scale-100"}
         `}>
           
           <div className="flex flex-col items-center mb-6">
             <div className={`
-              relative w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl transition-all duration-700 transform hover:rotate-12 hover:scale-110
+              relative w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl transition-all duration-700
               bg-gradient-to-br ${userRole === "worker" ? "from-blue-600 to-indigo-600 shadow-blue-200" : "from-teal-500 to-cyan-600 shadow-teal-200"}
-              ${loading ? "animate-bounce" : ""}
             `}>
               {userRole === "worker" ? (
                 <Hammer size={38} color="#fff" strokeWidth={1.5} />
               ) : (
                 <Building2 size={38} color="#fff" strokeWidth={1.5} />
-              )}
-              {loading && (
-                <div className="absolute inset-0 rounded-3xl border-4 border-white/30 animate-ping" />
               )}
             </div>
 
@@ -267,7 +250,6 @@ const Login = () => {
             onSubmit={loginMethod === "email" ? handleSubmit : (e) => e.preventDefault()}
             className="space-y-4"
           >
-            {/* Main Login Inputs */}
             {loginMethod === "email" ? (
               <>
                 <Input
@@ -292,7 +274,7 @@ const Login = () => {
                   type="submit" 
                   fullWidth 
                   loading={loading} 
-                  className={`py-3 transition-all duration-300 transform active:scale-95 shadow-xl ${userRole === "worker" ? "shadow-blue-100" : "shadow-teal-100"}`}
+                  className={`py-3 transition-all duration-300 shadow-xl ${userRole === "worker" ? "shadow-blue-100" : "shadow-teal-100"}`}
                 >
                   {loading ? "Please wait..." : "Sign In"}
                 </Button>
@@ -313,13 +295,7 @@ const Login = () => {
                         onChange={(e) => setPhoneNumber(e.target.value)}
                       />
                     </div>
-                    <Button
-                      id="phone-otp-btn"
-                      fullWidth
-                      onClick={handleSendOtp}
-                      loading={loading}
-                      className="py-3"
-                    >
+                    <Button fullWidth onClick={handleSendOtp} loading={loading} className="py-3">
                       Send OTP
                     </Button>
                   </>
@@ -334,19 +310,10 @@ const Login = () => {
                       />
                       {loading && <Loader2 className="absolute right-4 bottom-3 animate-spin text-blue-500" size={20} />}
                     </div>
-                    <Button
-                      fullWidth
-                      onClick={handleVerifyOtp}
-                      loading={loading}
-                      className="py-3 font-bold"
-                    >
+                    <Button fullWidth onClick={handleVerifyOtp} loading={loading} className="py-3 font-bold">
                       Verify & Login
                     </Button>
-                    <button
-                      type="button"
-                      className="text-xs text-blue-600 w-full text-center hover:underline font-bold"
-                      onClick={() => setShowOtpField(false)}
-                    >
+                    <button type="button" className="text-xs text-blue-600 w-full text-center hover:underline font-bold" onClick={() => setShowOtpField(false)}>
                       Change Phone Number
                     </button>
                   </>
@@ -354,69 +321,33 @@ const Login = () => {
               </div>
             )}
 
-            {/* Forgot Password and Register */}
             <div className="flex flex-col items-center space-y-3">
-              <button
-                type="button"
-                className="text-sm text-slate-400 hover:text-blue-600 transition-colors font-semibold"
-                onClick={() => setIsResetModalOpen(true)}
-              >
+              <button type="button" className="text-sm text-slate-400 hover:text-blue-600 transition-colors font-semibold" onClick={() => setIsResetModalOpen(true)}>
                 Forgot Password?
               </button>
-
               <p className="text-xs text-slate-500 font-medium">
                 Don't have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate(userRole === "worker" ? "/worker-signup" : "/employer-signup")
-                  }
-                  className={`font-black hover:underline transition-colors ${userRole === "worker" ? "text-blue-600" : "text-teal-600"}`}
-                >
+                <button type="button" onClick={() => navigate(userRole === "worker" ? "/worker-signup" : "/employer-signup")} className={`font-black hover:underline transition-colors ${userRole === "worker" ? "text-blue-600" : "text-teal-600"}`}>
                   Register Now
                 </button>
               </p>
             </div>
 
-            {/* Divider */}
             <div className="relative py-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-100" />
-              </div>
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100" /></div>
               <div className="relative flex justify-center text-[10px] uppercase">
-                <span className="bg-white/80 px-4 text-slate-400 font-black tracking-widest">
-                  Or continue with
-                </span>
+                <span className="bg-white/80 px-4 text-slate-400 font-black tracking-widest">Or continue with</span>
               </div>
             </div>
 
-            {/* Alternative Login Methods */}
             <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                fullWidth
-                onClick={handleGoogleLogin}
-                disabled={loading}
-                className="border-slate-100 bg-white/50 hover:bg-white hover:border-blue-200 hover:shadow-md transition-all h-11"
-              >
+              <Button type="button" variant="outline" fullWidth onClick={handleGoogleLogin} disabled={loading} className="border-slate-100 bg-white/50 hover:bg-white h-11">
                 <div className="flex items-center justify-center gap-2">
                   <Chrome size={18} className="text-red-500" />
                   <span className="text-xs font-bold text-slate-600">Google</span>
                 </div>
               </Button>
-              
-              <Button
-                type="button"
-                variant="outline"
-                fullWidth
-                onClick={() => {
-                  setLoginMethod(loginMethod === "email" ? "phone" : "email");
-                  setShowOtpField(false);
-                }}
-                disabled={loading}
-                className="border-slate-100 bg-white/50 hover:bg-white hover:border-blue-200 hover:shadow-md transition-all h-11"
-              >
+              <Button type="button" variant="outline" fullWidth onClick={() => setLoginMethod(loginMethod === "email" ? "phone" : "email")} disabled={loading} className="border-slate-100 bg-white/50 hover:bg-white h-11">
                 <div className="flex items-center justify-center gap-2">
                   {loginMethod === "email" ? (
                     <><Phone size={18} className="text-blue-500" /><span className="text-xs font-bold text-slate-600">Phone</span></>
@@ -427,17 +358,17 @@ const Login = () => {
               </Button>
             </div>
 
-            {/* Role Switcher */}
             <div className="pt-2">
               <button
                 type="button"
                 onClick={handleRoleSwitch}
+                disabled={isAnimating}
                 className="w-full group relative flex items-center justify-center gap-3 p-3 rounded-2xl border-2 border-dashed border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition-all duration-300"
               >
                 <div className={`p-1.5 rounded-xl transition-all duration-500 group-hover:rotate-12 ${userRole === "worker" ? "bg-teal-50 text-teal-600" : "bg-blue-50 text-blue-600"}`}>
                    {userRole === "worker" ? <Building2 size={18} /> : <Hammer size={18} />}
                 </div>
-                <span className="font-bold text-xs text-slate-600 group-hover:text-slate-900">
+                <span className="font-bold text-xs text-slate-600">
                   Switch to {userRole === "worker" ? "Employer" : "Worker"}
                 </span>
                 <ArrowRight size={14} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
@@ -447,11 +378,7 @@ const Login = () => {
         </div>
       </div>
       
-      <ResetPassword
-        opened={isResetModalOpen}
-        close={() => setIsResetModalOpen(false)}
-      />
-
+      <ResetPassword opened={isResetModalOpen} close={() => setIsResetModalOpen(false)} />
       <div id="recaptcha-container"></div>
     </div>
   );
