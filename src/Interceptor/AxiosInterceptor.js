@@ -3,7 +3,7 @@ import { removeUser } from "../features/UserSlice";
 import { removeJwt } from "../features/JwtSlice";
 
 const axiosInstance = axios.create({
-  baseURL: "/api", // Use the Vite proxy path
+  baseURL: "https://bluc-ysbf.onrender.com", // Use the Vite proxy path
 });
 
 // Log request URL before sending
@@ -13,10 +13,10 @@ axiosInstance.interceptors.request.use((config) => {
 });
 
 // Example request
-axiosInstance
-  .get("/api")
-  .then((response) => console.log(response))
-  .catch((error) => console.error(error));
+// axiosInstance
+//   .get("/api")
+//   .then((response) => console.log(response))
+//   .catch((error) => console.error(error));
 
 // 🔹 REQUEST INTERCEPTOR (Attach JWT)
 axiosInstance.interceptors.request.use(
