@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "../../components/AppIcon";
 import Input from "../../components/ui/Input";
@@ -27,6 +27,7 @@ import { removeJwt } from "../../features/JwtSlice";
 // 🔹 JWT
 import jwtDecode from "jwt-decode";
 
+// 🟢 Moved Outside to Fix ReferenceErrorh
 const formatPhoneNumber = (number) => {
   const cleaned = number.replace(/\D/g, "");
   if (cleaned.length === 10) return "+91" + cleaned;
@@ -53,56 +54,56 @@ const Login = () => {
     password: "",
   });
 
-  // 🟢 FIX: Production-safe reCAPTCHA Initialization
+  // 🟢 FIX (MANDATORY) — Initialize reCAPTCHA ONCE
   useEffect(() => {
     if (!window.recaptchaVerifier) {
-      try {
-        window.recaptchaVerifier = new RecaptchaVerifier(
-          auth,
-          "recaptcha-container",
-          {
-            size: "invisible",
-            callback: (response) => {
-              console.log("reCAPTCHA solved");
-            },
-            "expired-callback": () => {
-              window.recaptchaVerifier?.clear();
-              window.recaptchaVerifier = null;
-            }
-          }
-        );
-      } catch (error) {
-        console.error("reCAPTCHA init error:", error);
-      }
+      window.recaptchaVerifier = new RecaptchaVerifier(
+        auth,
+        "recaptcha-container",
+        {
+          size: "invisible",
+        }
+      );
     }
-
-    return () => {
-      if (window.recaptchaVerifier) {
-        // Optional: clear on unmount if needed, though window persistence is often preferred in Firebase
-      }
-    };
   }, []);
 
   const handlePostLogin = async (token) => {
     const decoded = jwtDecode(token);
+
     localStorage.setItem("token", token);
+
     dispatch(setJwt(token));
     dispatch(setUser(decoded));
 
+    // 🟢 FIRST TIME USER → NO PROFILE YET
     if (!decoded.profileId) {
-      navigate(decoded.accountType === "APPLICANT" ? "/worker-profile-setup" : "/company-onboarding");
-      return;
+      if (decoded.accountType === "APPLICANT") {
+        navigate("/worker-profile-setup");
+      } else {
+        navigate("/company-onboarding");
+      }
+      return; // 🚫 STOP HERE
     }
 
+    // 🟢 EXISTING USER → FETCH PROFILE
     const profile = await getProfile(decoded.profileId);
     dispatch(setProfile(profile));
 
     if (!profile.completed) {
-      navigate(decoded.accountType === "APPLICANT" ? "/worker-profile-setup" : "/company-onboarding");
+      if (decoded.accountType === "APPLICANT") {
+        navigate("/worker-profile-setup");
+      } else {
+        navigate("/company-onboarding");
+      }
       return;
     }
 
-    navigate(decoded.accountType === "APPLICANT" ? "/worker-profile" : "/employer-dashboard");
+    // ✅ DASHBOARD
+    if (decoded.accountType === "APPLICANT") {
+      navigate("/worker-profile");
+    } else {
+      navigate("/employer-dashboard");
+    }
   };
 
   const handleGoogleLogin = async () => {
@@ -113,7 +114,8 @@ const Login = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
-      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
+      if (res?.data?.jwt)
+        await handlePostLogin(res.data.jwt, res.data.isNewUser);
     } catch (err) {
       alert(err.message || "Google login failed");
     } finally {
@@ -127,7 +129,7 @@ const Login = () => {
 
     try {
       setLoading(true);
-      // 🟢 FIX: Use window.recaptchaVerifier
+      // 🟢 FIX (MANDATORY) — Use window.recaptchaVerifier
       const confirmation = await signInWithPhoneNumber(
         auth,
         formattedPhone,
@@ -137,14 +139,7 @@ const Login = () => {
       setShowOtpField(true);
       alert("OTP sent successfully");
     } catch (err) {
-      console.error("OTP Error:", err);
       alert(err.message || "OTP send failed");
-      // Reset verifier if it fails
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.render().then(widgetId => {
-          grecaptcha.reset(widgetId);
-        });
-      }
     } finally {
       setLoading(false);
     }
@@ -159,7 +154,8 @@ const Login = () => {
       const result = await window.confirmationResult.confirm(otp);
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
-      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
+      if (res?.data?.jwt)
+        await handlePostLogin(res.data.jwt, res.data.isNewUser);
     } catch (err) {
       alert("Invalid OTP");
     } finally {
@@ -179,7 +175,7 @@ const Login = () => {
       dispatch(clearProfile());
       dispatch(removeJwt());
       const res = await loginWithEmail(formData);
-      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
+      if (res?.data?.jwt) await handlePostLogin(res.data.jwt, false);
     } catch (err) {
       alert(err.message || "Invalid credentials");
     } finally {
@@ -187,21 +183,37 @@ const Login = () => {
     }
   };
 
+  const handleRoleSwitch = () => {
+    setUserRole((prev) => (prev === "worker" ? "employer" : "worker"));
+    setFormData({ email: "", password: "" });
+    setErrors({});
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-cyan-50 to-slate-50 p-4">
       <div className="w-full max-w-md">
         <div className="card p-8 shadow-lg animate-fade-in">
-          {/* ... Header UI remains same ... */}
           <div className="flex justify-center mb-6">
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center">
-              <Icon name={userRole === "worker" ? "Hammer" : "Building2"} size={32} color="#fff" />
+              <Icon
+                name={userRole === "worker" ? "Hammer" : "Building2"}
+                size={32}
+                color="#fff"
+              />
             </div>
           </div>
 
           <h1 className="text-3xl font-bold text-center mb-2">Welcome Back</h1>
-          <p className="text-muted-foreground text-center mb-6">Sign in to your {userRole} account</p>
+          <p className="text-muted-foreground text-center mb-6">
+            Sign in to your {userRole} account
+          </p>
 
-          <form onSubmit={loginMethod === "email" ? handleSubmit : (e) => e.preventDefault()} className="space-y-4">
+          <form
+            onSubmit={
+              loginMethod === "email" ? handleSubmit : (e) => e.preventDefault()
+            }
+            className="space-y-4"
+          >
             {loginMethod === "email" ? (
               <>
                 <Input
@@ -217,26 +229,40 @@ const Login = () => {
                   type="password"
                   value={formData.password}
                   error={errors.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("password", e.target.value)
+                  }
                   required
                 />
-                <Button type="submit" fullWidth loading={loading}>Sign In</Button>
+                <Button type="submit" fullWidth loading={loading}>
+                  Sign In
+                </Button>
               </>
             ) : (
               <div className="space-y-4">
                 {!showOtpField ? (
                   <>
                     <div className="relative">
-                      <span className="absolute left-3 top-[38px] text-gray-500 font-medium">+91</span>
+                      {/* 🟢 Visually added +91 to the field */}
+                      <span className="absolute left-3 top-[38px] text-gray-500 font-medium">
+                        +91
+                      </span>
                       <Input
                         label="Phone Number"
                         placeholder="9876543210"
                         value={phoneNumber}
-                        style={{ paddingLeft: "45px" }}
+                        style={{ paddingLeft: "45px" }} // Pushes text so it doesn't overlap +91
                         onChange={(e) => setPhoneNumber(e.target.value)}
                       />
                     </div>
-                    <Button fullWidth onClick={handleSendOtp} loading={loading}>Send OTP</Button>
+                    <Button
+                      id="phone-otp-btn"
+                      fullWidth
+                      onClick={handleSendOtp}
+                      loading={loading}
+                    >
+                      Send OTP
+                    </Button>
                   </>
                 ) : (
                   <>
@@ -245,8 +271,18 @@ const Login = () => {
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
                     />
-                    <Button fullWidth onClick={handleVerifyOtp} loading={loading}>Verify & Login</Button>
-                    <button type="button" className="text-xs text-primary w-full text-center" onClick={() => setShowOtpField(false)}>
+                    <Button
+                      fullWidth
+                      onClick={handleVerifyOtp}
+                      loading={loading}
+                    >
+                      Verify & Login
+                    </Button>
+                    <button
+                      type="button"
+                      className="text-xs text-primary w-full text-center"
+                      onClick={() => setShowOtpField(false)}
+                    >
                       Change Phone Number
                     </button>
                   </>
@@ -255,36 +291,60 @@ const Login = () => {
             )}
 
             <div className="text-center">
-              <button type="button" className="text-sm text-primary hover:underline" onClick={() => setIsResetModalOpen(true)}>
+              <button
+                type="button"
+                className="text-sm text-primary hover:underline"
+                onClick={() => setIsResetModalOpen(true)}
+              >
                 Forgot Password?
               </button>
             </div>
 
-            {/* Social & Role Management UI remains same */}
             <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or social login</span>
+                <span className="bg-card px-2 text-muted-foreground">
+                  Or social login
+                </span>
               </div>
             </div>
 
             <div className="space-y-3">
-              <Button type="button" variant="outline" fullWidth onClick={handleGoogleLogin} disabled={loading}>Continue with Google</Button>
+              <Button
+                type="button"
+                variant="outline"
+                fullWidth
+                onClick={handleGoogleLogin}
+                disabled={loading}
+              >
+                Continue with Google
+              </Button>
               <Button
                 type="button"
                 variant="secondary"
                 fullWidth
-                onClick={() => { setLoginMethod(loginMethod === "email" ? "phone" : "email"); setShowOtpField(false); }}
+                onClick={() => {
+                  setLoginMethod(loginMethod === "email" ? "phone" : "email");
+                  setShowOtpField(false);
+                }}
                 disabled={loading}
               >
-                {loginMethod === "email" ? "Continue with Phone OTP" : "Continue with Email Login"}
+                {loginMethod === "email"
+                  ? "Continue with Phone OTP"
+                  : "Continue with Email Login"}
               </Button>
             </div>
 
             <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Role Management</span>
+                <span className="bg-card px-2 text-muted-foreground">
+                  Role Management
+                </span>
               </div>
             </div>
 
@@ -292,19 +352,40 @@ const Login = () => {
               type="button"
               variant="outline"
               fullWidth
-              onClick={() => { setUserRole(prev => (prev === "worker" ? "employer" : "worker")); setFormData({ email: "", password: "" }); setErrors({}); }}
+              onClick={handleRoleSwitch}
               iconName={userRole === "worker" ? "Building2" : "Hammer"}
               iconPosition="left"
             >
-              {userRole === "worker" ? "Sign in as Employer" : "Sign in as Worker"}
+              {userRole === "worker"
+                ? "Sign in as Employer"
+                : "Sign in as Worker"}
             </Button>
+
+            <p className="text-sm text-center text-muted-foreground mt-4">
+              Don’t have an account?{" "}
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    userRole === "worker"
+                      ? "/worker-signup"
+                      : "/employer-signup"
+                  )
+                }
+                className="text-primary font-medium hover:underline"
+              >
+                Sign up as {userRole}
+              </button>
+            </p>
           </form>
         </div>
       </div>
+      <ResetPassword
+        opened={isResetModalOpen}
+        close={() => setIsResetModalOpen(false)}
+      />
 
-      <ResetPassword opened={isResetModalOpen} close={() => setIsResetModalOpen(false)} />
-
-      {/* 🟢 FIX: Mandatory hidden container for reCAPTCHA */}
+      {/* 🟢 FIX (MANDATORY) — Static container for reCAPTCHA */}
       <div id="recaptcha-container"></div>
     </div>
   );
