@@ -1,6 +1,16 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Icon from "../../components/AppIcon";
+// 🔹 Lucide Icons
+import { 
+  Hammer, 
+  Building2, 
+  Mail, 
+  Phone, 
+  Chrome, 
+  ArrowRight, 
+  KeyRound 
+} from "lucide-react";
+
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import ResetPassword from "./ResetPassword";
@@ -53,26 +63,17 @@ const Login = () => {
     password: "",
   });
 
-  // 🔹 1. reCAPTCHA initialization with logs
   useEffect(() => {
-    console.log("🔥 useEffect mounted");
-
     if (!window.recaptchaVerifier) {
-      console.log("🟡 Creating reCAPTCHA verifier...");
-
       try {
         window.recaptchaVerifier = new RecaptchaVerifier(
           auth,
           "recaptcha-container",
           { size: "invisible" }
         );
-
-        console.log("✅ reCAPTCHA verifier created:", window.recaptchaVerifier);
       } catch (e) {
         console.error("❌ reCAPTCHA creation failed:", e);
       }
-    } else {
-      console.log("ℹ️ reCAPTCHA verifier already exists");
     }
   }, []);
 
@@ -127,82 +128,41 @@ const Login = () => {
     }
   };
 
-  // 🔹 2. Send OTP with logs
   const handleSendOtp = async () => {
     const formattedPhone = formatPhoneNumber(phoneNumber);
-    console.log("📞 Send OTP clicked");
-    console.log("📞 Raw phone:", phoneNumber);
-    console.log("📞 Formatted phone:", formattedPhone);
-    console.log("🔐 recaptchaVerifier:", window.recaptchaVerifier);
-
-    if (!formattedPhone) {
-      console.error("❌ Invalid phone number");
-      return alert("Enter a valid 10-digit phone number");
-    }
+    if (!formattedPhone) return alert("Enter a valid 10-digit phone number");
 
     try {
       setLoading(true);
-      console.log("🚀 Calling signInWithPhoneNumber...");
-
       const confirmation = await signInWithPhoneNumber(
         auth,
         formattedPhone,
         window.recaptchaVerifier
       );
-
-      console.log("✅ OTP sent, confirmationResult:", confirmation);
-
       window.confirmationResult = confirmation;
       setShowOtpField(true);
       alert("OTP sent successfully");
     } catch (err) {
-      console.error("❌ OTP SEND FAILED:", err);
       alert(err.message || "OTP send failed");
     } finally {
       setLoading(false);
     }
   };
 
-  // 🔹 3. Verify OTP with logs
   const handleVerifyOtp = async () => {
-    console.log("🔢 Verify OTP clicked");
-    console.log("🔢 OTP entered:", otp);
-    console.log("📦 confirmationResult:", window.confirmationResult);
-
-    if (!otp) {
-      console.error("❌ OTP missing");
-      return alert("Please enter the OTP");
-    }
+    if (!otp) return alert("Please enter the OTP");
 
     try {
       setLoading(true);
       dispatch(clearProfile());
       dispatch(removeJwt());
-
-      console.log("🚀 Calling confirmationResult.confirm...");
       const result = await window.confirmationResult.confirm(otp);
-
-      console.log("✅ OTP verified, Firebase result:", result);
-      console.log("👤 Firebase user:", result?.user);
-
-      if (!result?.user) {
-        console.error("❌ Firebase user is NULL");
-        return;
-      }
-
-      console.log("🔐 Calling getIdToken...");
       const firebaseToken = await result.user.getIdToken();
-      console.log("✅ Firebase ID Token received:", firebaseToken);
-
-      console.log("🌐 Calling backend /firebase-login...");
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
-      console.log("✅ Backend response:", res);
-
       if (res?.data?.jwt) {
         await handlePostLogin(res.data.jwt, res.data.isNewUser);
       }
     } catch (err) {
-      console.error("❌ OTP VERIFY FAILED:", err);
       alert("Invalid OTP");
     } finally {
       setLoading(false);
@@ -238,26 +198,24 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-cyan-50 to-slate-50 p-4">
       <div className="w-full max-w-md">
-        <div className="card p-8 shadow-lg animate-fade-in">
+        <div className="bg-white rounded-3xl p-8 shadow-xl border border-blue-100 transition-all">
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center">
-              <Icon
-                name={userRole === "worker" ? "Hammer" : "Building2"}
-                size={32}
-                color="#fff"
-              />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center shadow-lg shadow-blue-200">
+              {userRole === "worker" ? (
+                <Hammer size={32} color="#fff" />
+              ) : (
+                <Building2 size={32} color="#fff" />
+              )}
             </div>
           </div>
 
-          <h1 className="text-3xl font-bold text-center mb-2">Welcome Back</h1>
-          <p className="text-muted-foreground text-center mb-6">
-            Sign in to your {userRole} account
+          <h1 className="text-3xl font-bold text-center text-slate-800 mb-2">Welcome Back</h1>
+          <p className="text-slate-500 text-center mb-8">
+            Sign in to your <span className="text-blue-600 font-semibold capitalize">{userRole}</span> account
           </p>
 
           <form
-            onSubmit={
-              loginMethod === "email" ? handleSubmit : (e) => e.preventDefault()
-            }
+            onSubmit={loginMethod === "email" ? handleSubmit : (e) => e.preventDefault()}
             className="space-y-4"
           >
             {loginMethod === "email" ? (
@@ -275,9 +233,7 @@ const Login = () => {
                   type="password"
                   value={formData.password}
                   error={errors.password}
-                  onChange={(e) =>
-                    handleInputChange("password", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("password", e.target.value)}
                   required
                 />
                 <Button type="submit" fullWidth loading={loading}>
@@ -325,7 +281,7 @@ const Login = () => {
                     </Button>
                     <button
                       type="button"
-                      className="text-xs text-primary w-full text-center"
+                      className="text-xs text-blue-600 w-full text-center hover:underline"
                       onClick={() => setShowOtpField(false)}
                     >
                       Change Phone Number
@@ -338,20 +294,20 @@ const Login = () => {
             <div className="text-center">
               <button
                 type="button"
-                className="text-sm text-primary hover:underline"
+                className="text-sm text-blue-600 hover:underline font-medium"
                 onClick={() => setIsResetModalOpen(true)}
               >
                 Forgot Password?
               </button>
             </div>
 
-            <div className="relative my-6">
+            <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
+                <div className="w-full border-t border-slate-200" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                  Or social login
+                <span className="bg-white px-3 text-slate-400 font-bold tracking-wider">
+                  Or Secure Login
                 </span>
               </div>
             </div>
@@ -363,9 +319,14 @@ const Login = () => {
                 fullWidth
                 onClick={handleGoogleLogin}
                 disabled={loading}
+                className="border-slate-200 hover:bg-slate-50"
               >
-                Continue with Google
+                <div className="flex items-center justify-center gap-2">
+                  <Chrome size={18} />
+                  <span>Login with Google for {userRole}</span>
+                </div>
               </Button>
+              
               <Button
                 type="button"
                 variant="secondary"
@@ -376,20 +337,22 @@ const Login = () => {
                 }}
                 disabled={loading}
               >
-                {loginMethod === "email"
-                  ? "Continue with Phone OTP"
-                  : "Continue with Email Login"}
+                <div className="flex items-center justify-center gap-2">
+                  {loginMethod === "email" ? (
+                    <><Phone size={18} /> Login with Number for {userRole}</>
+                  ) : (
+                    <><Mail size={18} /> Login with Email for {userRole}</>
+                  )}
+                </div>
               </Button>
             </div>
 
-            <div className="relative my-6">
+            <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
+                <div className="w-full border-t border-slate-200 border-dashed" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                  Role Management
-                </span>
+                <span className="bg-white px-3 text-slate-400 font-bold">Role Management</span>
               </div>
             </div>
 
@@ -398,26 +361,22 @@ const Login = () => {
               variant="outline"
               fullWidth
               onClick={handleRoleSwitch}
-              iconName={userRole === "worker" ? "Building2" : "Hammer"}
-              iconPosition="left"
+              className="border-blue-200 text-blue-600 hover:bg-blue-50"
             >
-              {userRole === "worker"
-                ? "Sign in as Employer"
-                : "Sign in as Worker"}
+              <div className="flex items-center justify-center gap-2">
+                {userRole === "worker" ? <Building2 size={18} /> : <Hammer size={18} />}
+                <span>Sign in as {userRole === "worker" ? "Employer" : "Worker"}</span>
+              </div>
             </Button>
 
-            <p className="text-sm text-center text-muted-foreground mt-4">
+            <p className="text-sm text-center text-slate-500 mt-6">
               Don’t have an account?{" "}
               <button
                 type="button"
                 onClick={() =>
-                  navigate(
-                    userRole === "worker"
-                      ? "/worker-signup"
-                      : "/employer-signup"
-                  )
+                  navigate(userRole === "worker" ? "/worker-signup" : "/employer-signup")
                 }
-                className="text-primary font-medium hover:underline"
+                className="text-blue-600 font-bold hover:underline"
               >
                 Sign up as {userRole}
               </button>
@@ -425,6 +384,7 @@ const Login = () => {
           </form>
         </div>
       </div>
+      
       <ResetPassword
         opened={isResetModalOpen}
         close={() => setIsResetModalOpen(false)}
@@ -434,5 +394,5 @@ const Login = () => {
     </div>
   );
 };
-//
+
 export default Login;
