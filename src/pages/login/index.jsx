@@ -8,7 +8,6 @@ import {
   Phone, 
   Chrome, 
   ArrowRight, 
-  ShieldCheck,
   Loader2
 } from "lucide-react";
 
@@ -88,20 +87,35 @@ const Login = () => {
     dispatch(setJwt(token));
     dispatch(setUser(decoded));
 
+    // Logic: Check if profile exists
     if (!decoded.profileId) {
-      navigate(decoded.accountType === "APPLICANT" ? "/worker-profile-setup" : "/company-onboarding");
+      if (decoded.accountType === "APPLICANT") {
+        navigate("/worker-profile-setup");
+      } else {
+        navigate("/company-onboarding");
+      }
       return;
     }
 
     const profile = await getProfile(decoded.profileId);
     dispatch(setProfile(profile));
 
+    // Logic: Check if profile is complete
     if (!profile.completed) {
-      navigate(decoded.accountType === "APPLICANT" ? "/worker-profile-setup" : "/company-onboarding");
+      if (decoded.accountType === "APPLICANT") {
+        navigate("/worker-profile-setup");
+      } else {
+        navigate("/company-onboarding");
+      }
       return;
     }
 
-    navigate(decoded.accountType === "APPLICANT" ? "/worker-profile" : "/employer-dashboard");
+    // Success navigation
+    if (decoded.accountType === "APPLICANT") {
+      navigate("/worker-profile");
+    } else {
+      navigate("/employer-dashboard");
+    }
   };
 
   const handleGoogleLogin = async () => {
@@ -112,7 +126,8 @@ const Login = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
-      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
+      if (res?.data?.jwt)
+        await handlePostLogin(res.data.jwt);
     } catch (err) {
       alert(err.message || "Google login failed");
     } finally {
@@ -126,9 +141,14 @@ const Login = () => {
 
     try {
       setLoading(true);
-      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        formattedPhone,
+        window.recaptchaVerifier
+      );
       window.confirmationResult = confirmation;
       setShowOtpField(true);
+      alert("OTP sent successfully");
     } catch (err) {
       alert(err.message || "OTP send failed");
     } finally {
@@ -145,7 +165,9 @@ const Login = () => {
       const result = await window.confirmationResult.confirm(otp);
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
-      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
+      if (res?.data?.jwt) {
+        await handlePostLogin(res.data.jwt);
+      }
     } catch (err) {
       alert("Invalid OTP");
     } finally {
@@ -177,13 +199,12 @@ const Login = () => {
     if (isAnimating) return;
     setIsAnimating(true);
     
-    // Slow transition: Phase 1 Out
     setTimeout(() => {
       setUserRole((prev) => (prev === "worker" ? "employer" : "worker"));
       setFormData({ email: "", password: "" });
       setErrors({});
       setIsAnimating(false);
-      setIsSettling(true); // Phase 2 In
+      setIsSettling(true);
 
       setTimeout(() => setIsSettling(false), 800);
     }, 1200); 
@@ -327,8 +348,12 @@ const Login = () => {
               </button>
               <p className="text-xs text-slate-500 font-medium">
                 Don't have an account?{" "}
-                <button type="button" onClick={() => navigate(userRole === "worker" ? "/worker-signup" : "/employer-signup")} className={`font-black hover:underline transition-colors ${userRole === "worker" ? "text-blue-600" : "text-teal-600"}`}>
-                  Register Now
+                <button 
+                  type="button" 
+                  onClick={() => navigate(userRole === "worker" ? "/worker-signup" : "/employer-signup")} 
+                  className={`font-black hover:underline transition-colors ${userRole === "worker" ? "text-blue-600" : "text-teal-600"}`}
+                >
+                  Sign up as {userRole}
                 </button>
               </p>
             </div>
@@ -347,7 +372,10 @@ const Login = () => {
                   <span className="text-xs font-bold text-slate-600">Google</span>
                 </div>
               </Button>
-              <Button type="button" variant="outline" fullWidth onClick={() => setLoginMethod(loginMethod === "email" ? "phone" : "email")} disabled={loading} className="border-slate-100 bg-white/50 hover:bg-white h-11">
+              <Button type="button" variant="outline" fullWidth onClick={() => {
+                setLoginMethod(loginMethod === "email" ? "phone" : "email");
+                setShowOtpField(false);
+              }} disabled={loading} className="border-slate-100 bg-white/50 hover:bg-white h-11">
                 <div className="flex items-center justify-center gap-2">
                   {loginMethod === "email" ? (
                     <><Phone size={18} className="text-blue-500" /><span className="text-xs font-bold text-slate-600">Phone</span></>
