@@ -159,7 +159,7 @@ const EmployerDashboard = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
               <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight">
-                {getGreeting()}, {user?.name?.split(' ')[0] || 'Employer'}!
+                {getGreeting()}, {profile?.companyName?.split(' ')[0] || 'Employer'}!
               </h1>
               <p className="text-muted-foreground mt-1 flex items-center gap-2 font-medium">
                 <Icon name="Calendar" size={16} />
