@@ -27,7 +27,6 @@ import { removeJwt } from "../../features/JwtSlice";
 // 🔹 JWT
 import jwtDecode from "jwt-decode";
 
-// 🟢 Moved Outside to Fix ReferenceErrorh
 const formatPhoneNumber = (number) => {
   const cleaned = number.replace(/\D/g, "");
   if (cleaned.length === 10) return "+91" + cleaned;
@@ -54,38 +53,44 @@ const Login = () => {
     password: "",
   });
 
-  // 🟢 FIX (MANDATORY) — Initialize reCAPTCHA ONCE
+  // 🔹 1. reCAPTCHA initialization with logs
   useEffect(() => {
+    console.log("🔥 useEffect mounted");
+
     if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(
-        auth,
-        "recaptcha-container",
-        {
-          size: "invisible",
-        }
-      );
+      console.log("🟡 Creating reCAPTCHA verifier...");
+
+      try {
+        window.recaptchaVerifier = new RecaptchaVerifier(
+          auth,
+          "recaptcha-container",
+          { size: "invisible" }
+        );
+
+        console.log("✅ reCAPTCHA verifier created:", window.recaptchaVerifier);
+      } catch (e) {
+        console.error("❌ reCAPTCHA creation failed:", e);
+      }
+    } else {
+      console.log("ℹ️ reCAPTCHA verifier already exists");
     }
   }, []);
 
   const handlePostLogin = async (token) => {
     const decoded = jwtDecode(token);
-
     localStorage.setItem("token", token);
-
     dispatch(setJwt(token));
     dispatch(setUser(decoded));
 
-    // 🟢 FIRST TIME USER → NO PROFILE YET
     if (!decoded.profileId) {
       if (decoded.accountType === "APPLICANT") {
         navigate("/worker-profile-setup");
       } else {
         navigate("/company-onboarding");
       }
-      return; // 🚫 STOP HERE
+      return;
     }
 
-    // 🟢 EXISTING USER → FETCH PROFILE
     const profile = await getProfile(decoded.profileId);
     dispatch(setProfile(profile));
 
@@ -98,7 +103,6 @@ const Login = () => {
       return;
     }
 
-    // ✅ DASHBOARD
     if (decoded.accountType === "APPLICANT") {
       navigate("/worker-profile");
     } else {
@@ -123,40 +127,82 @@ const Login = () => {
     }
   };
 
+  // 🔹 2. Send OTP with logs
   const handleSendOtp = async () => {
     const formattedPhone = formatPhoneNumber(phoneNumber);
-    if (!formattedPhone) return alert("Enter a valid 10-digit phone number");
+    console.log("📞 Send OTP clicked");
+    console.log("📞 Raw phone:", phoneNumber);
+    console.log("📞 Formatted phone:", formattedPhone);
+    console.log("🔐 recaptchaVerifier:", window.recaptchaVerifier);
+
+    if (!formattedPhone) {
+      console.error("❌ Invalid phone number");
+      return alert("Enter a valid 10-digit phone number");
+    }
 
     try {
       setLoading(true);
-      // 🟢 FIX (MANDATORY) — Use window.recaptchaVerifier
+      console.log("🚀 Calling signInWithPhoneNumber...");
+
       const confirmation = await signInWithPhoneNumber(
         auth,
         formattedPhone,
         window.recaptchaVerifier
       );
+
+      console.log("✅ OTP sent, confirmationResult:", confirmation);
+
       window.confirmationResult = confirmation;
       setShowOtpField(true);
       alert("OTP sent successfully");
     } catch (err) {
+      console.error("❌ OTP SEND FAILED:", err);
       alert(err.message || "OTP send failed");
     } finally {
       setLoading(false);
     }
   };
 
+  // 🔹 3. Verify OTP with logs
   const handleVerifyOtp = async () => {
-    if (!otp) return alert("Please enter the OTP");
+    console.log("🔢 Verify OTP clicked");
+    console.log("🔢 OTP entered:", otp);
+    console.log("📦 confirmationResult:", window.confirmationResult);
+
+    if (!otp) {
+      console.error("❌ OTP missing");
+      return alert("Please enter the OTP");
+    }
+
     try {
       setLoading(true);
       dispatch(clearProfile());
       dispatch(removeJwt());
+
+      console.log("🚀 Calling confirmationResult.confirm...");
       const result = await window.confirmationResult.confirm(otp);
+
+      console.log("✅ OTP verified, Firebase result:", result);
+      console.log("👤 Firebase user:", result?.user);
+
+      if (!result?.user) {
+        console.error("❌ Firebase user is NULL");
+        return;
+      }
+
+      console.log("🔐 Calling getIdToken...");
       const firebaseToken = await result.user.getIdToken();
+      console.log("✅ Firebase ID Token received:", firebaseToken);
+
+      console.log("🌐 Calling backend /firebase-login...");
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
-      if (res?.data?.jwt)
+      console.log("✅ Backend response:", res);
+
+      if (res?.data?.jwt) {
         await handlePostLogin(res.data.jwt, res.data.isNewUser);
+      }
     } catch (err) {
+      console.error("❌ OTP VERIFY FAILED:", err);
       alert("Invalid OTP");
     } finally {
       setLoading(false);
@@ -243,7 +289,6 @@ const Login = () => {
                 {!showOtpField ? (
                   <>
                     <div className="relative">
-                      {/* 🟢 Visually added +91 to the field */}
                       <span className="absolute left-3 top-[38px] text-gray-500 font-medium">
                         +91
                       </span>
@@ -251,7 +296,7 @@ const Login = () => {
                         label="Phone Number"
                         placeholder="9876543210"
                         value={phoneNumber}
-                        style={{ paddingLeft: "45px" }} // Pushes text so it doesn't overlap +91
+                        style={{ paddingLeft: "45px" }}
                         onChange={(e) => setPhoneNumber(e.target.value)}
                       />
                     </div>
@@ -385,7 +430,6 @@ const Login = () => {
         close={() => setIsResetModalOpen(false)}
       />
 
-      {/* 🟢 FIX (MANDATORY) — Static container for reCAPTCHA */}
       <div id="recaptcha-container"></div>
     </div>
   );
