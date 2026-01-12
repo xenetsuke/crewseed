@@ -16,8 +16,10 @@ import { removeUser } from "../../features/UserSlice";
 import { signInWithPhoneNumber } from "firebase/auth";
 import { auth, setupRecaptcha } from "../../firebase/firebase";
 import { saveVerifiedPhone } from "../../Services/UserService";
+import { getRecaptcha } from "../../firebase/firebase";
 
-
+import { getRecaptcha, auth } from "../../firebase/firebase";
+import { signInWithPhoneNumber } from "firebase/auth";
 const WorkerProfile = () => {
   const dispatch = useDispatch();
   const backendProfile = useSelector((state) => state.profile);
@@ -70,17 +72,23 @@ const WorkerProfile = () => {
   };
 
   /** 📌 Phone Verification Handlers */
+
+
 const handleRequestPhoneOtp = async (phone) => {
-  const recaptcha = setupRecaptcha();
+  const recaptcha = getRecaptcha(); // ✅ reused instance
+
   const confirmation = await signInWithPhoneNumber(
     auth,
     "+91" + phone,
     recaptcha
   );
+
   window.confirmationResult = confirmation;
   setPendingPhone(phone);
   setIsOtpModalOpen(true);
 };
+
+
 
 
 const handleConfirmPhoneOtp = async () => {

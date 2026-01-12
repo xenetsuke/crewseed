@@ -1,9 +1,13 @@
 import { initializeApp } from "firebase/app";
-// import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getAuth, RecaptchaVerifier,GoogleAuthProvider } from "firebase/auth";
+import {
+  getAuth,
+  RecaptchaVerifier,
+  GoogleAuthProvider,
+} from "firebase/auth";
 
-
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+/* =========================
+   Firebase Config
+========================= */
 const firebaseConfig = {
   apiKey: "AIzaSyA_sT-jC0AhccVIiZulLssuIhkqy-Nu_Tw",
   authDomain: "crewseed-35e2d.firebaseapp.com",
@@ -11,15 +15,35 @@ const firebaseConfig = {
   storageBucket: "crewseed-35e2d.firebasestorage.app",
   messagingSenderId: "811334350006",
   appId: "1:811334350006:web:e97f9692370814ebea2217",
-  measurementId: "G-EL6JSK163Y"
+  measurementId: "G-EL6JSK163Y",
 };
 
+/* =========================
+   Initialize Firebase
+========================= */
 const app = initializeApp(firebaseConfig);
-
-export const setupRecaptcha = () =>
-  new RecaptchaVerifier(auth, "recaptcha-container", {
-    size: "invisible",
-  });
-
 export const auth = getAuth(app);
+
+/* =========================
+   Google Auth
+========================= */
 export const googleProvider = new GoogleAuthProvider();
+
+/* =========================
+   🔥 SINGLETON reCAPTCHA
+   (VERY IMPORTANT)
+========================= */
+let recaptchaVerifier = null;
+
+export const getRecaptcha = () => {
+  if (!recaptchaVerifier) {
+    recaptchaVerifier = new RecaptchaVerifier(
+      auth,
+      "recaptcha-container",
+      {
+        size: "invisible",
+      }
+    );
+  }
+  return recaptchaVerifier;
+};
