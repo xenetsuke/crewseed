@@ -13,11 +13,11 @@ import { getProfile, updateProfile } from "../../Services/ProfileService";
 // import { sendPhoneOtp, verifyAndSavePhone } from "../../Services/UserService";
 import { setProfile, clearProfile } from "../../features/ProfileSlice";
 import { removeUser } from "../../features/UserSlice";
-import { signInWithPhoneNumber } from "firebase/auth";
-import { auth, setupRecaptcha } from "../../firebase/firebase";
+// import { signInWithPhoneNumber } from "firebase/auth";
+// import { auth, setupRecaptcha } from "../../firebase/firebase";
 import { saveVerifiedPhone } from "../../Services/UserService";
-import { getRecaptcha } from "../../firebase/firebase";
-
+// import { getRecaptcha } from "../../firebase/firebase";
+//
 import { getRecaptcha, auth } from "../../firebase/firebase";
 import { signInWithPhoneNumber } from "firebase/auth";
 const WorkerProfile = () => {
@@ -36,7 +36,7 @@ const WorkerProfile = () => {
   const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
-    document.querySelectorAll("path").forEach(p => {
+    document.querySelectorAll("path").forEach((p) => {
       if (p.getAttribute("d")?.includes("714")) {
         console.error("❌ FOUND BAD SVG PATH:", p.getAttribute("d"));
       }
@@ -73,41 +73,36 @@ const WorkerProfile = () => {
 
   /** 📌 Phone Verification Handlers */
 
+  const handleRequestPhoneOtp = async (phone) => {
+    const recaptcha = getRecaptcha(); // ✅ reused instance
 
-const handleRequestPhoneOtp = async (phone) => {
-  const recaptcha = getRecaptcha(); // ✅ reused instance
+    const confirmation = await signInWithPhoneNumber(
+      auth,
+      "+91" + phone,
+      recaptcha
+    );
 
-  const confirmation = await signInWithPhoneNumber(
-    auth,
-    "+91" + phone,
-    recaptcha
-  );
+    window.confirmationResult = confirmation;
+    setPendingPhone(phone);
+    setIsOtpModalOpen(true);
+  };
 
-  window.confirmationResult = confirmation;
-  setPendingPhone(phone);
-  setIsOtpModalOpen(true);
-};
+  const handleConfirmPhoneOtp = async () => {
+    setVerifying(true);
+    try {
+      const result = await window.confirmationResult.confirm(otpValue);
+      const token = await result.user.getIdToken(true);
 
+      await saveVerifiedPhone(token); // 🔥 backend saves phone
 
-
-
-const handleConfirmPhoneOtp = async () => {
-  setVerifying(true);
-  try {
-    const result = await window.confirmationResult.confirm(otpValue);
-const token = await result.user.getIdToken(true);
-
-    await saveVerifiedPhone(token); // 🔥 backend saves phone
-
-    alert("Phone verified successfully");
-    setIsOtpModalOpen(false);
-  } catch (e) {
-    alert("Invalid OTP");
-  } finally {
-    setVerifying(false);
-  }
-};
-
+      alert("Phone verified successfully");
+      setIsOtpModalOpen(false);
+    } catch (e) {
+      alert("Invalid OTP");
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   /** 📌 Logout handlers */
   const handleLogoutClick = () => setShowLogoutConfirm(true);
@@ -139,7 +134,11 @@ const token = await result.user.getIdToken(true);
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      <main className={`main-content ${sidebarCollapsed ? "sidebar-collapsed" : ""} p-4 md:p-6 max-w-full overflow-x-hidden`}>
+      <main
+        className={`main-content ${
+          sidebarCollapsed ? "sidebar-collapsed" : ""
+        } p-4 md:p-6 max-w-full overflow-x-hidden`}
+      >
         <ProfileHeader profile={backendProfile} onSave={handleSaveToDB} />
 
         <div className="flex justify-end mb-4">
@@ -184,11 +183,17 @@ const token = await result.user.getIdToken(true);
             )}
 
             {activeTab === "professional" && (
-              <ProfessionalInfoTab data={backendProfile} onSave={handleSaveToDB} />
+              <ProfessionalInfoTab
+                data={backendProfile}
+                onSave={handleSaveToDB}
+              />
             )}
 
             {activeTab === "documents" && (
-              <DocumentsVerificationTab documents={backendProfile} onSave={handleSaveToDB} />
+              <DocumentsVerificationTab
+                documents={backendProfile}
+                onSave={handleSaveToDB}
+              />
             )}
 
             {activeTab === "workHistory" && (
@@ -203,8 +208,11 @@ const token = await result.user.getIdToken(true);
             <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-xl">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-semibold">Verify Phone Number</h3>
-                <button onClick={() => setIsOtpModalOpen(false)} className="text-muted-foreground">
-                   <Icon name="X" size={20} />
+                <button
+                  onClick={() => setIsOtpModalOpen(false)}
+                  className="text-muted-foreground"
+                >
+                  <Icon name="X" size={20} />
                 </button>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
@@ -218,10 +226,18 @@ const token = await result.user.getIdToken(true);
                 maxLength={6}
               />
               <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setIsOtpModalOpen(false)}>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setIsOtpModalOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button className="flex-1" onClick={handleConfirmPhoneOtp} loading={verifying}>
+                <Button
+                  className="flex-1"
+                  onClick={handleConfirmPhoneOtp}
+                  loading={verifying}
+                >
                   Verify
                 </Button>
               </div>
@@ -235,16 +251,31 @@ const token = await result.user.getIdToken(true);
             <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                  <Icon name="AlertCircle" size={24} className="text-yellow-600" />
+                  <Icon
+                    name="AlertCircle"
+                    size={24}
+                    className="text-yellow-600"
+                  />
                 </div>
                 <h3 className="text-lg font-semibold">Confirm Logout</h3>
               </div>
-              <p className="text-muted-foreground mb-6">Are you sure you want to logout? You will need to login again to access your profile.</p>
+              <p className="text-muted-foreground mb-6">
+                Are you sure you want to logout? You will need to login again to
+                access your profile.
+              </p>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setShowLogoutConfirm(false)} className="flex-1">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1"
+                >
                   Cancel
                 </Button>
-                <Button variant="default" onClick={handleLogout} className="flex-1 bg-red-600 hover:bg-red-700">
+                <Button
+                  variant="default"
+                  onClick={handleLogout}
+                  className="flex-1 bg-red-600 hover:bg-red-700"
+                >
                   Logout
                 </Button>
               </div>

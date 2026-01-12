@@ -1,9 +1,5 @@
 import { initializeApp } from "firebase/app";
-import {
-  getAuth,
-  RecaptchaVerifier,
-  GoogleAuthProvider,
-} from "firebase/auth";
+import { getAuth, RecaptchaVerifier, GoogleAuthProvider } from "firebase/auth";
 
 /* =========================
    Firebase Config
@@ -37,13 +33,10 @@ let recaptchaVerifier = null;
 
 export const getRecaptcha = () => {
   if (!recaptchaVerifier) {
-    recaptchaVerifier = new RecaptchaVerifier(
-      auth,
-      "recaptcha-container",
-      {
-        size: "invisible",
-      }
-    );
+    recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+      size: "invisible",
+    });
   }
   return recaptchaVerifier;
 };
+
