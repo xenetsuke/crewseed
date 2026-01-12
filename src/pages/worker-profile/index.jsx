@@ -19,7 +19,7 @@ import { saveVerifiedPhone } from "../../Services/UserService";
 // import { getRecaptcha } from "../../firebase/firebase";
 //
 import { getRecaptcha, auth } from "../../firebase/firebase";
-import { signInWithPhoneNumber } from "firebase/auth";
+import { linkWithPhoneNumber  } from "firebase/auth";
 const WorkerProfile = () => {
   const dispatch = useDispatch();
   const backendProfile = useSelector((state) => state.profile);
@@ -72,12 +72,17 @@ const WorkerProfile = () => {
   };
 
   /** 📌 Phone Verification Handlers */
+const handleRequestPhoneOtp = async (phone) => {
+  try {
+    const recaptcha = getRecaptcha();
+    const user = auth.currentUser;
 
-  const handleRequestPhoneOtp = async (phone) => {
-    const recaptcha = getRecaptcha(); // ✅ reused instance
+    if (!user) {
+      throw new Error("User not logged in");
+    }
 
-    const confirmation = await signInWithPhoneNumber(
-      auth,
+    const confirmation = await linkWithPhoneNumber(
+      user,
       "+91" + phone,
       recaptcha
     );
@@ -85,24 +90,32 @@ const WorkerProfile = () => {
     window.confirmationResult = confirmation;
     setPendingPhone(phone);
     setIsOtpModalOpen(true);
-  };
+  } catch (e) {
+    console.error(e);
+    alert(e.message);
+  }
+};
 
-  const handleConfirmPhoneOtp = async () => {
-    setVerifying(true);
-    try {
-      const result = await window.confirmationResult.confirm(otpValue);
-      const token = await result.user.getIdToken(true);
 
-      await saveVerifiedPhone(token); // 🔥 backend saves phone
+const handleConfirmPhoneOtp = async () => {
+  setVerifying(true);
+  try {
+    const result = await window.confirmationResult.confirm(otpValue);
 
-      alert("Phone verified successfully");
-      setIsOtpModalOpen(false);
-    } catch (e) {
-      alert("Invalid OTP");
-    } finally {
-      setVerifying(false);
-    }
-  };
+    // SAME USER — just linked phone
+    const token = await result.user.getIdToken();
+
+    await saveVerifiedPhone(token);
+
+    alert("Phone number added successfully");
+    setIsOtpModalOpen(false);
+  } catch (e) {
+    alert("Invalid OTP");
+  } finally {
+    setVerifying(false);
+  }
+};
+
 
   /** 📌 Logout handlers */
   const handleLogoutClick = () => setShowLogoutConfirm(true);

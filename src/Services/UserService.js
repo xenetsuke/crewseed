@@ -119,16 +119,16 @@ const resetPassword = async (email, password) => {
 // };
 export const saveVerifiedPhone = async (firebaseToken) => {
   return axiosInstance.post(
-    "/auth/firebase-login",
+    "/auth/firebase-link-phone",
     {},
     {
       headers: {
         Authorization: `Bearer ${firebaseToken}`,
-        "X-USER-ROLE": "worker",
       },
     }
   );
 };
+
 
 
 export {
