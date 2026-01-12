@@ -1,5 +1,7 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+// import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, RecaptchaVerifier,GoogleAuthProvider } from "firebase/auth";
+
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -13,6 +15,11 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
+export const setupRecaptcha = () =>
+  new RecaptchaVerifier(auth, "recaptcha-container", {
+    size: "invisible",
+  });
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
