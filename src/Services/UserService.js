@@ -8,17 +8,18 @@ const signupWorker = async (data) => {
     name: data.name,
     email: data.email,
     password: data.password,
-    accountType: "APPLICANT",
+    phoneNumber: data.phoneNumber,
+    accountType: data.accountType,
+    authProvider: "PASSWORD", // ✅ Add this to match your Backend Enum
   };
 
   return axiosInstance
     .post("/users/register", payload)
-    .then((result) => result.data)
+    .then((result) => result) // Return the whole result or result.data
     .catch((error) => {
       throw error;
     });
 };
-
 /* =========================
    Employer Signup
 ========================= */
@@ -27,6 +28,7 @@ const signupEmployer = async (data) => {
     name: data.name,
     email: data.email,
     password: data.password,
+    phoneNumber: data.phoneNumber,
     accountType: data.accountType, // EMPLOYER
   };
 
@@ -86,11 +88,65 @@ const resetPassword = async (email, password) => {
     });
 };
 
+/* =========================
+   Phone Verification (New)
+========================= */
+
+/**
+ * 1. Request an OTP to be sent to the phone number
+ */
+// const sendPhoneOtp = async (phoneNumber) => {
+//   return axiosInstance
+//     .post(`/users/send-phone-otp/${phoneNumber}`)
+//     .then((result) => result.data)
+//     .catch((error) => {
+//       throw error;
+//     });
+// };
+
+/**
+ * 2. Verify OTP and automatically update the user's profile
+ * This calls your new /verify-phone endpoint which performs:
+ * verifyOtp() -> updatePhoneNumber() in one go.
+ */
+// const verifyAndSavePhone = async (userId, phoneNumber, otp) => {
+//   return axiosInstance
+//     .post(`/users/verify-phone/${userId}/${phoneNumber}/${otp}`)
+//     .then((result) => result.data)
+//     .catch((error) => {
+//       throw error;
+//     });
+// };
+export const saveVerifiedPhone = async (firebaseToken) => {
+  return axiosInstance.post(
+    "/auth/firebase-login",
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${firebaseToken}`,
+        "X-USER-ROLE": "worker",
+      },
+    }
+  );
+};
+
+
 export {
   signupWorker,
   signupEmployer,
   loginWithEmail,
-  sendOtp,
-  verifyOtp,
+  sendOtp, // Email OTP
+  verifyOtp, // Email OTP
   resetPassword,
+  // sendPhoneOtp, 
+  // verifyAndSavePhone, 
 };
+
+// export {
+//   signupWorker,
+//   signupEmployer,
+//   loginWithEmail,
+//   sendOtp,
+//   verifyOtp,
+//   resetPassword,
+// };

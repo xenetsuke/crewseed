@@ -3,42 +3,38 @@ import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
 import Select from "../../../components/ui/Select";
 import Icon from "../../../components/AppIcon";
-import { notifications } from "@mantine/notifications"; // ⭐ For success toast
+import { notifications } from "@mantine/notifications";
 
 /**
- * 🔥 Enhancements:
- * - Mantine-like Edit → Save/Cancel workflow
- * - Fields locked by default
- * - Cancel restores backend values
+ * 🔥 Updated with Phone Verification Flow:
+ * - Detects changes in Primary Phone
+ * - Triggers onVerifyPhone for OTP if number changed
+ * - Standard save for other fields
  */
 
-const PersonalInfoTab = ({ profile, onSave }) => {
-  // 🟢 Store original backend profile separately
+const PersonalInfoTab = ({ profile, onSave, onVerifyPhone }) => {
   const [initialProfile, setInitialProfile] = useState(profile);
 
-  // 📝 Form Data (editable copy)
   const [formData, setFormData] = useState({
     fullName: profile?.fullName || "",
     email: profile?.email || "",
-
     primaryPhone: profile?.primaryPhone || "",
     alternatePhone: profile?.alternatePhone || "",
     whatsappNumber: profile?.whatsappNumber || "",
-
     age: profile?.age || "",
     gender: profile?.gender || "",
-    currentState: profile?.currentAddress || "",
-
+    currentState: profile?.currentState || "",
     currentAddress: profile?.currentAddress || "",
     currentCity: profile?.currentCity || "",
     pincode: profile?.pincode || "",
   });
 
-  // 🛑 Fields disabled initially → Only Edit enables them
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Update form if profile reloads from Redux/backend
+  // Check if primary phone was modified compared to backend
+  const isPhoneChanged = formData.primaryPhone !== initialProfile?.primaryPhone;
+
   useEffect(() => {
     setInitialProfile(profile);
     setFormData({
@@ -75,36 +71,45 @@ const PersonalInfoTab = ({ profile, onSave }) => {
     { value: "Haryana", label: "Haryana" },
   ];
 
-  // Update Form state
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // ⭐ SAVE → Update backend + disable fields again
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    const payload = {
-      ...profile,
-      ...formData,
-    };
-
-    await onSave(payload);
-
-    setInitialProfile(payload);
-    setIsEditing(false);
-
-    notifications.show({
-      title: "Profile Updated",
-      message: "Your personal information is saved successfully.",
-      color: "green",
-    });
-
-    setLoading(false);
+    try {
+      if (isPhoneChanged) {
+        // 📱 Trigger OTP flow via parent
+        const otpSent = await onVerifyPhone(formData.primaryPhone);
+        if (otpSent) {
+          setIsEditing(false);
+          notifications.show({
+            title: "Verification Sent",
+            message: "Please enter the OTP sent to your new phone number.",
+            color: "blue",
+          });
+        }
+      } else {
+        // ✅ Normal save for other fields
+        const payload = { ...profile, ...formData };
+        await onSave(payload);
+        setInitialProfile(payload);
+        setIsEditing(false);
+        notifications.show({
+          title: "Profile Updated",
+          message: "Your personal information is saved successfully.",
+          color: "green",
+        });
+      }
+    } catch (err) {
+      console.error("Save failed", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ❌ Cancel → revert changes + disable edit mode
   const handleCancel = () => {
     setFormData(initialProfile);
     setIsEditing(false);
@@ -112,7 +117,6 @@ const PersonalInfoTab = ({ profile, onSave }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* 🔵 EDIT BUTTON */}
       <div className="flex justify-end mb-3">
         {!isEditing ? (
           <Button type="button" onClick={() => setIsEditing(true)}>
@@ -124,13 +128,12 @@ const PersonalInfoTab = ({ profile, onSave }) => {
               Cancel
             </Button>
             <Button type="submit" loading={loading}>
-              Save
+              {isPhoneChanged ? "Verify & Save" : "Save"}
             </Button>
           </div>
         )}
       </div>
 
-      {/* Profile Information */}
       <div>
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Icon name="User" size={20} />
@@ -139,7 +142,7 @@ const PersonalInfoTab = ({ profile, onSave }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            disabled={!isEditing} // 🔒 Controls toggle
+            disabled={!isEditing}
             label="Full Name"
             type="text"
             value={formData.fullName}
@@ -171,7 +174,6 @@ const PersonalInfoTab = ({ profile, onSave }) => {
         </div>
       </div>
 
-      {/* Contact Details */}
       <div className="border-t border-border pt-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Icon name="Phone" size={20} />
@@ -179,14 +181,35 @@ const PersonalInfoTab = ({ profile, onSave }) => {
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            disabled={!isEditing}
-            label="Primary Phone Number"
-            type="tel"
-            value={formData.primaryPhone}
-            onChange={(e) => handleChange("primaryPhone", e.target.value)}
-            required
-          />
+          <div className="relative">
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Input
+                  disabled={!isEditing}
+                  label="Primary Phone Number"
+                  type="tel"
+                  value={formData.primaryPhone}
+                  onChange={(e) => handleChange("primaryPhone", e.target.value)}
+                  required
+                />
+              </div>
+              {isEditing && isPhoneChanged && (
+                <Button 
+                  type="submit" 
+                  size="sm" 
+                  loading={loading}
+                  className="mb-[2px]"
+                >
+                  Update Phone
+                </Button>
+              )}
+            </div>
+            {isEditing && isPhoneChanged && (
+              <p className="text-[10px] text-blue-600 mt-1 font-medium italic">
+                * Requires OTP verification
+              </p>
+            )}
+          </div>
 
           <Input
             disabled={!isEditing}
@@ -205,17 +228,14 @@ const PersonalInfoTab = ({ profile, onSave }) => {
           />
 
           <Input
-            disabled={!isEditing}
+            disabled={true} // Email locked for security
             label="Email Address"
             type="email"
             value={formData.email}
-            onChange={(e) => handleChange("email", e.target.value)}
-            required
           />
         </div>
       </div>
 
-      {/* Address Section */}
       <div className="border-t border-border pt-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Icon name="MapPin" size={20} />
@@ -243,14 +263,13 @@ const PersonalInfoTab = ({ profile, onSave }) => {
             />
 
             <Select
-  disabled={!isEditing}
-  label="State"
-  options={indianStates}
-  value={formData.currentState}
-  onChange={(value) => handleChange("currentState", value)}
-  required
-/>
-
+              disabled={!isEditing}
+              label="State"
+              options={indianStates}
+              value={formData.currentState}
+              onChange={(value) => handleChange("currentState", value)}
+              required
+            />
 
             <Input
               disabled={!isEditing}
