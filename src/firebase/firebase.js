@@ -33,9 +33,11 @@ let recaptchaVerifier = null;
 
 export const getRecaptcha = () => {
   if (!recaptchaVerifier) {
-    recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-      size: "invisible",
-    });
+    recaptchaVerifier = new RecaptchaVerifier(
+      auth,
+      "recaptcha-container",
+      { size: "invisible" }
+    );
   }
   return recaptchaVerifier;
 };

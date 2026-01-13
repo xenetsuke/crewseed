@@ -10,30 +10,43 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Icon from "../../components/AppIcon";
 import { getProfile, updateProfile } from "../../Services/ProfileService";
-// import { sendPhoneOtp, verifyAndSavePhone } from "../../Services/UserService";
 import { setProfile, clearProfile } from "../../features/ProfileSlice";
-import { removeUser } from "../../features/UserSlice";
-// import { signInWithPhoneNumber } from "firebase/auth";
-// import { auth, setupRecaptcha } from "../../firebase/firebase";
+import { removeUser, setUser } from "../../features/UserSlice"; // Added setUser
 import { saveVerifiedPhone } from "../../Services/UserService";
-// import { getRecaptcha } from "../../firebase/firebase";
-//
 import { getRecaptcha, auth } from "../../firebase/firebase";
-import { linkWithPhoneNumber  } from "firebase/auth";
+import { linkWithPhoneNumber, signInAnonymously } from "firebase/auth";
+import { notifications } from "@mantine/notifications"; // Added notifications
+
 const WorkerProfile = () => {
   const dispatch = useDispatch();
+  
   const backendProfile = useSelector((state) => state.profile);
   const user = useSelector((state) => state.user);
 
   const [activeTab, setActiveTab] = useState("personal");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [firebaseReady, setFirebaseReady] = useState(false);
 
-  // OTP Verification States
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
   const [pendingPhone, setPendingPhone] = useState("");
   const [otpValue, setOtpValue] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const token = useSelector((state) => state?.jwt);
+  
+  const [jwtUser, setJwtUser] = useState(null);
+  
+  useEffect(() => {
+    const storedToken = token || localStorage.getItem("token");
+    if (storedToken) {
+      try {
+        // Note: ensure jwtDecode is imported if used
+        // setJwtUser(jwtDecode(storedToken));
+      } catch (err) {
+        console.error("Invalid JWT", err);
+      }
+    }
+  }, [token]);
 
   useEffect(() => {
     document.querySelectorAll("path").forEach((p) => {
@@ -43,81 +56,106 @@ const WorkerProfile = () => {
     });
   }, []);
 
-  /** 📌 Fetch Profile from DB on mount */
+  useEffect(() => {
+    const bootstrapFirebase = async () => {
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+        setFirebaseReady(true);
+      } else {
+        setFirebaseReady(true);
+      }
+    };
+    bootstrapFirebase();
+  }, []);
+
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        if (!user?.id) return console.warn("User not loaded yet");
-        dispatch(clearProfile());
-
+        if (!user?.id) return;
         const res = await getProfile(user.id);
         dispatch(setProfile(res));
       } catch (err) {
         console.error("Profile Fetch Failed:", err);
       }
     };
-
     loadProfile();
-  }, [user, dispatch]);
+  }, [user?.id, dispatch]);
 
-  /** 📌 Update Backend + Redux when saving */
   const handleSaveToDB = async (updatedData) => {
     try {
       const updatedProfile = await updateProfile(updatedData);
       dispatch(setProfile(updatedProfile));
+      return updatedProfile;
     } catch (err) {
       console.error("Profile Update Failed:", err);
       alert("Failed to update profile");
     }
   };
 
-  /** 📌 Phone Verification Handlers */
-const handleRequestPhoneOtp = async (phone) => {
-  try {
-    const recaptcha = getRecaptcha();
-    const user = auth.currentUser;
-
-    if (!user) {
-      throw new Error("User not logged in");
+  const handleRequestPhoneOtp = async (phone) => {
+    if (!firebaseReady) return alert("Firebase not ready");
+    try {
+      const recaptcha = getRecaptcha();
+      window.confirmationResult = await linkWithPhoneNumber(
+        auth.currentUser,
+        "+91" + phone,
+        recaptcha
+      );
+      setPendingPhone(phone);
+      setIsOtpModalOpen(true);
+      return true;
+    } catch (error) {
+      console.error("❌ OTP Request Failed:", error);
+      alert(error.message);
+      return false;
     }
+  };
 
-    const confirmation = await linkWithPhoneNumber(
-      user,
-      "+91" + phone,
-      recaptcha
-    );
+  const handleConfirmPhoneOtp = async () => {
+    setVerifying(true);
+    try {
+      const result = await window.confirmationResult.confirm(otpValue);
+      const idToken = await result.user.getIdToken(true);
+      
+      // 1. Save to Backend Database
+      await saveVerifiedPhone(idToken);
 
-    window.confirmationResult = confirmation;
-    setPendingPhone(phone);
-    setIsOtpModalOpen(true);
-  } catch (e) {
-    console.error(e);
-    alert(e.message);
-  }
-};
+      // 2. Update the User state in Redux immediately for the UI
+      const verifiedNumber = result.user.phoneNumber;
+      dispatch(setUser({ 
+        ...user, 
+        phoneNumber: verifiedNumber 
+      }));
 
+      // 3. Fetch the fresh profile and update Redux
+      const res = await getProfile(user.id);
+      dispatch(setProfile(res)); 
 
-const handleConfirmPhoneOtp = async () => {
-  setVerifying(true);
-  try {
-    const result = await window.confirmationResult.confirm(otpValue);
+      // 4. Modern Pop Notification
+      notifications.show({
+        title: "Phone Verified! 🎉",
+        message: `Success! You can now use ${verifiedNumber} to login next time.`,
+        color: "teal",
+        icon: <Icon name="Check" size={18} />,
+        autoClose: 5000,
+        radius: "md",
+        style: { border: '1px solid #0ca678' }
+      });
 
-    // SAME USER — just linked phone
-    const token = await result.user.getIdToken();
+      setIsOtpModalOpen(false);
+      setOtpValue("");
+    } catch (e) {
+      console.error("❌ OTP FAILED:", e);
+      notifications.show({
+        title: "Verification Failed",
+        message: "Invalid code. Please try again.",
+        color: "red",
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
 
-    await saveVerifiedPhone(token);
-
-    alert("Phone number added successfully");
-    setIsOtpModalOpen(false);
-  } catch (e) {
-    alert("Invalid OTP");
-  } finally {
-    setVerifying(false);
-  }
-};
-
-
-  /** 📌 Logout handlers */
   const handleLogoutClick = () => setShowLogoutConfirm(true);
 
   const handleLogout = async () => {
@@ -128,7 +166,6 @@ const handleConfirmPhoneOtp = async () => {
       sessionStorage.clear();
       window.location.replace("/login");
     } catch (err) {
-      console.error("Logout failed:", err);
       window.location.href = "/login";
     }
   };
@@ -141,17 +178,13 @@ const handleConfirmPhoneOtp = async () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
+    <div className="min-h-screen bg-background overflow-hidden text-foreground">
       <WorkerSidebar
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      <main
-        className={`main-content ${
-          sidebarCollapsed ? "sidebar-collapsed" : ""
-        } p-4 md:p-6 max-w-full overflow-x-hidden`}
-      >
+      <main className={`main-content ${sidebarCollapsed ? "sidebar-collapsed" : ""} p-4 md:p-6 max-w-full overflow-x-hidden`}>
         <ProfileHeader profile={backendProfile} onSave={handleSaveToDB} />
 
         <div className="flex justify-end mb-4">
@@ -159,7 +192,7 @@ const handleConfirmPhoneOtp = async () => {
             type="button"
             variant="outline"
             onClick={handleLogoutClick}
-            className="justify-center text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+            className="justify-center text-red-600 border-red-200 hover:bg-red-50"
             iconName="LogOut"
             iconPosition="left"
           >
@@ -167,7 +200,7 @@ const handleConfirmPhoneOtp = async () => {
           </Button>
         </div>
 
-        <div className="card p-4 md:p-6">
+        <div className="card p-4 md:p-6 shadow-sm border border-border rounded-xl bg-white">
           <div className="border-b border-border mb-6">
             <div className="flex overflow-x-auto scrollbar-hide">
               {tabs.map((tab) => (
@@ -194,63 +227,44 @@ const handleConfirmPhoneOtp = async () => {
                 onVerifyPhone={handleRequestPhoneOtp}
               />
             )}
-
             {activeTab === "professional" && (
-              <ProfessionalInfoTab
-                data={backendProfile}
-                onSave={handleSaveToDB}
-              />
+              <ProfessionalInfoTab data={backendProfile} onSave={handleSaveToDB} />
             )}
-
             {activeTab === "documents" && (
-              <DocumentsVerificationTab
-                documents={backendProfile}
-                onSave={handleSaveToDB}
-              />
+              <DocumentsVerificationTab documents={backendProfile} onSave={handleSaveToDB} />
             )}
-
             {activeTab === "workHistory" && (
               <WorkHistoryTab data={backendProfile} onSave={handleSaveToDB} />
             )}
           </div>
         </div>
 
-        {/* Phone OTP Modal */}
+        {/* OTP Modal */}
         {isOtpModalOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-            <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-xl">
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="text-lg font-semibold">Verify Phone Number</h3>
-                <button
-                  onClick={() => setIsOtpModalOpen(false)}
-                  className="text-muted-foreground"
-                >
+                <h3 className="text-lg font-bold">Verify Phone Number</h3>
+                <button onClick={() => setIsOtpModalOpen(false)}>
                   <Icon name="X" size={20} />
                 </button>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Enter the code sent to <strong>{pendingPhone}</strong>
+              <p className="text-sm text-muted-foreground mb-6">
+                Enter code sent to <strong>+91 {pendingPhone}</strong>
               </p>
               <Input
-                placeholder="000000"
+                placeholder="· · · · · ·"
                 value={otpValue}
                 onChange={(e) => setOtpValue(e.target.value)}
-                className="text-center text-2xl tracking-[0.5em] font-mono mb-6"
+                className="text-center text-2xl tracking-[0.3em] font-mono mb-6"
                 maxLength={6}
+                autoFocus
               />
               <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setIsOtpModalOpen(false)}
-                >
+                <Button variant="outline" className="flex-1" onClick={() => setIsOtpModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button
-                  className="flex-1"
-                  onClick={handleConfirmPhoneOtp}
-                  loading={verifying}
-                >
+                <Button className="flex-1" onClick={handleConfirmPhoneOtp} loading={verifying}>
                   Verify
                 </Button>
               </div>
@@ -258,37 +272,22 @@ const handleConfirmPhoneOtp = async () => {
           </div>
         )}
 
-        {/* Logout Modal */}
+        {/* Logout Confirmation */}
         {showLogoutConfirm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                  <Icon
-                    name="AlertCircle"
-                    size={24}
-                    className="text-yellow-600"
-                  />
+                  <Icon name="AlertCircle" size={24} className="text-yellow-600" />
                 </div>
-                <h3 className="text-lg font-semibold">Confirm Logout</h3>
+                <h3 className="text-lg font-bold">Confirm Logout</h3>
               </div>
-              <p className="text-muted-foreground mb-6">
-                Are you sure you want to logout? You will need to login again to
-                access your profile.
-              </p>
+              <p className="text-muted-foreground mb-6">Are you sure you want to logout?</p>
               <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowLogoutConfirm(false)}
-                  className="flex-1"
-                >
+                <Button variant="outline" onClick={() => setShowLogoutConfirm(false)} className="flex-1">
                   Cancel
                 </Button>
-                <Button
-                  variant="default"
-                  onClick={handleLogout}
-                  className="flex-1 bg-red-600 hover:bg-red-700"
-                >
+                <Button variant="default" onClick={handleLogout} className="flex-1 bg-red-600 text-white">
                   Logout
                 </Button>
               </div>

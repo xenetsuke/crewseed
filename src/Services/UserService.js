@@ -117,17 +117,17 @@ const resetPassword = async (email, password) => {
 //       throw error;
 //     });
 // };
-export const saveVerifiedPhone = async (firebaseToken) => {
-  return axiosInstance.post(
-    "/auth/firebase-link-phone",
-    {},
+export const saveVerifiedPhone = async (firebaseIdToken) => {
+  const res = await axiosInstance.post(
+    "/users/verify-phone",
+    firebaseIdToken,
     {
-      headers: {
-        Authorization: `Bearer ${firebaseToken}`,
-      },
+      headers: { "Content-Type": "text/plain" }
     }
   );
+  return res.data;
 };
+
 
 
 
