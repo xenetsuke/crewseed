@@ -8,7 +8,9 @@ import {
   Phone, 
   Chrome, 
   ArrowRight, 
+  Loader2,
   CheckCircle2,
+  AlertCircle,
   ShieldAlert
 } from "lucide-react";
 
@@ -22,52 +24,53 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider } from "../../firebase/firebase";
 import { exchangeFirebaseToken } from "../../Services/FirebaseAuthService";
+import Preloader from "../../components/Preloader";
 
 // 🔹 Services
 import { loginWithEmail } from "../../Services/AuthService";
+import { loginValidation } from "../../Services/FormValidation";
 import { getProfile } from "../../Services/ProfileService";
 
 // 🔹 Redux & Notifications
 import { useDispatch } from "react-redux";
 import { setUser } from "../../features/UserSlice";
 import { setJwt } from "../../features/JwtSlice";
-import { setProfile } from "../../features/ProfileSlice";
+import { setProfile, clearProfile } from "../../features/ProfileSlice";
 import { removeJwt } from "../../features/JwtSlice";
 import toast, { Toaster } from "react-hot-toast";
-import Preloader from "../../components/Preloader";
-
 
 // 🔹 JWT
 import jwtDecode from "jwt-decode";
 
 const formatPhoneNumber = (number) => {
   const cleaned = number.replace(/\D/g, "");
-  // If user typed 10 digits (excluding prefix), add +91
   if (cleaned.length === 10) return "+91" + cleaned;
-  // If user typed 12 digits (including 91), add +
   if (cleaned.startsWith("91") && cleaned.length === 12) return "+" + cleaned;
-  // If it already has +91
-  if (number.startsWith("+91") && cleaned.length === 12) return number;
   return null;
 };
 
 const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-const [showPostLoginLoader, setShowPostLoginLoader] = useState(false);
+  const [showPostLoginLoader, setShowPostLoginLoader] = useState(false);
 
-  const [userRole, setUserRole] = useState("worker"); 
+  const [userRole, setUserRole] = useState("worker"); // "worker" or "employer"
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isSettling, setIsSettling] = useState(false);
 
   const [loginMethod, setLoginMethod] = useState("email");
-  // Set default value to +91
-  const [phoneNumber, setPhoneNumber] = useState("+91");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [showOtpField, setShowOtpField] = useState(false);
 
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
 
   useEffect(() => {
     if (!window.recaptchaVerifier) {
@@ -78,76 +81,78 @@ const [showPostLoginLoader, setShowPostLoginLoader] = useState(false);
           { size: "invisible" }
         );
       } catch (e) {
-        console.error("❌ reCAPTCHA failed:", e);
+        console.error("❌ reCAPTCHA creation failed:", e);
       }
     }
   }, []);
 
+  // Centralized login success handler with accountType validation
   const handlePostLogin = async (token) => {
-  const decoded = jwtDecode(token);
-  toast.dismiss();
+    const decoded = jwtDecode(token);
+    toast.dismiss(); 
 
-  const isWorkerPage = userRole === "worker";
-  const isApplicantAccount = decoded.accountType === "APPLICANT";
+    // 🔹 Role Validation Logic
+    const isWorkerPage = userRole === "worker";
+    const isApplicantAccount = decoded.accountType === "APPLICANT";
 
-  // ❌ Role mismatch
-  if ((isWorkerPage && !isApplicantAccount) || (!isWorkerPage && isApplicantAccount)) {
-    dispatch(removeJwt());
-    localStorage.removeItem("token");
-    toast.error("Account mismatch. Please switch roles.");
-    return;
-  }
-
-  // ✅ Save auth
-  localStorage.setItem("token", token);
-  dispatch(setJwt(token));
-  dispatch(setUser(decoded));
-
-  // 🔥 SHOW PRELOADER EXPLICITLY
+    // Block Employer logging into Worker page and vice-versa
+    if ((isWorkerPage && !isApplicantAccount) || (!isWorkerPage && isApplicantAccount)) {
+      dispatch(removeJwt());
+      localStorage.removeItem("token");
+      
+      toast.error(`This account is registered as an ${isApplicantAccount ? 'Worker' : 'Employer'}. Please switch roles to login.`, {
+        icon: <ShieldAlert className="text-red-500" />,
+        duration: 5000
+      });
+      return;
+    }
+    
+    // 1. Storage & Redux
+    localStorage.setItem("token", token);
+    dispatch(setJwt(token));
+    dispatch(setUser(decoded));
   setShowPostLoginLoader(true);
 
-  let destination;
+    toast.success(`Logged in as ${decoded.name || userRole}`, {
+        icon: <CheckCircle2 className="text-green-500" />,
+    });
 
-  if (!decoded.profileId) {
-    destination = isApplicantAccount
-      ? "/worker-profile-setup"
-      : "/company-onboarding";
-  } else {
-    try {
-      const profile = await getProfile(decoded.profileId);
-      dispatch(setProfile(profile));
-
-      destination = !profile.completed
-        ? isApplicantAccount
-          ? "/worker-profile-setup"
-          : "/company-onboarding"
-        : isApplicantAccount
-          ? "/worker-profile"
-          : "/employer-dashboard";
-    } catch {
-      destination = isApplicantAccount
-        ? "/worker-profile"
-        : "/employer-dashboard";
+    // 2. Profile Fetch & Navigation Logic
+    if (!decoded.profileId) {
+      navigate(isApplicantAccount ? "/worker-profile-setup" : "/company-onboarding");
+      return;
     }
-  }
 
-  // ⏱️ KEEP LOADER FOR FULL GIF DURATION
-  setTimeout(() => {
+    try {
+        const profile = await getProfile(decoded.profileId);
+        dispatch(setProfile(profile));
+
+        if (!profile.completed) {
+            navigate(isApplicantAccount ? "/worker-profile-setup" : "/company-onboarding");
+        } else {
+            navigate(isApplicantAccount ? "/worker-profile" : "/employer-dashboard");
+        }
+    } catch (err) {
+        navigate(isApplicantAccount ? "/worker-profile" : "/employer-dashboard");
+    }
+
+    setTimeout(() => {
     setShowPostLoginLoader(false);
     navigate(destination);
-  }, 7500);
-};
-
+  }, 7500); // must match GIF length
+  };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
+      dispatch(clearProfile());
+      dispatch(removeJwt());
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
       if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
     } catch (err) {
-      toast.error("Google login failed");
+      toast.error(err.message || "Google login failed");
     } finally {
       setLoading(false);
     }
@@ -156,6 +161,7 @@ const [showPostLoginLoader, setShowPostLoginLoader] = useState(false);
   const handleSendOtp = async () => {
     const formattedPhone = formatPhoneNumber(phoneNumber);
     if (!formattedPhone) return toast.error("Enter a valid 10-digit number");
+
     setLoading(true);
     try {
       const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
@@ -188,15 +194,21 @@ const [showPostLoginLoader, setShowPostLoginLoader] = useState(false);
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await loginWithEmail({
+      dispatch(clearProfile());
+      dispatch(removeJwt());
+
+      const payload = {
         loginType: "EMAIL",
         email: formData.email,
         password: formData.password,
         role: userRole.toUpperCase()
-      });
+      };
+
+      const res = await loginWithEmail(payload);
       if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
     } catch (err) {
-      toast.error("Invalid credentials");
+      toast.dismiss();
+      toast.error("Invalid email or password", { icon: <AlertCircle className="text-red-500" /> });
     } finally {
       setLoading(false);
     }
@@ -205,71 +217,81 @@ const [showPostLoginLoader, setShowPostLoginLoader] = useState(false);
   const handleRoleSwitch = () => {
     if (isAnimating) return;
     setIsAnimating(true);
+    
     setTimeout(() => {
       const newRole = userRole === "worker" ? "employer" : "worker";
       setUserRole(newRole);
       setFormData({ email: "", password: "" });
+      setErrors({});
       setIsAnimating(false);
+      setIsSettling(true);
+      
       toast.dismiss();
-      toast(`Switched to ${newRole}`, {
+      toast(`Switched to ${newRole} login`, {
           icon: newRole === "worker" ? '🛠️' : '🏢',
-          duration: 1000
+          duration: 2000
       });
-    }, 300); 
+
+      setTimeout(() => setIsSettling(false), 800);
+    }, 1200); 
   };
-if (showPostLoginLoader) {
+  if (showPostLoginLoader) {
   return <Preloader />;
 }
 
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4 py-8 overflow-hidden relative">
-      <Toaster position="top-center" />
+    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 py-8 overflow-hidden relative" style={{ perspective: "2000px" }}>
+      <Toaster position="top-center" containerStyle={{ zIndex: 99999 }} />
       
       <style>
         {`
-          .flip-container {
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            transform-style: preserve-3d;
+          @keyframes ashFlipOut {
+            0% { opacity: 1; filter: blur(0px); transform: rotateY(0deg) scale(1); }
+            100% { opacity: 0; filter: blur(25px); transform: rotateY(110deg) translateY(-60px) scale(0.85); }
           }
-          .is-flipping {
-            transform: rotateY(90deg);
-            opacity: 0;
+          @keyframes ashFlipIn {
+            0% { opacity: 0; filter: blur(15px); transform: rotateY(-30deg) translateY(30px); }
+            100% { opacity: 1; filter: blur(0px); transform: rotateY(0deg) translateY(0); }
           }
+          .animate-ash-out { animation: ashFlipOut 1.2s forwards cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; }
+          .animate-ash-in { animation: ashFlipIn 0.8s forwards ease-out; }
         `}
       </style>
 
-      {/* Subtle background accents aligned with preloader white */}
-      <div className={`absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full blur-[120px] opacity-30 transition-colors duration-1000 ${userRole === "worker" ? "bg-blue-200" : "bg-teal-200"}`} />
-      <div className={`absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full blur-[120px] opacity-20 transition-colors duration-1000 ${userRole === "worker" ? "bg-indigo-200" : "bg-cyan-200"}`} />
+      <div className={`absolute top-[-10%] right-[-5%] w-96 h-96 rounded-full blur-[100px] transition-colors duration-1000 ${userRole === "worker" ? "bg-blue-200" : "bg-teal-200"}`} />
+      <div className={`absolute bottom-[-10%] left-[-5%] w-96 h-96 rounded-full blur-[100px] transition-colors duration-1000 ${userRole === "worker" ? "bg-indigo-100" : "bg-cyan-100"}`} />
 
       <div className="w-full max-w-md relative z-10">
         <div className={`
-          bg-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flip-container
-          ${isAnimating ? "is-flipping" : ""}
+          bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white 
+          transition-all duration-700
+          ${isAnimating ? "animate-ash-out" : ""}
+          ${isSettling ? "animate-ash-in" : ""}
         `}>
           
-          <div className="flex flex-col items-center mb-8">
+          <div className="flex flex-col items-center mb-6">
             <div className={`
-              w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500
-              ${userRole === "worker" ? "bg-blue-600 shadow-lg shadow-blue-100" : "bg-teal-600 shadow-lg shadow-teal-100"}
+              relative w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl transition-all duration-700
+              bg-gradient-to-br ${userRole === "worker" ? "from-blue-600 to-indigo-600 shadow-blue-200" : "from-teal-500 to-cyan-600 shadow-teal-200"}
             `}>
-              {userRole === "worker" ? <Hammer size={28} color="#fff" /> : <Building2 size={28} color="#fff" />}
+              {userRole === "worker" ? <Hammer size={38} color="#fff" /> : <Building2 size={38} color="#fff" />}
             </div>
 
-            <h1 className="text-2xl font-bold text-slate-900 mt-5 tracking-tight">
+            <h1 className="text-3xl font-black text-slate-800 mt-5 tracking-tight">
               {loading ? "Verifying..." : "Welcome Back"}
             </h1>
-            <p className="text-slate-400 text-sm mt-1">
-              Sign in as <span className={`font-semibold ${userRole === "worker" ? "text-blue-600" : "text-teal-600"}`}>{userRole}</span>
+            <p className="text-slate-500 text-sm font-medium mt-1">
+              Sign in as <span className={`font-bold capitalize ${userRole === "worker" ? "text-blue-600" : "text-teal-600"}`}>{userRole}</span>
             </p>
           </div>
 
-          <form onSubmit={loginMethod === "email" ? handleSubmit : (e) => e.preventDefault()} className="space-y-5">
+          <form onSubmit={loginMethod === "email" ? handleSubmit : (e) => e.preventDefault()} className="space-y-4">
             {loginMethod === "email" ? (
               <>
                 <Input label="Email Address" type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
                 <Input label="Password" type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} required />
-                <Button type="submit" fullWidth loading={loading} className={`py-3 rounded-xl transition-all ${userRole === "worker" ? "bg-blue-600 hover:bg-blue-700" : "bg-teal-600 hover:bg-teal-700"}`}>
+                <Button type="submit" fullWidth loading={loading} className={`py-3 shadow-xl ${userRole === "worker" ? "shadow-blue-100" : "shadow-teal-100"}`}>
                   Sign In
                 </Button>
               </>
@@ -277,63 +299,56 @@ if (showPostLoginLoader) {
               <div className="space-y-4">
                 {!showOtpField ? (
                   <>
-                    <Input 
-                      label="Phone Number" 
-                      placeholder="+91 9876543210" 
-                      value={phoneNumber} 
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        // Keep +91 prefix from being deleted easily
-                        if (val.length < 3) {
-                          setPhoneNumber("+91");
-                        } else {
-                          setPhoneNumber(val);
-                        }
-                      }} 
-                    />
-                    <Button fullWidth onClick={handleSendOtp} loading={loading} className={userRole === "worker" ? "bg-blue-600" : "bg-teal-600"}>Send OTP</Button>
+                    <div className="relative">
+                      <span className="absolute left-4 top-[38px] text-gray-500 font-bold z-10 text-sm">+91</span>
+                      <Input label="Phone Number" placeholder="9876543210" value={phoneNumber} style={{ paddingLeft: "48px" }} onChange={(e) => setPhoneNumber(e.target.value)} />
+                    </div>
+                    <Button fullWidth onClick={handleSendOtp} loading={loading}>Send OTP</Button>
                   </>
                 ) : (
                   <>
-                    <Input label="Enter OTP" value={otp} onChange={(e) => setOtp(e.target.value)} className="text-center font-bold text-xl tracking-widest" />
-                    <Button fullWidth onClick={handleVerifyOtp} loading={loading} className={userRole === "worker" ? "bg-blue-600" : "bg-teal-600"}>Verify & Login</Button>
-                    <button type="button" className="text-xs text-slate-400 w-full text-center hover:text-slate-600" onClick={() => setShowOtpField(false)}>Change Number</button>
+                    <Input label="Enter OTP" value={otp} onChange={(e) => setOtp(e.target.value)} className="text-center tracking-[0.5em] font-black text-xl" />
+                    <Button fullWidth onClick={handleVerifyOtp} loading={loading}>Verify & Login</Button>
+                    <button type="button" className="text-xs text-blue-600 w-full text-center font-bold" onClick={() => setShowOtpField(false)}>Change Number</button>
                   </>
                 )}
               </div>
             )}
 
-            <div className="flex flex-col items-center space-y-4 pt-2">
-              <button type="button" className="text-sm text-slate-400 hover:text-slate-600 font-medium" onClick={() => setIsResetModalOpen(true)}>Forgot Password?</button>
-              <p className="text-xs text-slate-400">
+            <div className="flex flex-col items-center space-y-3">
+              <button type="button" className="text-sm text-slate-400 hover:text-blue-600 font-semibold" onClick={() => setIsResetModalOpen(true)}>Forgot Password?</button>
+              <p className="text-xs text-slate-500 font-medium">
                 Don't have an account?{" "}
-                <button type="button" onClick={() => navigate(userRole === "worker" ? "/worker-signup" : "/employer-signup")} className={`font-bold ${userRole === "worker" ? "text-blue-600" : "text-teal-600"}`}>
-                  Create One
+                <button type="button" onClick={() => navigate(userRole === "worker" ? "/worker-signup" : "/employer-signup")} className={`font-black hover:underline ${userRole === "worker" ? "text-blue-600" : "text-teal-600"}`}>
+                  Sign up as {userRole}
                 </button>
               </p>
             </div>
 
-            <div className="relative py-2">
+            <div className="relative py-4">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100" /></div>
               <div className="relative flex justify-center text-[10px] uppercase">
-                <span className="bg-white px-3 text-slate-300 font-bold tracking-[0.2em]">Social Login</span>
+                <span className="bg-white/80 px-4 text-slate-400 font-black tracking-widest">Or continue with</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Button type="button" variant="outline" fullWidth onClick={handleGoogleLogin} disabled={loading} className="border-slate-100 hover:bg-slate-50 rounded-xl">
-                <Chrome size={16} className="text-red-500 mr-2" /> <span className="text-xs font-bold text-slate-600">Google</span>
+            <div className="grid grid-cols-2 gap-3">
+              <Button type="button" variant="outline" fullWidth onClick={handleGoogleLogin} disabled={loading} className="h-11">
+                <Chrome size={18} className="text-red-500 mr-2" /> <span className="text-xs font-bold">Google</span>
               </Button>
-              <Button type="button" variant="outline" fullWidth onClick={() => { setLoginMethod(loginMethod === "email" ? "phone" : "email"); setShowOtpField(false); }} className="border-slate-100 hover:bg-slate-50 rounded-xl">
-                {loginMethod === "email" ? <Phone size={16} className="text-blue-500 mr-2" /> : <Mail size={16} className="text-slate-500 mr-2" />}
-                <span className="text-xs font-bold text-slate-600">{loginMethod === "email" ? "Phone" : "Email"}</span>
+              <Button type="button" variant="outline" fullWidth onClick={() => { setLoginMethod(loginMethod === "email" ? "phone" : "email"); setShowOtpField(false); }} className="h-11">
+                {loginMethod === "email" ? <Phone size={18} className="text-blue-500 mr-2" /> : <Mail size={18} className="text-blue-500 mr-2" />}
+                <span className="text-xs font-bold">{loginMethod === "email" ? "Phone" : "Email"}</span>
               </Button>
             </div>
 
-            <div className="pt-4">
-              <button type="button" onClick={handleRoleSwitch} disabled={isAnimating} className="w-full group flex items-center justify-center gap-3 p-4 rounded-xl bg-slate-50 border border-transparent hover:border-slate-200 transition-all">
-                <span className="font-bold text-xs text-slate-500 group-hover:text-slate-700 transition-colors">Switch to {userRole === "worker" ? "Employer" : "Worker"}</span>
-                <ArrowRight size={14} className="text-slate-300 group-hover:translate-x-1 group-hover:text-slate-500 transition-all" />
+            <div className="pt-2">
+              <button type="button" onClick={handleRoleSwitch} disabled={isAnimating} className="w-full group flex items-center justify-center gap-3 p-3 rounded-2xl border-2 border-dashed border-slate-200 hover:border-blue-400 transition-all">
+                <div className={`p-1.5 rounded-xl ${userRole === "worker" ? "bg-teal-50 text-teal-600" : "bg-blue-50 text-blue-600"}`}>
+                   {userRole === "worker" ? <Building2 size={18} /> : <Hammer size={18} />}
+                </div>
+                <span className="font-bold text-xs text-slate-600">Switch to {userRole === "worker" ? "Employer" : "Worker"}</span>
+                <ArrowRight size={14} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
           </form>
