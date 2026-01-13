@@ -13,7 +13,6 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   /* =========================
       Redux State
   ========================= */
-  // ✅ Access the persistent user slice (contains the phone number we injected)
   const user = useSelector((state) => state?.user);
   const profile = useSelector((state) => state?.profile);
   const token = useSelector((state) => state?.jwt);
@@ -34,6 +33,21 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
       }
     }
   }, [token]);
+
+  /* =========================
+      Formatting Helpers
+  ========================= */
+  const maskPhoneNumber = (val) => {
+    if (!val) return "";
+    // Regex to check if value looks like a phone number
+    const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
+    if (typeof val === "string" && phoneRegex.test(val)) {
+      const clean = val.replace(/\s/g, "");
+      // Mask first two or handle as country code (e.g., +91******7890 or **88997766)
+      return `**${clean.slice(2)}`;
+    }
+    return val;
+  };
 
   /* =========================
       Navigation Items
@@ -74,21 +88,21 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
 
   /* =========================
       Profile Data Source Priority
-      1️⃣ Redux Profile (Company Data)
-      2️⃣ Redux User State (Persistent Login Data)
-      3️⃣ JWT Decoded Data (Fallback)
   ========================= */
   const displayName =
     profile?.companyName || user?.name || jwtUser?.name || "Employer";
 
-  // ✅ Prioritize Phone Number from Redux User state or Profile
-  const displaySubtitle =
+  // Raw subtitle data
+  const rawSubtitle =
     profile?.phoneNumber ||
     user?.phoneNumber ||
     profile?.officialEmail ||
     user?.email ||
     jwtUser?.sub ||
     "View Profile";
+
+  // Apply masking if it's a phone number
+  const displaySubtitle = maskPhoneNumber(rawSubtitle);
 
   return (
     <>
@@ -113,11 +127,17 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           isMobileOpen ? "animate-slide-in" : "max-lg:hidden"
         }`}
       >
-        {/* Logo */}
+        {/* Logo Section */}
         <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <Icon name="Building2" size={24} color="var(--color-primary)" />
-            <span className="sidebar-logo-text">CrewSeed</span>
+          <div className="sidebar-logo flex items-center gap-2">
+            <img 
+              src="/Crewlogo.svg" 
+              alt="Company Logo" 
+              className="w-8 h-8 object-contain"
+            />
+            {!isCollapsed && (
+              <span className="sidebar-logo-text font-bold">CrewSeed</span>
+            )}
           </div>
         </div>
 
