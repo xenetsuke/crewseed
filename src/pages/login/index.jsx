@@ -135,6 +135,10 @@ const Login = () => {
     } catch (err) {
         navigate(isApplicantAccount ? "/worker-profile" : "/employer-dashboard");
     }
+if (window.recaptchaVerifier) {
+  window.recaptchaVerifier.clear();
+  window.recaptchaVerifier = null;
+}
 
     setTimeout(() => {
     setShowPostLoginLoader(false);
@@ -158,22 +162,51 @@ const Login = () => {
     }
   };
 
-  const handleSendOtp = async () => {
-    const formattedPhone = formatPhoneNumber(phoneNumber);
-    if (!formattedPhone) return toast.error("Enter a valid 10-digit number");
+const handleSendOtp = async () => {
+  const formattedPhone = formatPhoneNumber(phoneNumber);
+  if (!formattedPhone) {
+    toast.error("Enter a valid 10-digit number");
+    return;
+  }
 
-    setLoading(true);
-    try {
-      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
-      window.confirmationResult = confirmation;
-      setShowOtpField(true);
-      toast.success("OTP sent!");
-    } catch (err) {
-      toast.error("Failed to send OTP");
-    } finally {
-      setLoading(false);
+  setLoading(true);
+
+  try {
+    // 🔥 DESTROY old verifier if exists
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
     }
-  };
+
+    // 🔥 CREATE fresh verifier every time
+    window.recaptchaVerifier = new RecaptchaVerifier(
+      auth,
+      "recaptcha-container",
+      {
+        size: "invisible",
+        callback: () => {
+          console.log("✅ reCAPTCHA solved");
+        },
+      }
+    );
+
+    const confirmation = await signInWithPhoneNumber(
+      auth,
+      formattedPhone,
+      window.recaptchaVerifier
+    );
+
+    window.confirmationResult = confirmation;
+    setShowOtpField(true);
+    toast.success("OTP sent!");
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to send OTP");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleVerifyOtp = async () => {
     if (!otp) return toast.error("Enter OTP");
