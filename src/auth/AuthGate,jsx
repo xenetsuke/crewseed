@@ -1,0 +1,35 @@
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import AppSkeleton from "../components/AppSkeleton";
+
+const AuthGate = ({ children }) => {
+  const token = useSelector((state) => state.jwt.token);
+  const profile = useSelector((state) => state.profile);
+
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    // Not logged in → allow immediately
+    if (!token) {
+      setReady(true);
+      return;
+    }
+
+    // Logged in but profile still loading
+    if (token && !profile?.id) {
+      setReady(false);
+      return;
+    }
+
+    // Logged in & profile ready
+    setReady(true);
+  }, [token, profile]);
+
+  if (!ready) {
+    return <AppSkeleton />;
+  }
+
+  return children;
+};
+
+export default AuthGate;

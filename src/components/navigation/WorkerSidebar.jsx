@@ -9,7 +9,7 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Get user from Redux (This now contains phoneNumber from our manual merge)
+  // Get user from Redux
   const user = useSelector((state) => state.user);
   const workerProfile = useSelector((state) => state?.profile);
   const token = useSelector((state) => state?.jwt);
@@ -26,6 +26,21 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
       }
     }
   }, [token]);
+
+  /* =========================
+      Formatting Helpers
+  ========================= */
+  const maskPhoneNumber = (val) => {
+    if (!val) return "";
+    // Check if the string contains digits and looks like a phone number
+    const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
+    if (typeof val === "string" && phoneRegex.test(val)) {
+      const clean = val.replace(/\s/g, "");
+      // Replaces first two digits with stars (e.g., **91234567)
+      return `**${clean.slice(2)}`;
+    }
+    return val;
+  };
 
   const navigationItems = [
     { label: "Dashboard", path: "/worker-dashboard", icon: "LayoutDashboard" },
@@ -49,10 +64,11 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   const displayName =
     workerProfile?.fullName || user?.name || jwtUser?.name || "Worker";
 
-  // Priority: 1. API Profile, 2. User State (PhoneNumber), 3. JWT Email
-  const displaySubtitle =
-    // workerProfile?.phoneNumber ||
+  const rawSubtitle =
     workerProfile?.email || user?.phoneNumber || jwtUser?.sub || "View Profile";
+
+  // Apply masking logic
+  const displaySubtitle = maskPhoneNumber(rawSubtitle);
 
   return (
     <>
@@ -68,10 +84,17 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           isMobileOpen ? "animate-slide-in" : "max-lg:hidden"
         }`}
       >
+        {/* Logo Section */}
         <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <Icon name="Hammer" size={24} color="var(--color-primary)" />
-            <span className="sidebar-logo-text">CrewSeed</span>
+          <div className="sidebar-logo flex items-center gap-2">
+            <img 
+              src="/Crewlogo.svg" 
+              alt="Company Logo" 
+              className="w-8 h-8 object-contain"
+            />
+            {!isCollapsed && (
+              <span className="sidebar-logo-text font-bold">CrewSeed</span>
+            )}
           </div>
         </div>
 
