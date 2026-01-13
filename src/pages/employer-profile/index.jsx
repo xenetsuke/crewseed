@@ -25,7 +25,8 @@ import { setProfile, clearProfile } from "../../features/ProfileSlice";
 import { removeUser, setUser } from "../../features/UserSlice"; 
 import { removeJwt } from "../../features/JwtSlice";
 import { persistor } from "../../Store";
-import { notifications } from "@mantine/notifications";
+// REPLACED: import { notifications } from "@mantine/notifications";
+import toast, { Toaster } from "react-hot-toast"; 
 import { saveVerifiedPhone } from "../../Services/UserService";
 import { getRecaptcha, auth } from "../../firebase/firebase";
 import { linkWithPhoneNumber, signInAnonymously } from "firebase/auth";
@@ -83,7 +84,6 @@ const EmployerProfile = () => {
     { value: "agriculture", label: "Agro-based Industries" },
   ];
 
-  // Bootstrap Firebase for reCAPTCHA
   useEffect(() => {
     const bootstrapFirebase = async () => {
       if (!auth.currentUser) {
@@ -128,13 +128,9 @@ const EmployerProfile = () => {
   /** 📌 Phone Verification Handlers */
   const handleUpdatePhone = async () => {
     if (companyInfo.phone.length !== 10) {
-      return notifications.show({ 
-        message: "Please enter a valid 10-digit number", 
-        color: "red",
-        styles: { root: { width: 'fit-content', minWidth: '280px', maxWidth: '90vw' } }
-      });
+      return toast.error("Please enter a valid 10-digit number");
     }
-    if (!firebaseReady) return alert("Firebase not ready");
+    if (!firebaseReady) return toast.error("System initializing, please wait...");
 
     setLoading(true);
     try {
@@ -145,15 +141,10 @@ const EmployerProfile = () => {
         recaptcha
       );
       setIsOtpModalOpen(true);
-      notifications.show({
-        title: "OTP Sent",
-        message: `Verification code sent to +91 ${companyInfo.phone}`,
-        color: "blue",
-        styles: { root: { width: 'fit-content', minWidth: '280px', maxWidth: '90vw' } }
-      });
+      toast.success(`OTP sent to +91 ${companyInfo.phone}`);
     } catch (error) {
       console.error("❌ OTP Request Failed:", error);
-      alert(error.message);
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -165,45 +156,56 @@ const EmployerProfile = () => {
       const result = await window.confirmationResult.confirm(otpValue);
       const idToken = await result.user.getIdToken(true);
       
-      // 1. Save to Backend
       await saveVerifiedPhone(idToken);
 
-      // 2. Update Redux User Instantly for UI state sync
       const verifiedNumber = result.user.phoneNumber;
       dispatch(setUser({ 
         ...user, 
         phoneNumber: verifiedNumber 
       }));
 
-      // 3. Refresh profile data
       const res = await getProfile(user.id);
       dispatch(setProfile(res));
 
-      // 4. Modern Pop Notification with Login Info
-      notifications.show({ 
-        title: "Phone Verified! 🎉", 
-        message: `Verification successful. You can now use ${verifiedNumber} to login to your account.`, 
-        color: "teal",
-        icon: <CheckCircle className="w-5 h-5" />,
-        autoClose: 8000,
-        radius: "md",
-        style: { border: '1px solid #0ca678' },
-        styles: { 
-          root: { width: 'fit-content', minWidth: '320px', maxWidth: '90vw' },
-          title: { fontWeight: 700 },
-          description: { fontSize: '13px', lineHeight: '1.4' } 
-        }
-      });
+      // MODERN CUSTOM POPUP
+      toast.custom((t) => (
+        <div
+          className={`${
+            t.visible ? 'animate-enter' : 'animate-leave'
+          } max-w-md w-full bg-white shadow-2xl rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-4 border-green-500`}
+        >
+          <div className="flex-1 w-0 p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <CheckCircle className="h-10 w-10 text-green-500" />
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-bold text-gray-900">
+                  Phone Verified Successfully!
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Account linked to <span className="font-semibold text-gray-700">{verifiedNumber}</span>. 
+                  You can now use this number to login next time without changing anything.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex border-l border-gray-200">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      ), { duration: 6000 });
 
-      setIsEditingCompany(false); // Close edit mode to show the 'Verified' badge
+      setIsEditingCompany(false);
       setIsOtpModalOpen(false);
       setOtpValue("");
     } catch (e) {
-      notifications.show({
-        title: "Verification Failed",
-        message: "Invalid verification code. Please try again.",
-        color: "red",
-      });
+      toast.error("Invalid verification code. Please try again.");
     } finally {
       setVerifying(false);
     }
@@ -228,15 +230,10 @@ const EmployerProfile = () => {
       const updated = await updateProfile(payload);
       dispatch(setProfile(updated));
       setIsEditingCompany(false);
-      notifications.show({ 
-        title: "Profile Updated", 
-        message: "Company details saved successfully.", 
-        color: "green",
-        styles: { root: { width: 'fit-content', minWidth: '280px', maxWidth: '90vw' } }
-      });
+      toast.success("Company details saved successfully!");
     } catch (err) {
       console.error("❌ Failed to update employer profile:", err);
-      alert("Failed to save company information");
+      toast.error("Failed to save company information");
     }
   };
 
@@ -265,10 +262,11 @@ const EmployerProfile = () => {
         const updatedProfile = { ...profile, picture: base64Image };
         const saved = await updateProfile(updatedProfile);
         dispatch(setProfile(saved));
+        toast.success("Logo updated successfully");
       };
       reader.readAsDataURL(file);
     } catch (err) {
-      alert("Failed to upload company logo");
+      toast.error("Failed to upload company logo");
     }
   };
 
@@ -279,6 +277,9 @@ const EmployerProfile = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Toast Container */}
+      <Toaster position="top-right" reverseOrder={false} />
+
       <EmployerSidebar
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
