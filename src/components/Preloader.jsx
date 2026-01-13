@@ -16,7 +16,7 @@ const Preloader = () => {
       }}
     >
       <img
-        src={isMobile ? "/g1.gif" : "/g2d.gif"}
+        src={isMobile ? "/Crew(MobileVideo).gif" : "/Crew(Video).gif"}
         alt="Loading..."
         style={{
           width: isMobile ? "220px" : "420px",
