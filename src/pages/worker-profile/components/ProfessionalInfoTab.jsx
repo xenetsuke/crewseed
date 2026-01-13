@@ -26,9 +26,7 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
   const [initialData, setInitialData] = useState(() =>
     buildInitialData(data || {})
   );
-  const [formData, setFormData] = useState(() =>
-    buildInitialData(data || {})
-  );
+  const [formData, setFormData] = useState(() => buildInitialData(data || {}));
 
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -225,9 +223,7 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
               label="Primary Job Role"
               placeholder="Type or select your job role"
               value={formData.primaryJobRole}
-              onChange={(e) =>
-                handleChange("primaryJobRole", e.target.value)
-              }
+              onChange={(e) => handleChange("primaryJobRole", e.target.value)}
               list="job-role-suggestions"
               required
             />
@@ -251,9 +247,7 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
 
         {/* Secondary Skills */}
         <div className="mt-4">
-          <label className="block text-sm font-medium mb-2">
-            Other Skills
-          </label>
+          <label className="block text-sm font-medium mb-2">Other Skills</label>
 
           <div className="flex gap-2 mb-3">
             <Input
@@ -375,9 +369,7 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
             label="Wage Amount"
             type="number"
             value={formData.wageAmount}
-            onChange={(e) =>
-              handleChange("wageAmount", Number(e.target.value))
-            }
+            onChange={(e) => handleChange("wageAmount", Number(e.target.value))}
           />
         </div>
 
@@ -386,9 +378,7 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
             disabled={!isEditing}
             label="Wage is negotiable"
             checked={formData.wageNegotiable}
-            onChange={(e) =>
-              handleChange("wageNegotiable", e.target.checked)
-            }
+            onChange={(e) => handleChange("wageNegotiable", e.target.checked)}
           />
         </div>
       </div>

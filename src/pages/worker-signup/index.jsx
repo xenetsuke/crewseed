@@ -1,20 +1,30 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Icon from "../../components/AppIcon";
+import { useDispatch } from "react-redux";
+import jwtDecode from "jwt-decode";
+
+// 🔹 Icons
+import { User, Loader2 } from "lucide-react";
+
+// 🔹 Components
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import { Checkbox } from "../../components/ui/Checkbox";
+
+// 🔹 Services
 import { signupWorker } from "../../Services/UserService";
 import { signupValidation } from "../../Services/FormValidation"; 
-import { useDispatch } from "react-redux";
+import { loginWithEmail } from "../../Services/AuthService";
+
+// 🔹 Redux Actions
 import { setJwt } from "../../features/JwtSlice";
 import { setUser } from "../../features/UserSlice";
-import jwtDecode from "jwt-decode";
-import { loginWithEmail } from "../../Services/AuthService";
 
 const WorkerSignup = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const [formData, setFormData] = useState({
     name: "",
@@ -25,17 +35,36 @@ const WorkerSignup = () => {
     agreeToTerms: false,
   });
 
-  const [errors, setErrors] = useState({});
+  // 🔹 Logic to handle Redux and Storage after successful login/signup
+  const handlePostSignupLogin = (token) => {
+    const decoded = jwtDecode(token);
+    localStorage.setItem("token", token);
+    localStorage.setItem("accountType", "APPLICANT");
+    
+    dispatch(setJwt(token));
+    
+    // Construct complete user object for Redux
+    const completeUserData = {
+      ...decoded,
+      email: decoded.sub || formData.email,
+      name: formData.name,
+      accountType: "APPLICANT",
+    };
+    
+    dispatch(setUser(completeUserData));
+
+    // Redirect to worker-specific onboarding
+    navigate("/worker-profile-setup", { replace: true });
+  };
 
   const handleInputChange = (field, value) => {
-    setFormData({ ...formData, [field]: value });
+    setFormData((prev) => ({ ...prev, [field]: value }));
     const validationError = signupValidation(field, value);
     setErrors((prev) => ({ ...prev, [field]: validationError }));
   };
 
   const validateForm = () => {
     const newErrors = {};
-
     Object.keys(formData).forEach((field) => {
       const validationError = signupValidation(field, formData[field]);
       if (validationError) newErrors[field] = validationError;
@@ -44,16 +73,13 @@ const WorkerSignup = () => {
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
-
     if (!formData.agreeToTerms) {
-      newErrors.agreeToTerms = "You must agree to terms";
+      newErrors.agreeToTerms = "You must agree to Terms & Privacy Policy";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
-  const dispatch = useDispatch();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,105 +88,93 @@ const WorkerSignup = () => {
     try {
       setLoading(true);
 
-      // 1️⃣ Signup worker
-      // This sends the data to your Spring Boot backend to save the user
+      // 1️⃣ Step 1: Create Account
       await signupWorker({
         name: formData.name,
         email: formData.email,
         password: formData.password,
         accountType: "APPLICANT",
+        authProvider: "PASSWORD",
       });
 
-      // 🚀 FIX: Race Condition Handling
-      // We add a 500ms delay because sometimes the backend database transaction 
-      // hasn't fully committed when the login request (Step 2) arrives, 
-      // which causes the "USER_NOT_FOUND" error.
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // 🚀 Step 2: Critical Wait (Ensures DB index is updated)
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // 2️⃣ Auto-login
-      // Now that the user is saved, we fetch the JWT token
-      const loginRes = await loginWithEmail({
-        email: formData.email,
-        password: formData.password,
-      });
+      // 2️⃣ Step 3: Auto-login Attempt
+      try {
+        const res = await loginWithEmail({
+          email: formData.email,
+          password: formData.password,
+        });
 
-      const token = loginRes?.data?.jwt;
-      if (!token) {
-        throw new Error("JWT not returned after login");
+        if (res?.data?.jwt) {
+          handlePostSignupLogin(res.data.jwt);
+        }
+      } catch (loginErr) {
+        // Handle race condition where DB isn't ready for login yet
+        console.warn("Auto-login race condition. Redirecting to manual login.");
+        alert("Account created! Please log in to set up your profile.");
+        navigate("/login", { state: { email: formData.email } });
       }
-
-      // 3️⃣ Save JWT to Redux and LocalStorage
-      dispatch(setJwt(token));
-      localStorage.setItem("token", token);
-      localStorage.setItem("accountType", "APPLICANT");
-
-      // 4️⃣ Decode JWT & save user data to Redux
-      const decoded = jwtDecode(token);
-      dispatch(
-        setUser({
-          ...decoded,
-          email: decoded.sub,
-        })
-      );
-
-      // 5️⃣ Redirect to profile setup
-      navigate("/worker-profile-setup", { replace: true });
 
     } catch (err) {
       console.error("Signup failed:", err);
-      
-      // Better error handling for the user
-      const backendError = err?.response?.data?.message || err?.response?.data?.errorMessage;
-      
-      if (backendError?.includes("USER_NOT_FOUND")) {
-        alert("Account created successfully! Please log in manually.");
-        navigate("/login");
-      } else {
-        alert(backendError || err.message || "Signup failed!");
-      }
+      const msg = err?.response?.data?.message || "An error occurred during signup.";
+      alert(msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 relative overflow-hidden">
+      {/* Background Blobs */}
+      <div className="absolute top-[-10%] right-[-5%] w-96 h-96 rounded-full blur-[100px] bg-blue-200 opacity-50" />
+      <div className="absolute bottom-[-10%] left-[-5%] w-96 h-96 rounded-full blur-[100px] bg-indigo-100 opacity-50" />
+
+      <div className="w-full max-w-md z-10">
+        <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white">
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-20 h-20 rounded-3xl flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 shadow-2xl shadow-blue-200">
+              <User size={38} color="#fff" strokeWidth={1.5} />
+            </div>
+            <h1 className="text-3xl font-black text-slate-800 mt-5 tracking-tight">Join as Worker</h1>
+            <p className="text-slate-500 text-sm font-medium mt-1">Start your career journey today</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Full Name"
+              placeholder="Akash Kumar"
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
               error={errors.name}
               required
             />
-
             <Input
+              label="Email Address"
               type="email"
-              label="Email"
+              placeholder="akash@example.com"
               value={formData.email}
               onChange={(e) => handleInputChange("email", e.target.value)}
               error={errors.email}
               required
             />
-
             <Input
-              type="password"
               label="Password"
+              type="password"
+              placeholder="••••••••"
               value={formData.password}
               onChange={(e) => handleInputChange("password", e.target.value)}
               error={errors.password}
               required
             />
-
             <Input
-              type="password"
               label="Confirm Password"
+              type="password"
+              placeholder="••••••••"
               value={formData.confirmPassword}
-              onChange={(e) =>
-                handleInputChange("confirmPassword", e.target.value)
-              }
+              onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
               error={errors.confirmPassword}
               required
             />
@@ -168,26 +182,37 @@ const WorkerSignup = () => {
             <Checkbox
               label="I agree to Terms & Privacy Policy"
               checked={formData.agreeToTerms}
-              onChange={(e) =>
-                handleInputChange("agreeToTerms", e.target.checked)
-              }
+              onChange={(e) => handleInputChange("agreeToTerms", e.target.checked)}
               error={errors.agreeToTerms}
             />
 
-            <Button type="submit" fullWidth loading={loading}>
-              {loading ? "Creating account..." : "Sign Up"}
+            <Button 
+              type="submit" 
+              fullWidth 
+              loading={loading}
+              className="py-3 shadow-xl shadow-blue-100 bg-blue-600 hover:bg-blue-700 transition-all"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin" size={18} /> Creating account...
+                </span>
+              ) : (
+                "Create Account"
+              )}
             </Button>
 
-            <p className="text-center text-sm mt-3">
-              Already have an account?{" "}
-              <button
-                type="button"
-                className="text-indigo-600 underline"
-                onClick={() => navigate("/login")}
-              >
-                Login
-              </button>
-            </p>
+            <div className="text-center pt-2">
+              <p className="text-xs text-slate-500 font-medium">
+                Already have an account?{" "}
+                <button 
+                  type="button" 
+                  onClick={() => navigate("/login")} 
+                  className="font-black text-blue-600 hover:underline"
+                >
+                  Log In
+                </button>
+              </p>
+            </div>
           </form>
         </div>
       </div>

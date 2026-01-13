@@ -8,20 +8,27 @@ import {
   CreditCard,
   LogOut,
   AlertCircle,
+  CheckCircle,
+  Info,
+  X
 } from "lucide-react";
 
 import EmployerSidebar from "../../components/navigation/EmployerSidebar";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
-import Icon from "../../components/AppIcon"; // Re-using your Icon component
+import Icon from "../../components/AppIcon"; 
 
 import { useDispatch, useSelector } from "react-redux";
 import { getProfile, updateProfile } from "../../Services/ProfileService";
-import { setProfile,clearProfile } from "../../features/ProfileSlice";
-import { removeUser } from "../../features/UserSlice";
-import { removeJwt } from "../../features/JwtSlice";      // ✅ FIX
-import { persistor } from "../../Store";     
+import { setProfile, clearProfile } from "../../features/ProfileSlice";
+import { removeUser, setUser } from "../../features/UserSlice"; 
+import { removeJwt } from "../../features/JwtSlice";
+import { persistor } from "../../Store";
+import { notifications } from "@mantine/notifications";
+import { saveVerifiedPhone } from "../../Services/UserService";
+import { getRecaptcha, auth } from "../../firebase/firebase";
+import { linkWithPhoneNumber, signInAnonymously } from "firebase/auth";
 
 const EmployerProfile = () => {
   const dispatch = useDispatch();
@@ -29,10 +36,17 @@ const EmployerProfile = () => {
   const user = useSelector((state) => state.user || {});
   const profile = useSelector((state) => state.profile);
 
-  const [activeTab, setActiveTab] = useState("business"); // Options: 'business', 'personal'
+  const [activeTab, setActiveTab] = useState("business"); 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isEditingCompany, setIsEditingCompany] = useState(false);
   const [isEditingUser, setIsEditingUser] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // OTP Verification States
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [firebaseReady, setFirebaseReady] = useState(false);
 
   const [userName, setUserName] = useState("");
   const [companyInfo, setCompanyInfo] = useState({
@@ -45,6 +59,16 @@ const EmployerProfile = () => {
     website: "",
     panNumber: "",
   });
+
+  const formatToTenDigits = (phone) => {
+    if (!phone) return "";
+    const clean = phone.toString().replace(/\D/g, "");
+    if (clean.length === 12 && clean.startsWith("91")) return clean.slice(2);
+    return clean.length > 10 ? clean.slice(-10) : clean;
+  };
+
+  const hasExistingPhone = !!user?.phoneNumber;
+  const isPhoneChanged = formatToTenDigits(companyInfo.phone) !== formatToTenDigits(user?.phoneNumber);
 
   const industryOptions = [
     { value: "it_services", label: "IT & Software Services" },
@@ -59,7 +83,19 @@ const EmployerProfile = () => {
     { value: "agriculture", label: "Agro-based Industries" },
   ];
 
-  /** 📌 Fetch Profile from DB on mount */
+  // Bootstrap Firebase for reCAPTCHA
+  useEffect(() => {
+    const bootstrapFirebase = async () => {
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+        setFirebaseReady(true);
+      } else {
+        setFirebaseReady(true);
+      }
+    };
+    bootstrapFirebase();
+  }, []);
+
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -73,7 +109,6 @@ const EmployerProfile = () => {
     loadProfile();
   }, [user?.id, dispatch]);
 
-  /** 📌 Sync local state whenever Redux profile changes */
   useEffect(() => {
     if (profile) {
       setCompanyInfo({
@@ -82,17 +117,101 @@ const EmployerProfile = () => {
         industryType: profile.industryType || "",
         contactPersonName: profile.contactPersonName || "",
         officialEmail: profile.officialEmail || "",
-        phone: profile.primaryPhone || "",
+        phone: formatToTenDigits(user.phoneNumber || user.primaryPhone || ""),
         website: profile.Companywebsite || "",
         panNumber: profile.panNumber || "",
       });
       setUserName(user.name || "");
     }
-  }, [profile, user.name]);
+  }, [profile, user.name, user.phoneNumber]);
+
+  /** 📌 Phone Verification Handlers */
+  const handleUpdatePhone = async () => {
+    if (companyInfo.phone.length !== 10) {
+      return notifications.show({ 
+        message: "Please enter a valid 10-digit number", 
+        color: "red",
+        styles: { root: { width: 'fit-content', minWidth: '280px', maxWidth: '90vw' } }
+      });
+    }
+    if (!firebaseReady) return alert("Firebase not ready");
+
+    setLoading(true);
+    try {
+      const recaptcha = getRecaptcha();
+      window.confirmationResult = await linkWithPhoneNumber(
+        auth.currentUser,
+        "+91" + companyInfo.phone,
+        recaptcha
+      );
+      setIsOtpModalOpen(true);
+      notifications.show({
+        title: "OTP Sent",
+        message: `Verification code sent to +91 ${companyInfo.phone}`,
+        color: "blue",
+        styles: { root: { width: 'fit-content', minWidth: '280px', maxWidth: '90vw' } }
+      });
+    } catch (error) {
+      console.error("❌ OTP Request Failed:", error);
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmPhoneOtp = async () => {
+    setVerifying(true);
+    try {
+      const result = await window.confirmationResult.confirm(otpValue);
+      const idToken = await result.user.getIdToken(true);
+      
+      // 1. Save to Backend
+      await saveVerifiedPhone(idToken);
+
+      // 2. Update Redux User Instantly for UI state sync
+      const verifiedNumber = result.user.phoneNumber;
+      dispatch(setUser({ 
+        ...user, 
+        phoneNumber: verifiedNumber 
+      }));
+
+      // 3. Refresh profile data
+      const res = await getProfile(user.id);
+      dispatch(setProfile(res));
+
+      // 4. Modern Pop Notification with Login Info
+      notifications.show({ 
+        title: "Phone Verified! 🎉", 
+        message: `Verification successful. You can now use ${verifiedNumber} to login to your account.`, 
+        color: "teal",
+        icon: <CheckCircle className="w-5 h-5" />,
+        autoClose: 8000,
+        radius: "md",
+        style: { border: '1px solid #0ca678' },
+        styles: { 
+          root: { width: 'fit-content', minWidth: '320px', maxWidth: '90vw' },
+          title: { fontWeight: 700 },
+          description: { fontSize: '13px', lineHeight: '1.4' } 
+        }
+      });
+
+      setIsEditingCompany(false); // Close edit mode to show the 'Verified' badge
+      setIsOtpModalOpen(false);
+      setOtpValue("");
+    } catch (e) {
+      notifications.show({
+        title: "Verification Failed",
+        message: "Invalid verification code. Please try again.",
+        color: "red",
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const handleSaveCompanyInfo = async () => {
+    if (isPhoneChanged) return; 
     try {
-      const cleanPhone = companyInfo.phone.replace(/\D/g, "").slice(-10);
       const payload = {
         ...profile,
         userId: user.id,
@@ -101,7 +220,7 @@ const EmployerProfile = () => {
         industryType: companyInfo.industryType,
         contactPersonName: companyInfo.contactPersonName,
         officialEmail: companyInfo.officialEmail,
-        primaryPhone: cleanPhone,
+        primaryPhone: companyInfo.phone,
         Companywebsite: companyInfo.website,
         panNumber: companyInfo.panNumber?.toUpperCase(),
       };
@@ -109,31 +228,33 @@ const EmployerProfile = () => {
       const updated = await updateProfile(payload);
       dispatch(setProfile(updated));
       setIsEditingCompany(false);
+      notifications.show({ 
+        title: "Profile Updated", 
+        message: "Company details saved successfully.", 
+        color: "green",
+        styles: { root: { width: 'fit-content', minWidth: '280px', maxWidth: '90vw' } }
+      });
     } catch (err) {
       console.error("❌ Failed to update employer profile:", err);
       alert("Failed to save company information");
     }
   };
 
- const handleLogout = async () => {
-  try {
-    // Clear Redux state first
-    dispatch(removeUser());
-    dispatch(clearProfile());
-    dispatch(removeJwt());
+  const handleLogout = async () => {
+    try {
+      dispatch(removeUser());
+      dispatch(clearProfile());
+      dispatch(removeJwt());
+      await persistor.purge();
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.replace("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+      window.location.href = "/login";
+    }
+  };
 
-    // Clear all persistence
-    await persistor.purge();
-    localStorage.clear(); // This removes "jwt", "user", "profile", and "persist:root"
-    sessionStorage.clear();
-
-    window.location.replace("/login");
-  } catch (err) {
-    console.error("Logout failed:", err);
-    // Fallback if purge fails
-    window.location.href = "/login";
-  }
-};
   const handleCompanyLogoUpload = async (e) => {
     const file = e?.target?.files?.[0];
     if (!file) return;
@@ -173,9 +294,6 @@ const EmployerProfile = () => {
           <div className="flex justify-between items-start mb-6">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold mb-2">Profile & Settings</h1>
-              {/* <p className="text-sm md:text-base text-muted-foreground">
-                Manage your Indian business entity details and preferences
-              </p> */}
             </div>
             <Button variant="outline" onClick={handleLogout} className="text-red-600 border-red-200">
               <LogOut className="w-4 h-4 mr-2" /> Logout
@@ -215,7 +333,6 @@ const EmployerProfile = () => {
             </div>
           </div>
 
-          {/* 📌 Tab Navigation (Matching Worker Profile Style) */}
           <div className="border-b border-border mb-6">
             <div className="flex overflow-x-auto scrollbar-hide">
               {tabs.map((tab) => (
@@ -234,7 +351,6 @@ const EmployerProfile = () => {
             </div>
           </div>
 
-          {/* Tab Content */}
           <div className="animate-fade-in">
             {activeTab === "personal" && (
               <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
@@ -259,6 +375,7 @@ const EmployerProfile = () => {
                     variant={isEditingCompany ? "default" : "outline"}
                     onClick={() => (isEditingCompany ? handleSaveCompanyInfo() : setIsEditingCompany(true))}
                     className="w-full sm:w-auto"
+                    disabled={isEditingCompany && isPhoneChanged}
                   >
                     {isEditingCompany ? "Save Changes" : "Edit Details"}
                   </Button>
@@ -306,17 +423,50 @@ const EmployerProfile = () => {
                     onChange={(e) => setCompanyInfo({ ...companyInfo, officialEmail: e.target.value })}
                     icon={<Mail className="w-4 h-4 text-gray-400" />}
                   />
-                  <Input
-                    label="Mobile Number"
-                    placeholder="+91 00000 00000"
-                    value={companyInfo.phone.startsWith("+91") ? companyInfo.phone : `+91 ${companyInfo.phone}`}
-                    disabled={!isEditingCompany}
-                    onChange={(e) => {
-                      const val = e.target.value.replace("+91 ", "");
-                      setCompanyInfo({ ...companyInfo, phone: val });
-                    }}
-                    icon={<Phone className="w-4 h-4 text-gray-400" />}
-                  />
+                  
+                  {/* Phone Section with OTP Integration */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-muted-foreground">Mobile Number</label>
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1 relative">
+                        <div className="relative flex items-center">
+                          <div className="absolute left-0 pl-3 flex items-center pointer-events-none h-full border-r border-border pr-2 bg-gray-50 rounded-l-md">
+                            <span className="text-gray-500 font-bold text-sm">+91</span>
+                          </div>
+                          <input
+                            type="tel"
+                            disabled={!isEditingCompany}
+                            value={companyInfo.phone}
+                            onChange={(e) => setCompanyInfo({ ...companyInfo, phone: e.target.value.replace(/\D/g, "").slice(-10) })}
+                            placeholder="Enter 10 digits"
+                            className="w-full pl-16 pr-4 py-2 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-70"
+                          />
+                          {!isEditingCompany && !isPhoneChanged && hasExistingPhone && (
+                            <div className="absolute right-3 flex items-center gap-1 text-green-600 text-[10px] font-bold uppercase">
+                              <CheckCircle size={14} /> Verified
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {isEditingCompany && isPhoneChanged && (
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          onClick={handleUpdatePhone}
+                          loading={loading}
+                          className="h-[38px]"
+                        >
+                          {hasExistingPhone ? "Change Number" : "Link Number"}
+                        </Button>
+                      )}
+                    </div>
+                    {isEditingCompany && isPhoneChanged && (
+                      <p className="text-[11px] text-blue-600 font-medium flex items-center gap-1">
+                        <Info size={12} /> Click "{hasExistingPhone ? "Change Number" : "Link Number"}" to verify via OTP.
+                      </p>
+                    )}
+                  </div>
+
                   <Input
                     label="Company Website"
                     placeholder="https://www.example.in"
@@ -329,6 +479,39 @@ const EmployerProfile = () => {
             )}
           </div>
         </div>
+
+        {/* Phone OTP Modal */}
+        {isOtpModalOpen && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-bold">Verify Business Phone</h3>
+                <button onClick={() => setIsOtpModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+                  <X size={20} />
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-6">
+                Enter the verification code sent to <strong>+91 {companyInfo.phone}</strong>
+              </p>
+              <Input
+                placeholder="· · · · · ·"
+                value={otpValue}
+                onChange={(e) => setOtpValue(e.target.value)}
+                className="text-center text-2xl tracking-[0.3em] font-mono mb-6"
+                maxLength={6}
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setIsOtpModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button className="flex-1" onClick={handleConfirmPhoneOtp} loading={verifying}>
+                  Verify
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

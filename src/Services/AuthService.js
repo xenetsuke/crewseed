@@ -1,12 +1,15 @@
 import axiosClient from "../Interceptor/AxiosInterceptor";
 
 /**
- * Login user
- * @param {Object} loginData
+ * EMAIL + PASSWORD LOGIN
  */
-export const loginWithEmail = async (loginData) => {
+export const loginWithEmail = async ({ email, password }) => {
   try {
-    return await axiosClient.post("/auth/login", loginData);
+    return await axiosClient.post("/auth/login", {
+      loginType: "EMAIL",
+      identifier: email,
+      password: password,
+    });
   } catch (error) {
     console.error("❌ Login failed:", error);
     throw error;

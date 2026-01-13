@@ -180,20 +180,31 @@ const Login = () => {
     setErrors((prev) => ({ ...prev, [field]: loginValidation(field, value) }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      dispatch(clearProfile());
-      dispatch(removeJwt());
-      const res = await loginWithEmail(formData);
-      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
-    } catch (err) {
-      alert(err.message || "Invalid credentials");
-    } finally {
-      setLoading(false);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    setLoading(true);
+    dispatch(clearProfile());
+    dispatch(removeJwt());
+
+    const payload = {
+      loginType: "EMAIL",
+      email: formData.email,
+      password: formData.password,
+    };
+
+    const res = await loginWithEmail(payload);
+
+    if (res?.data?.jwt) {
+      await handlePostLogin(res.data.jwt);
     }
-  };
+  } catch (err) {
+    alert("Invalid credentials");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleRoleSwitch = () => {
     if (isAnimating) return;
