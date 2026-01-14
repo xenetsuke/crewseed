@@ -16,9 +16,8 @@ export default defineConfig({
     allowedHosts: [".amazonaws.com", ".builtwithrocket.new"],
     proxy: {
       // Proxy API requests to backend
-
       "/api": {
-        target: "http://localhost:8080",
+        target: "https://bluc-ysbf.onrender.com",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
