@@ -158,51 +158,70 @@ const Login = () => {
     }
   };
 
-  const handleSendOtp = async () => {
-    const formattedPhone = formatPhoneNumber(phoneNumber);
-    if (!formattedPhone) return toast.error("Enter a valid number");
+ const handleSendOtp = async () => {
+  const formattedPhone = formatPhoneNumber(phoneNumber);
+  if (!formattedPhone) {
+    toast.error("Enter a valid number");
+    return;
+  }
 
-    setLoading(true);
-    try {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null;
-      }
+  setLoading(true);
 
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: "invisible",
-      });
-
-      const confirmation = await signInWithPhoneNumber(
+  try {
+    // ❌ DO NOT CLEAR EXISTING VERIFIER HERE
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(
         auth,
-        formattedPhone,
-        window.recaptchaVerifier
+        "recaptcha-container",
+        { size: "invisible" }
       );
-
-      window.confirmationResult = confirmation;
-      setShowOtpField(true);
-      toast.success("OTP sent!");
-    } catch {
-      toast.error("Failed to send OTP");
-    } finally {
-      setLoading(false);
     }
-  };
 
-  const handleVerifyOtp = async () => {
-    if (!otp) return toast.error("Enter OTP");
-    setLoading(true);
-    try {
-      const result = await window.confirmationResult.confirm(otp);
-      const firebaseToken = await result.user.getIdToken();
-      const res = await exchangeFirebaseToken(firebaseToken, userRole);
-      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
-    } catch {
-      toast.error("Invalid OTP");
-    } finally {
-      setLoading(false);
+    const confirmation = await signInWithPhoneNumber(
+      auth,
+      formattedPhone,
+      window.recaptchaVerifier
+    );
+
+    window.confirmationResult = confirmation;
+    setShowOtpField(true);
+    toast.success("OTP sent!");
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to send OTP");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+const handleVerifyOtp = async () => {
+  if (!otp) return toast.error("Enter OTP");
+
+  setLoading(true);
+
+  try {
+    const result = await window.confirmationResult.confirm(otp);
+
+    // ✅ CLEAR VERIFIER ONLY AFTER SUCCESS
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
     }
-  };
+
+    const firebaseToken = await result.user.getIdToken();
+    const res = await exchangeFirebaseToken(firebaseToken, userRole);
+
+    if (res?.data?.jwt) {
+      await handlePostLogin(res.data.jwt);
+    }
+  } catch (err) {
+    console.error(err);
+    toast.error("Invalid OTP");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
