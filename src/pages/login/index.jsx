@@ -59,26 +59,45 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
+  // Animation States
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSettling, setIsSettling] = useState(false);
 
+  // Login Method States
   const [loginMethod, setLoginMethod] = useState("email");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [showOtpField, setShowOtpField] = useState(false);
+  
+  // ✅ OTP Cooldown State
+  const [cooldown, setCooldown] = useState(0);
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
+  // ✅ 1. Initialize ReCAPTCHA only once (Singleton Pattern)
   useEffect(() => {
     if (!window.recaptchaVerifier) {
       try {
         window.recaptchaVerifier = new RecaptchaVerifier(
           auth,
           "recaptcha-container",
-          { size: "invisible" }
+          { 
+            size: "invisible",
+            callback: () => {
+              // ReCAPTCHA solved
+            },
+            "expired-callback": () => {
+              toast.error("Captcha expired. Please try again.");
+              if(window.recaptchaVerifier) {
+                  window.recaptchaVerifier.render().then(widgetId => {
+                      window.grecaptcha.reset(widgetId);
+                  });
+              }
+            }
+          }
         );
       } catch (e) {
         console.error("❌ reCAPTCHA creation failed:", e);
@@ -86,8 +105,15 @@ const Login = () => {
     }
   }, []);
 
+  // ✅ 2. OTP Cooldown Timer Effect
+  useEffect(() => {
+    if (cooldown > 0) {
+      const t = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [cooldown]);
+
   const handlePostLogin = async (token) => {
-    // 🔥 SHOW PRELOADER IMMEDIATELY
     setShowPostLoginLoader(true);
     await new Promise((r) => requestAnimationFrame(r));
 
@@ -116,25 +142,16 @@ const Login = () => {
     let destination;
 
     if (!decoded.profileId) {
-      destination = isApplicantAccount
-        ? "/worker-profile-setup"
-        : "/company-onboarding";
+      destination = isApplicantAccount ? "/worker-profile-setup" : "/company-onboarding";
     } else {
       try {
         const profile = await getProfile(decoded.profileId);
         dispatch(setProfile(profile));
-
         destination = !profile.completed
-          ? isApplicantAccount
-            ? "/worker-profile-setup"
-            : "/company-onboarding"
-          : isApplicantAccount
-            ? "/worker-profile"
-            : "/employer-dashboard";
+          ? (isApplicantAccount ? "/worker-profile-setup" : "/company-onboarding")
+          : (isApplicantAccount ? "/worker-profile" : "/employer-dashboard");
       } catch {
-        destination = isApplicantAccount
-          ? "/worker-profile"
-          : "/employer-dashboard";
+        destination = isApplicantAccount ? "/worker-profile" : "/employer-dashboard";
       }
     }
 
@@ -158,70 +175,62 @@ const Login = () => {
     }
   };
 
- const handleSendOtp = async () => {
-  const formattedPhone = formatPhoneNumber(phoneNumber);
-  if (!formattedPhone) {
-    toast.error("Enter a valid number");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    // ❌ DO NOT CLEAR EXISTING VERIFIER HERE
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(
-        auth,
-        "recaptcha-container",
-        { size: "invisible" }
-      );
+  const handleSendOtp = async () => {
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    if (!formattedPhone) {
+      toast.error("Enter a valid number");
+      return;
     }
 
-    const confirmation = await signInWithPhoneNumber(
-      auth,
-      formattedPhone,
-      window.recaptchaVerifier
-    );
+    setLoading(true);
 
-    window.confirmationResult = confirmation;
-    setShowOtpField(true);
-    toast.success("OTP sent!");
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to send OTP");
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      if (!window.recaptchaVerifier) {
+         window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
+      }
 
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
+      window.confirmationResult = confirmation;
+      setShowOtpField(true);
+      setCooldown(60);
+      toast.success("OTP sent!");
+    } catch (err) {
+      console.error(err);
+      if (window.recaptchaVerifier) {
+        try {
+          const widgetId = await window.recaptchaVerifier.render();
+          window.grecaptcha.reset(widgetId);
+        } catch (resetError) {
+          console.error("Failed to reset captcha", resetError);
+        }
+      }
 
-const handleVerifyOtp = async () => {
-  if (!otp) return toast.error("Enter OTP");
-
-  setLoading(true);
-
-  try {
-    const result = await window.confirmationResult.confirm(otp);
-
-    // ✅ CLEAR VERIFIER ONLY AFTER SUCCESS
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = null;
+      if (err.code === 'auth/too-many-requests') {
+        setCooldown(60);
+        toast.error("Too many attempts. Please wait a minute.");
+      } else {
+        toast.error("Failed to send OTP. Refresh and try again.");
+      }
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const firebaseToken = await result.user.getIdToken();
-    const res = await exchangeFirebaseToken(firebaseToken, userRole);
-
-    if (res?.data?.jwt) {
-      await handlePostLogin(res.data.jwt);
+  const handleVerifyOtp = async () => {
+    if (!otp) return toast.error("Enter OTP");
+    setLoading(true);
+    try {
+      const result = await window.confirmationResult.confirm(otp);
+      const firebaseToken = await result.user.getIdToken();
+      const res = await exchangeFirebaseToken(firebaseToken, userRole);
+      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
+    } catch (err) {
+      console.error(err);
+      toast.error("Invalid OTP");
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error(err);
-    toast.error("Invalid OTP");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -229,14 +238,12 @@ const handleVerifyOtp = async () => {
     try {
       dispatch(clearProfile());
       dispatch(removeJwt());
-
       const res = await loginWithEmail({
         loginType: "EMAIL",
         email: formData.email,
         password: formData.password,
         role: userRole.toUpperCase(),
       });
-
       if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
     } catch {
       toast.error("Invalid email or password");
@@ -248,35 +255,35 @@ const handleVerifyOtp = async () => {
   const handleRoleSwitch = () => {
     if (isAnimating) return;
     setIsAnimating(true);
+    // 2D Flip Duration
     setTimeout(() => {
       setUserRole((p) => (p === "worker" ? "employer" : "worker"));
       setFormData({ email: "", password: "" });
       setIsAnimating(false);
       setIsSettling(true);
-      setTimeout(() => setIsSettling(false), 800);
-    }, 1200);
+      setTimeout(() => setIsSettling(false), 400);
+    }, 400);
   };
 
   if (showPostLoginLoader) return <Preloader />;
 
-
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 py-8 overflow-hidden relative" style={{ perspective: "2000px" }}>
+    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 py-8 overflow-hidden relative">
       <Toaster position="top-center" containerStyle={{ zIndex: 99999 }} />
       
+      {/* ✅ Clean 2D Vertical Flip Animations */}
       <style>
         {`
-          @keyframes ashFlipOut {
-            0% { opacity: 1; filter: blur(0px); transform: rotateY(0deg) scale(1); }
-            100% { opacity: 0; filter: blur(25px); transform: rotateY(110deg) translateY(-60px) scale(0.85); }
+          @keyframes flipOut2D {
+            0% { opacity: 1; transform: rotateY(0deg); }
+            100% { opacity: 0; transform: rotateY(90deg); }
           }
-          @keyframes ashFlipIn {
-            0% { opacity: 0; filter: blur(15px); transform: rotateY(-30deg) translateY(30px); }
-            100% { opacity: 1; filter: blur(0px); transform: rotateY(0deg) translateY(0); }
+          @keyframes flipIn2D {
+            0% { opacity: 0; transform: rotateY(-90deg); }
+            100% { opacity: 1; transform: rotateY(0deg); }
           }
-          .animate-ash-out { animation: ashFlipOut 1.2s forwards cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; }
-          .animate-ash-in { animation: ashFlipIn 0.8s forwards ease-out; }
+          .animate-flip-out { animation: flipOut2D 0.4s forwards ease-in; pointer-events: none; }
+          .animate-flip-in { animation: flipIn2D 0.4s forwards ease-out; }
         `}
       </style>
 
@@ -286,9 +293,8 @@ const handleVerifyOtp = async () => {
       <div className="w-full max-w-md relative z-10">
         <div className={`
           bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white 
-          transition-all duration-700
-          ${isAnimating ? "animate-ash-out" : ""}
-          ${isSettling ? "animate-ash-in" : ""}
+          ${isAnimating ? "animate-flip-out" : ""}
+          ${isSettling ? "animate-flip-in" : ""}
         `}>
           
           <div className="flex flex-col items-center mb-6">
@@ -324,7 +330,14 @@ const handleVerifyOtp = async () => {
                       <span className="absolute left-4 top-[38px] text-gray-500 font-bold z-10 text-sm">+91</span>
                       <Input label="Phone Number" placeholder="9876543210" value={phoneNumber} style={{ paddingLeft: "48px" }} onChange={(e) => setPhoneNumber(e.target.value)} />
                     </div>
-                    <Button fullWidth onClick={handleSendOtp} loading={loading}>Send OTP</Button>
+                    <Button 
+                      fullWidth 
+                      onClick={handleSendOtp} 
+                      loading={loading}
+                      disabled={cooldown > 0 || loading}
+                    >
+                      {cooldown > 0 ? `Retry in ${cooldown}s` : "Send OTP"}
+                    </Button>
                   </>
                 ) : (
                   <>
