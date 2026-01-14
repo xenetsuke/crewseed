@@ -54,11 +54,11 @@ const Login = () => {
   const navigate = useNavigate();
   const [showPostLoginLoader, setShowPostLoginLoader] = useState(false);
 
-  const [userRole, setUserRole] = useState("worker"); // "worker" or "employer"
+  const [userRole, setUserRole] = useState("worker");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-  
+
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSettling, setIsSettling] = useState(false);
 
@@ -86,64 +86,60 @@ const Login = () => {
     }
   }, []);
 
-  // Centralized login success handler with accountType validation
   const handlePostLogin = async (token) => {
-    const decoded = jwtDecode(token);
-    toast.dismiss(); 
+    // 🔥 SHOW PRELOADER IMMEDIATELY
+    setShowPostLoginLoader(true);
+    await new Promise((r) => requestAnimationFrame(r));
 
-    // 🔹 Role Validation Logic
+    const decoded = jwtDecode(token);
+    toast.dismiss();
+
     const isWorkerPage = userRole === "worker";
     const isApplicantAccount = decoded.accountType === "APPLICANT";
 
-    // Block Employer logging into Worker page and vice-versa
     if ((isWorkerPage && !isApplicantAccount) || (!isWorkerPage && isApplicantAccount)) {
       dispatch(removeJwt());
       localStorage.removeItem("token");
-      
-      toast.error(`This account is registered as an ${isApplicantAccount ? 'Worker' : 'Employer'}. Please switch roles to login.`, {
-        icon: <ShieldAlert className="text-red-500" />,
-        duration: 5000
-      });
+      setShowPostLoginLoader(false);
+
+      toast.error(
+        `This account is registered as an ${isApplicantAccount ? "Worker" : "Employer"}. Please switch roles.`,
+        { icon: <ShieldAlert className="text-red-500" /> }
+      );
       return;
     }
-    
-    // 1. Storage & Redux
+
     localStorage.setItem("token", token);
     dispatch(setJwt(token));
     dispatch(setUser(decoded));
-  setShowPostLoginLoader(true);
 
-    toast.success(`Logged in as ${decoded.name || userRole}`, {
-        icon: <CheckCircle2 className="text-green-500" />,
-    });
+    let destination;
 
-    // 2. Profile Fetch & Navigation Logic
     if (!decoded.profileId) {
-      navigate(isApplicantAccount ? "/worker-profile-setup" : "/company-onboarding");
-      return;
-    }
-
-    try {
+      destination = isApplicantAccount
+        ? "/worker-profile-setup"
+        : "/company-onboarding";
+    } else {
+      try {
         const profile = await getProfile(decoded.profileId);
         dispatch(setProfile(profile));
 
-        if (!profile.completed) {
-            navigate(isApplicantAccount ? "/worker-profile-setup" : "/company-onboarding");
-        } else {
-            navigate(isApplicantAccount ? "/worker-profile" : "/employer-dashboard");
-        }
-    } catch (err) {
-        navigate(isApplicantAccount ? "/worker-profile" : "/employer-dashboard");
+        destination = !profile.completed
+          ? isApplicantAccount
+            ? "/worker-profile-setup"
+            : "/company-onboarding"
+          : isApplicantAccount
+            ? "/worker-profile"
+            : "/employer-dashboard";
+      } catch {
+        destination = isApplicantAccount
+          ? "/worker-profile"
+          : "/employer-dashboard";
+      }
     }
-if (window.recaptchaVerifier) {
-  window.recaptchaVerifier.clear();
-  window.recaptchaVerifier = null;
-}
 
-    setTimeout(() => {
-    setShowPostLoginLoader(false);
     navigate(destination);
-  }, 7500); // must match GIF length
+    setShowPostLoginLoader(false);
   };
 
   const handleGoogleLogin = async () => {
@@ -162,51 +158,36 @@ if (window.recaptchaVerifier) {
     }
   };
 
-const handleSendOtp = async () => {
-  const formattedPhone = formatPhoneNumber(phoneNumber);
-  if (!formattedPhone) {
-    toast.error("Enter a valid 10-digit number");
-    return;
-  }
+  const handleSendOtp = async () => {
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    if (!formattedPhone) return toast.error("Enter a valid number");
 
-  setLoading(true);
-
-  try {
-    // 🔥 DESTROY old verifier if exists
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = null;
-    }
-
-    // 🔥 CREATE fresh verifier every time
-    window.recaptchaVerifier = new RecaptchaVerifier(
-      auth,
-      "recaptcha-container",
-      {
-        size: "invisible",
-        callback: () => {
-          console.log("✅ reCAPTCHA solved");
-        },
+    setLoading(true);
+    try {
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
       }
-    );
 
-    const confirmation = await signInWithPhoneNumber(
-      auth,
-      formattedPhone,
-      window.recaptchaVerifier
-    );
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: "invisible",
+      });
 
-    window.confirmationResult = confirmation;
-    setShowOtpField(true);
-    toast.success("OTP sent!");
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to send OTP");
-  } finally {
-    setLoading(false);
-  }
-};
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        formattedPhone,
+        window.recaptchaVerifier
+      );
 
+      window.confirmationResult = confirmation;
+      setShowOtpField(true);
+      toast.success("OTP sent!");
+    } catch {
+      toast.error("Failed to send OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleVerifyOtp = async () => {
     if (!otp) return toast.error("Enter OTP");
@@ -216,7 +197,7 @@ const handleSendOtp = async () => {
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
       if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
-    } catch (err) {
+    } catch {
       toast.error("Invalid OTP");
     } finally {
       setLoading(false);
@@ -230,18 +211,16 @@ const handleSendOtp = async () => {
       dispatch(clearProfile());
       dispatch(removeJwt());
 
-      const payload = {
+      const res = await loginWithEmail({
         loginType: "EMAIL",
         email: formData.email,
         password: formData.password,
-        role: userRole.toUpperCase()
-      };
+        role: userRole.toUpperCase(),
+      });
 
-      const res = await loginWithEmail(payload);
       if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
-    } catch (err) {
-      toast.dismiss();
-      toast.error("Invalid email or password", { icon: <AlertCircle className="text-red-500" /> });
+    } catch {
+      toast.error("Invalid email or password");
     } finally {
       setLoading(false);
     }
@@ -250,27 +229,17 @@ const handleSendOtp = async () => {
   const handleRoleSwitch = () => {
     if (isAnimating) return;
     setIsAnimating(true);
-    
     setTimeout(() => {
-      const newRole = userRole === "worker" ? "employer" : "worker";
-      setUserRole(newRole);
+      setUserRole((p) => (p === "worker" ? "employer" : "worker"));
       setFormData({ email: "", password: "" });
-      setErrors({});
       setIsAnimating(false);
       setIsSettling(true);
-      
-      toast.dismiss();
-      toast(`Switched to ${newRole} login`, {
-          icon: newRole === "worker" ? '🛠️' : '🏢',
-          duration: 2000
-      });
-
       setTimeout(() => setIsSettling(false), 800);
-    }, 1200); 
+    }, 1200);
   };
-  if (showPostLoginLoader) {
-  return <Preloader />;
-}
+
+  if (showPostLoginLoader) return <Preloader />;
+
 
 
   return (
