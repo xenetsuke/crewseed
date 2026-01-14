@@ -313,6 +313,17 @@ const Login = () => {
             </p>
           </div>
 
+          {/* 🛑 CAUTION ALERT SECTION */}
+          <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-100 flex items-start gap-3 animate-pulse">
+            <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={20} />
+            <div>
+              <p className="text-[13px] font-bold text-red-700 leading-tight">Important Notice</p>
+              <p className="text-[11px] text-red-600 font-medium mt-1">
+                Please <span className="underline decoration-red-300">avoid using Mobile Number</span> for login due to server downtime. Use <span className="font-bold">Gmail Login</span> for the fastest and most stable service.
+              </p>
+            </div>
+          </div>
+
           <form onSubmit={loginMethod === "email" ? handleSubmit : (e) => e.preventDefault()} className="space-y-4">
             {loginMethod === "email" ? (
               <>
@@ -367,8 +378,8 @@ const Login = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Button type="button" variant="outline" fullWidth onClick={handleGoogleLogin} disabled={loading} className="h-11">
-                <Chrome size={18} className="text-red-500 mr-2" /> <span className="text-xs font-bold">Google</span>
+              <Button type="button" variant="outline" fullWidth onClick={handleGoogleLogin} disabled={loading} className="h-11 border-red-100 hover:bg-red-50">
+                <Chrome size={18} className="text-red-500 mr-2" /> <span className="text-xs font-bold text-slate-700">Google</span>
               </Button>
               <Button type="button" variant="outline" fullWidth onClick={() => { setLoginMethod(loginMethod === "email" ? "phone" : "email"); setShowOtpField(false); }} className="h-11">
                 {loginMethod === "email" ? <Phone size={18} className="text-blue-500 mr-2" /> : <Mail size={18} className="text-blue-500 mr-2" />}
