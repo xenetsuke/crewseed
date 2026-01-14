@@ -1,12 +1,12 @@
-import axiosInstance from "../Interceptor/AxiosInterceptor";
+import axios from "axios";
 
 export const exchangeFirebaseToken = (firebaseToken, role) => {
-  return axiosInstance.post(
-    "/auth/firebase-login",
+  return axios.post(
+    "/api/auth/firebase-login",
     {},
     {
       headers: {
-        Authorization: `Bearer ${firebaseToken}`,
+        Authorization: `Bearer ${firebaseToken}`, // ✅ ONLY Firebase token
         "X-USER-ROLE": role,
       },
     }
