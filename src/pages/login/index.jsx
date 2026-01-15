@@ -332,8 +332,7 @@ const Login = () => {
             <div>
               <p className="text-[13px] font-bold text-red-700 leading-tight">Important Notice</p>
               <p className="text-[11px] text-red-600 font-medium mt-1">
-                Please <span className="underline decoration-red-300">avoid using Mobile Number</span> for login due to server downtime. Use <span className="font-bold">Gmail Login</span> for the fastest and most stable service.
-              </p>
+For the fastest and most reliable experience, we recommend using <span className="font-bold">Google mail Login</span>.              </p>
             </div>
           </div>
 
