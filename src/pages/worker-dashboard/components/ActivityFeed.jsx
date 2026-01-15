@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../../../components/AppIcon';
+import { useTranslation } from "react-i18next";
 
 const ActivityFeed = ({ activities = [] }) => {
   const navigate = useNavigate();
+const { t } = useTranslation();
 
   useEffect(() => {
     console.log("📊 [ActivityFeed] Received Activities:", activities);

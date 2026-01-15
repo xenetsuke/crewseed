@@ -7,10 +7,12 @@ import ActivityFeed from "./components/ActivityFeed";
 import { getProfile, updateProfile } from "../../Services/ProfileService";
 import { setProfile } from "../../features/ProfileSlice";
 import { getAllJobs } from "../../Services/JobService";
+import { useTranslation } from "react-i18next";
 
 const WorkerDashboard = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const profile = useSelector((state) => state.profile);
   const user = useSelector((state) => state.user);
@@ -27,7 +29,7 @@ const WorkerDashboard = () => {
   // --- START FINANCIAL LOGIC ---
   const assignments = profile?.recentAssignments || [];
   const calculatedTotal = assignments.reduce((sum, job) => sum + (Number(job.wage) || 0), 0);
-  const recentCompany = assignments.length > 0 ? assignments[0].company : "No Recent Work";
+  const recentCompany = assignments.length > 0 ? assignments[0].company : t("dashboard.financial.noRecentWork");
   // --- END FINANCIAL LOGIC ---
 
   const getDynamicActivities = () => {
@@ -39,7 +41,9 @@ const WorkerDashboard = () => {
           id: `app-${job.id}`,
           type: 'application',
           title: job.jobTitle || job.title,
-          description: `Application status: ${myApp.applicationStatus.replace('_', ' ')}`,
+          description: t("dashboard.activity.applicationStatus", {
+            status: myApp.applicationStatus.replace('_', ' ')
+          }),
           timestamp: new Date().toISOString(),
           jobId: job.id,
           actionable: true
@@ -51,8 +55,8 @@ const WorkerDashboard = () => {
       activities.push({
         id: 'saved-jobs-info',
         type: 'saved',
-        title: 'Saved Jobs',
-        description: `You have ${profile.savedJobs.length} jobs saved. Review and apply!`,
+        title: t("dashboard.activity.savedJobs"),
+        description: t("dashboard.activity.savedJobsDesc", { count: profile.savedJobs.length }),
         timestamp: new Date().toISOString(),
         route: '/worker-assignments',
         actionable: true
@@ -63,8 +67,8 @@ const WorkerDashboard = () => {
       activities.push({
         id: 'prof-update',
         type: 'update',
-        title: 'Complete Profile',
-        description: 'Complete your profile to get more job recommendations.',
+        title: t("dashboard.activity.completeProfile"),
+        description: t("dashboard.activity.completeProfileDesc"),
         timestamp: new Date().toISOString(),
         route: '/worker-profile',
         actionable: true
@@ -145,13 +149,13 @@ const WorkerDashboard = () => {
 
   const getGreeting = () => {
     const hour = currentTime?.getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
+    if (hour < 12) return t("dashboard.greeting.morning");
+    if (hour < 18) return t("dashboard.greeting.afternoon");
+    return t("dashboard.greeting.evening");
   };
 
   const workerData = {
-    name: profile?.fullName || "Worker",
+    name: profile?.fullName || t("sidebar.worker"),
     profileCompletion: profile?.profileCompletion || 0,
     totalJobs: profile?.statistics?.totalJobsCompleted || 0,
     rating: profile?.statistics?.averageRating || 0,
@@ -159,10 +163,10 @@ const WorkerDashboard = () => {
   };
 
   const quickActions = [
-    { id: "profile", icon: "User", label: "My Profile", subtitle: `${workerData.profileCompletion}%`, color: "var(--color-primary)", bgColor: "bg-primary/10", route: "/worker-profile" },
-    { id: "applications", icon: "Send", label: "Apps", subtitle: "Manage", color: "var(--color-success)", bgColor: "bg-success/10", route: "/worker-assignments" },
-    { id: "documents", icon: "FileText", label: "Docs", subtitle: "Verify", color: "var(--color-warning)", bgColor: "bg-warning/10", route: "/worker-profile" },
-    { id: "history", icon: "Clock", label: "History", subtitle: "Past", color: "var(--color-accent)", bgColor: "bg-accent/10", route: "/worker-assignments" },
+    { id: "profile", icon: "User", label: t("dashboard.actions.profile"), subtitle: `${workerData.profileCompletion}%`, color: "var(--color-primary)", bgColor: "bg-primary/10", route: "/worker-profile" },
+    { id: "applications", icon: "Send", label: t("dashboard.actions.applications"), subtitle: t("dashboard.actions.manage"), color: "var(--color-success)", bgColor: "bg-success/10", route: "/worker-assignments" },
+    { id: "documents", icon: "FileText", label: t("dashboard.actions.documents"), subtitle: t("dashboard.actions.verify"), color: "var(--color-warning)", bgColor: "bg-warning/10", route: "/worker-profile" },
+    { id: "history", icon: "Clock", label: t("dashboard.actions.history"), subtitle: t("dashboard.actions.past"), color: "var(--color-accent)", bgColor: "bg-accent/10", route: "/worker-assignments" },
   ];
 
   const handleRefresh = async () => {
@@ -199,7 +203,7 @@ const WorkerDashboard = () => {
                 <div className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold">
                   {workerData.name[0]}
                 </div>
-                <span className="font-semibold text-sm hidden sm:block">Settings</span>
+                <span className="font-semibold text-sm hidden sm:block">{t("dashboard.actions.settings")}</span>
               </button>
             </div>
           </div>
@@ -207,9 +211,9 @@ const WorkerDashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-2 card p-6 flex items-center justify-between bg-card border-none shadow-sm overflow-hidden relative">
               <div className="relative z-10">
-                <h3 className="font-bold text-xl mb-1">Status: {isAvailable ? "Active" : "Away"}</h3>
+                <h3 className="font-bold text-xl mb-1">{t("dashboard.status.label")}: {isAvailable ? t("dashboard.status.active") : t("dashboard.status.away")}</h3>
                 <p className="text-sm text-muted-foreground max-w-[250px]">
-                  {isAvailable ? "Your profile is visible to recruiters looking for workers." : "Recruiters cannot find you in search results currently."}
+                  {isAvailable ? t("dashboard.status.visible") : t("dashboard.status.hidden")}
                 </p>
               </div>
               <div className="flex flex-col items-center gap-2 z-10">
@@ -220,20 +224,20 @@ const WorkerDashboard = () => {
                   <span className={`absolute top-1 left-1 w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-300 ${isAvailable ? "translate-x-8" : ""}`} />
                 </button>
                 <span className={`text-[10px] font-bold uppercase tracking-wider ${isAvailable ? "text-success" : "text-muted-foreground"}`}>
-                  {isAvailable ? "Online" : "Offline"}
+                  {isAvailable ? t("dashboard.status.online") : t("dashboard.status.offline")}
                 </span>
               </div>
               <Icon name="Zap" size={120} className="absolute -right-8 -bottom-8 opacity-[0.03] rotate-12" />
             </div>
 
             <div className="card p-6 bg-card border-none shadow-sm flex flex-col items-center justify-center text-center">
-              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4">Worker Rating</h3>
+              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4">{t("dashboard.rating.label")}</h3>
               <div className="relative mb-4">
                 <div className="w-24 h-24 rounded-full border-[6px] border-primary/10 flex items-center justify-center">
                   <span className="text-4xl font-black text-foreground">{workerData.rating}</span>
                 </div>
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-warning text-warning-foreground px-2 py-0.5 rounded text-[10px] font-black flex items-center gap-1">
-                  <Icon name="Star" size={10} className="fill-current" /> TOP RATED
+                  <Icon name="Star" size={10} className="fill-current" /> {t("dashboard.rating.topRated")}
                 </div>
               </div>
               <div className="flex gap-1 mb-2">
@@ -241,7 +245,7 @@ const WorkerDashboard = () => {
                   <Icon key={i} name="Star" size={16} className={i < Math.floor(workerData.rating) ? "text-warning fill-warning" : "text-muted-foreground"} />
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground italic">Based on {workerData.totalJobs} completed tasks</p>
+              <p className="text-xs text-muted-foreground italic">{t("dashboard.rating.basedOn", { count: workerData.totalJobs })}</p>
             </div>
           </div>
 
@@ -251,18 +255,18 @@ const WorkerDashboard = () => {
                 <div className="flex items-center justify-between mb-4 px-1">
                   <h3 className="font-bold text-lg flex items-center gap-2">
                     <Icon name="Briefcase" size={20} className="text-primary" />
-                    Matched Jobs
+                    {t("dashboard.jobs.matchedTitle")}
                   </h3>
-                  <button onClick={() => navigate("/worker-job-list")} className="text-xs font-bold text-primary hover:opacity-80">SEE ALL</button>
+                  <button onClick={() => navigate("/worker-job-list")} className="text-xs font-bold text-primary hover:opacity-80">{t("common.seeAll")}</button>
                 </div>
                 <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-2 px-2">
                   {recommendedJobs.length > 0 ? recommendedJobs.map((job) => (
                     <div key={job.id} className="card p-5 min-w-[280px] bg-card hover:border-primary/50 transition-all cursor-pointer shadow-sm group" onClick={() => navigate("/assignment-detail", { state: { jobId: job.id } })}>
                       <h4 className="font-bold text-base truncate group-hover:text-primary transition-colors">{job.jobTitle || job.title}</h4>
-                      <p className="text-xs text-muted-foreground mb-4">{job.employer?.companyName || "Verified Recruiter"}</p>
+                      <p className="text-xs text-muted-foreground mb-4">{job.employer?.companyName || t("dashboard.jobs.verifiedRecruiter")}</p>
                       <div className="items-center justify-between mt-auto flex">
                         <div className="text-sm font-black text-primary bg-primary/10 px-3 py-1 rounded-lg">
-                          ₹{job.baseWageAmount || job.wage}/day
+                          ₹{job.baseWageAmount || job.wage}/{t("common.day")}
                         </div>
                         <Icon name="ArrowUpRight" size={18} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-all" />
                       </div>
@@ -270,7 +274,7 @@ const WorkerDashboard = () => {
                   )) : (
                     <div className="w-full py-12 text-center text-muted-foreground border-2 border-dashed rounded-2xl bg-muted/20">
                       <Icon name="Search" size={32} className="mx-auto mb-2 opacity-20" />
-                      <p className="text-sm font-medium">Looking for better matches...</p>
+                      <p className="text-sm font-medium">{t("dashboard.jobs.looking")}</p>
                     </div>
                   )}
                 </div>
@@ -283,7 +287,7 @@ const WorkerDashboard = () => {
 
             <div className="space-y-6">
               <section>
-                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4 px-1">Shortcuts</h3>
+                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4 px-1">{t("dashboard.shortcuts.label")}</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {quickActions.map((action) => (
                     <div key={action.id} onClick={() => navigate(action.route)} className="card p-4 bg-card border-none hover:bg-muted/50 transition-all cursor-pointer shadow-sm group">
@@ -302,12 +306,12 @@ const WorkerDashboard = () => {
                     <Icon name="TrendingUp" size={40} className="text-success" />
                 </div>
                 <h3 className="font-bold text-base mb-6 flex items-center gap-2">
-                  Financial Overview
+                  {t("dashboard.financial.title")}
                 </h3>
                 <div className="space-y-6 relative z-10">
                   <div>
                     <div className="flex justify-between items-end mb-2">
-                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Calculated Earnings</span>
+                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{t("dashboard.financial.calculated")}</span>
                       <span className="text-2xl font-black text-success">
                         ₹{calculatedTotal.toLocaleString('en-IN')}
                       </span>
@@ -317,13 +321,13 @@ const WorkerDashboard = () => {
                     </div>
                     <div className="flex items-center gap-1.5 mt-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                      <p className="text-[10px] text-muted-foreground font-bold truncate">Latest: {recentCompany}</p>
+                      <p className="text-[10px] text-muted-foreground font-bold truncate">{t("dashboard.financial.latest")}: {recentCompany}</p>
                     </div>
                   </div>
 
                   <div>
                     <div className="flex justify-between items-end mb-2">
-                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Profile Strength</span>
+                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{t("dashboard.financial.profileStrength")}</span>
                       <span className="text-sm font-black text-primary">{workerData.profileCompletion}%</span>
                     </div>
                     <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
@@ -333,7 +337,7 @@ const WorkerDashboard = () => {
                 </div>
                 
                 <button onClick={() => navigate("/worker-assignments")} className="w-full mt-8 py-3 rounded-xl border-2 border-primary/20 text-primary font-bold text-[10px] hover:bg-primary hover:text-white transition-all uppercase tracking-widest shadow-sm">
-                  View Detailed History
+                  {t("dashboard.financial.viewHistory")}
                 </button>
               </section>
             </div>
