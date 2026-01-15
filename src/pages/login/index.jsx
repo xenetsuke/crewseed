@@ -115,48 +115,55 @@ const Login = () => {
 
   const handlePostLogin = async (token) => {
     setShowPostLoginLoader(true);
-    await new Promise((r) => requestAnimationFrame(r));
+    try {
+      await new Promise((r) => requestAnimationFrame(r));
 
-    const decoded = jwtDecode(token);
-    toast.dismiss();
+      const decoded = jwtDecode(token);
+      toast.dismiss();
 
-    const isWorkerPage = userRole === "worker";
-    const isApplicantAccount = decoded.accountType === "APPLICANT";
+      const isWorkerPage = userRole === "worker";
+      const isApplicantAccount = decoded.accountType === "APPLICANT";
 
-    if ((isWorkerPage && !isApplicantAccount) || (!isWorkerPage && isApplicantAccount)) {
-      dispatch(removeJwt());
-      localStorage.removeItem("token");
-      setShowPostLoginLoader(false);
+      if ((isWorkerPage && !isApplicantAccount) || (!isWorkerPage && isApplicantAccount)) {
+        dispatch(removeJwt());
+        localStorage.removeItem("token");
+        
+        // ✅ CLOSE BOTH LOADERS ON ERROR NOTIFICATION
+        setShowPostLoginLoader(false);
+        setLoading(false);
 
-      toast.error(
-        `This account is registered as an ${isApplicantAccount ? "Worker" : "Employer"}. Please switch roles.`,
-        { icon: <ShieldAlert className="text-red-500" /> }
-      );
-      return;
-    }
-
-    localStorage.setItem("token", token);
-    dispatch(setJwt(token));
-    dispatch(setUser(decoded));
-
-    let destination;
-
-    if (!decoded.profileId) {
-      destination = isApplicantAccount ? "/worker-profile-setup" : "/company-onboarding";
-    } else {
-      try {
-        const profile = await getProfile(decoded.profileId);
-        dispatch(setProfile(profile));
-        destination = !profile.completed
-          ? (isApplicantAccount ? "/worker-profile-setup" : "/company-onboarding")
-          : (isApplicantAccount ? "/worker-profile" : "/employer-dashboard");
-      } catch {
-        destination = isApplicantAccount ? "/worker-profile" : "/employer-dashboard";
+        toast.error(
+          `This account is registered as an ${isApplicantAccount ? "Worker" : "Employer"}. Please switch roles.`,
+          { icon: <ShieldAlert className="text-red-500" /> }
+        );
+        return;
       }
-    }
 
-    navigate(destination);
-    setShowPostLoginLoader(false);
+      localStorage.setItem("token", token);
+      dispatch(setJwt(token));
+      dispatch(setUser(decoded));
+
+      let destination;
+
+      if (!decoded.profileId) {
+        destination = isApplicantAccount ? "/worker-profile-setup" : "/company-onboarding";
+      } else {
+        try {
+          const profile = await getProfile(decoded.profileId);
+          dispatch(setProfile(profile));
+          destination = !profile.completed
+            ? (isApplicantAccount ? "/worker-profile-setup" : "/company-onboarding")
+            : (isApplicantAccount ? "/worker-profile" : "/employer-dashboard");
+        } catch {
+          destination = isApplicantAccount ? "/worker-profile" : "/employer-dashboard";
+        }
+      }
+
+      navigate(destination);
+    } catch (err) {
+      setShowPostLoginLoader(false);
+      setLoading(false);
+    }
   };
 
   const handleGoogleLogin = async () => {
@@ -167,12 +174,15 @@ const Login = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
-      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
+      if (res?.data?.jwt) {
+        await handlePostLogin(res.data.jwt);
+      } else {
+        setLoading(false);
+      }
     } catch (err) {
       toast.error(err.message || "Google login failed");
-    } finally {
-      setLoading(false);
-    }
+      setLoading(false); 
+    } 
   };
 
   const handleSendOtp = async () => {
@@ -212,7 +222,7 @@ const Login = () => {
         toast.error("Failed to send OTP. Refresh and try again.");
       }
     } finally {
-      setLoading(false);
+      setLoading(false); 
     }
   };
 
@@ -223,12 +233,15 @@ const Login = () => {
       const result = await window.confirmationResult.confirm(otp);
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
-      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
+      if (res?.data?.jwt) {
+        await handlePostLogin(res.data.jwt);
+      } else {
+        setLoading(false);
+      }
     } catch (err) {
       console.error(err);
       toast.error("Invalid OTP");
-    } finally {
-      setLoading(false);
+      setLoading(false); 
     }
   };
 
@@ -244,18 +257,20 @@ const Login = () => {
         password: formData.password,
         role: userRole.toUpperCase(),
       });
-      if (res?.data?.jwt) await handlePostLogin(res.data.jwt);
-    } catch {
+      if (res?.data?.jwt) {
+        await handlePostLogin(res.data.jwt);
+      } else {
+        setLoading(false);
+      }
+    } catch (err) {
       toast.error("Invalid email or password");
-    } finally {
-      setLoading(false);
-    }
+      setLoading(false); 
+    } 
   };
 
   const handleRoleSwitch = () => {
     if (isAnimating) return;
     setIsAnimating(true);
-    // 2D Flip Duration
     setTimeout(() => {
       setUserRole((p) => (p === "worker" ? "employer" : "worker"));
       setFormData({ email: "", password: "" });
@@ -265,13 +280,12 @@ const Login = () => {
     }, 400);
   };
 
-  if (showPostLoginLoader) return <Preloader />;
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 py-8 overflow-hidden relative">
       <Toaster position="top-center" containerStyle={{ zIndex: 99999 }} />
       
-      {/* ✅ Clean 2D Vertical Flip Animations */}
+      {(loading || showPostLoginLoader) && <Preloader />}
+
       <style>
         {`
           @keyframes flipOut2D {
@@ -306,11 +320,21 @@ const Login = () => {
             </div>
 
             <h1 className="text-3xl font-black text-slate-800 mt-5 tracking-tight">
-              {loading ? "Verifying..." : "Welcome Back"}
+              Welcome Back
             </h1>
             <p className="text-slate-500 text-sm font-medium mt-1">
               Sign in as <span className={`font-bold capitalize ${userRole === "worker" ? "text-blue-600" : "text-teal-600"}`}>{userRole}</span>
             </p>
+          </div>
+
+          <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-100 flex items-start gap-3 animate-pulse">
+            <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={20} />
+            <div>
+              <p className="text-[13px] font-bold text-red-700 leading-tight">Important Notice</p>
+              <p className="text-[11px] text-red-600 font-medium mt-1">
+                Please <span className="underline decoration-red-300">avoid using Mobile Number</span> for login due to server downtime. Use <span className="font-bold">Gmail Login</span> for the fastest and most stable service.
+              </p>
+            </div>
           </div>
 
           <form onSubmit={loginMethod === "email" ? handleSubmit : (e) => e.preventDefault()} className="space-y-4">
@@ -367,8 +391,8 @@ const Login = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Button type="button" variant="outline" fullWidth onClick={handleGoogleLogin} disabled={loading} className="h-11">
-                <Chrome size={18} className="text-red-500 mr-2" /> <span className="text-xs font-bold">Google</span>
+              <Button type="button" variant="outline" fullWidth onClick={handleGoogleLogin} disabled={loading} className="h-11 border-red-100 hover:bg-red-50">
+                <Chrome size={18} className="text-red-500 mr-2" /> <span className="text-xs font-bold text-slate-700">Google</span>
               </Button>
               <Button type="button" variant="outline" fullWidth onClick={() => { setLoginMethod(loginMethod === "email" ? "phone" : "email"); setShowOtpField(false); }} className="h-11">
                 {loginMethod === "email" ? <Phone size={18} className="text-blue-500 mr-2" /> : <Mail size={18} className="text-blue-500 mr-2" />}

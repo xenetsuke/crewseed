@@ -1,0 +1,293 @@
+{
+  "profile": {
+    "tabs": {
+      "personal": "Personal Details",
+      "professional": "Professional Info",
+      "documents": "Documents & Verification",
+      "workHistory": "Work History"
+    },
+    "edit": "Edit Profile",
+    "fullName": "Full Name",
+    "age": "Age",
+    "gender": "Gender",
+    "primaryPhone": "Primary Phone",
+    "phonePlaceholder": "Enter 10 digits",
+    "whatsapp": "WhatsApp Number",
+    "email": "Email",
+    "currentAddress": "Current Address",
+    "city": "City",
+    "state": "State",
+    "pincode": "Pincode",
+    "section": {
+      "profileInfo": "Profile Information",
+      "contactInfo": "Contact Details",
+      "addressInfo": "Address Information"
+    },
+    "status": {
+      "available": "Available",
+      "notAvailable": "Not Available"
+    }
+  },
+    "toast": {
+    "profileUpdated": "Profile updated successfully",
+    "profileUpdateFailed": "Failed to update profile",
+    "phoneVerified": "Phone number verified successfully"
+  },
+  "otp": {
+    "sent": "OTP sent to {{phone}}",
+    "verified": "Phone number verified",
+    "invalid": "Invalid OTP",
+    "securityNotReady": "Security check not ready. Please try again."
+  },
+  "jobList": {
+    "filters": {
+      "nearMe": "Near Me",
+      "highPay": "High Pay",
+      "immediateStart": "Immediate Start",
+      "mySkills": "My Skills"
+    }
+  },
+
+
+  "professional": {
+    "section": {
+      "roleSkills": "Current Role & Skills"
+    },
+    "primaryJobRole": "Primary Job Role",
+    "jobRolePlaceholder": "Type or select job role",
+    "skillLevel": {
+      "label": "Skill Level",
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "expert": "Expert"
+    },
+    "otherSkills": "Other Skills",
+    "addSkill": "Add Skill",
+    "experienceDetails": "Experience Details",
+    "yearsExperience": "Years of Experience",
+    "shiftPreference": "Shift Preference",
+    "shift": {
+      "morning": "Morning (6 AM - 2 PM)",
+      "day": "Day (9 AM - 6 PM)",
+      "evening": "Evening (2 PM - 10 PM)",
+      "night": "Night (10 PM - 6 AM)"
+    },
+    "workType": {
+      "label": "Work Type",
+      "fullTime": "Full Time",
+      "partTime": "Part Time",
+      "contract": "Contract",
+      "temporary": "Temporary"
+    },
+    "availability": "Availability",
+    "wageInfo": "Wage Information",
+    "wageType": "Wage Type",
+    "wageAmount": "Wage Amount",
+    "wageNegotiable": "Wage is negotiable"
+  },
+  "dashboard": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "actions": {
+      "profile": "My Profile",
+      "applications": "Apps",
+      "manage": "Manage",
+      "documents": "Docs",
+      "verify": "Verify",
+      "history": "History",
+      "past": "Past",
+      "settings": "Settings"
+    },
+    "status": {
+      "label": "Status",
+      "active": "Active",
+      "away": "Away",
+      "visible": "Your profile is visible to recruiters looking for workers.",
+      "hidden": "Recruiters cannot find you in search results currently.",
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "rating": {
+      "label": "Worker Rating",
+      "topRated": "Top Rated",
+      "basedOn": "Based on {{count}} completed tasks"
+    },
+    "jobs": {
+      "matchedTitle": "Matched Jobs",
+      "verifiedRecruiter": "Verified Recruiter",
+      "looking": "Looking for better matches..."
+    },
+    "activity": {
+      "savedJobs": "Saved Jobs",
+      "savedJobsDesc": "You have {{count}} jobs saved. Review and apply!",
+      "completeProfile": "Complete Profile",
+      "completeProfileDesc": "Complete your profile to get more job recommendations.",
+      "applicationStatus": "Application status: {{status}}"
+    },
+    "shortcuts": {
+      "label": "Shortcuts"
+    },
+    "financial": {
+      "title": "Financial Overview",
+      "calculated": "Calculated Earnings",
+      "latest": "Latest",
+      "profileStrength": "Profile Strength",
+      "viewHistory": "View Detailed History",
+      "noRecentWork": "No Recent Work"
+    }
+  },
+  "logout": {
+    "button": "Logout",
+    "confirmTitle": "Confirm Logout",
+    "confirmMessage": "Are you sure you want to logout?"
+  },
+  "gender": {
+    "male": "Male",
+    "female": "Female",
+    "other": "Other"
+  },
+  "state": {
+    "maharashtra": "Maharashtra",
+    "delhi": "Delhi",
+    "karnataka": "Karnataka",
+    "tamilNadu": "Tamil Nadu",
+    "gujarat": "Gujarat",
+    "rajasthan": "Rajasthan",
+    "uttarPradesh": "Uttar Pradesh",
+    "westBengal": "West Bengal"
+  },
+  "days": {
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat",
+    "sun": "Sun"
+  },
+  "validation": {
+    "phone10Digits": "Please enter a valid 10-digit number",
+    "verifyPhoneFirst": "Please verify your phone number first"
+  },
+  "documents": {
+    "aadhaar": {
+      "title": "Aadhaar Card",
+      "number": "Aadhaar Number"
+    },
+    "pan": {
+      "title": "PAN Card",
+      "number": "PAN Number"
+    },
+    "bank": {
+      "title": "Bank Details",
+      "accountHolderName": "Account Holder Name",
+      "accountNumber": "Account Number",
+      "ifsc": "IFSC Code",
+      "bankName": "Bank Name"
+    },
+    "status": {
+      "verified": "Verified",
+      "pending": "Pending",
+      "rejected": "Rejected",
+      "notUploaded": "Not Uploaded"
+    }
+  },
+  "workHistory": {
+    "recentAssignments": "Recent Assignments",
+    "untitled": "Untitled Role",
+    "stats": {
+      "jobsCompleted": "Jobs Completed",
+      "totalEarnings": "Total Earnings",
+      "avgRating": "Avg Rating"
+    },
+    "fields": {
+      "jobTitle": "Job Title",
+      "company": "Company",
+      "location": "Location",
+      "wage": "Wage Amount"
+    }
+  },
+  "assignments": {
+    "title": "My Assignments",
+    "subtitle": "Manage your applications and saved jobs",
+    "tabs": {
+      "active": "Active",
+      "completed": "Completed",
+      "saved": "Saved Jobs",
+      "applied": "Applied",
+      "urgent": "Urgent",
+      "hourlyRate": "Hourly Rate",
+      "totalPay": "Total Pay",
+      "keyRequirements": "Key Requirements",
+      "shiftSchedule": "Shift Schedule",
+      "posted": "Posted",
+      "applicants": "applicants"
+    },
+    "empty": {
+      "active": "No active applications",
+      "completed": "No completed jobs",
+      "saved": "No saved jobs"
+    },
+    "company": "Company"
+  },
+  "assignmentStatus": {
+    "APPLIED": "Applied",
+    "UNDER_REVIEW": "Under Review",
+    "INTERVIEWING": "Interviewing",
+    "SELECTED": "Selected",
+    "REJECTED": "Rejected",
+    "JOINED": "Joined",
+    "NO_SHOW": "No Show",
+    "SAVED": "Saved"
+  },
+  "benefits": {
+    "transport": "Transport",
+    "food": "Food",
+    "stay": "Stay Provided"
+  },
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago"
+  },
+  "profileCompletion": {
+    "title": "Profile Completion",
+    "subtitle": "Complete your profile to get better matches",
+    "missing": "Missing Information:",
+    "cta": "Complete Profile"
+  },
+  "common": {
+    "edit": "Edit",
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "viewAll": "View All",
+    "seeAll": "See All",
+    "showLess": "Show Less",
+    "na": "NA",
+    "viewDetails": "View Details",
+    "applyNow": "Apply Now",
+    "loading": "Loading...",
+    "change": "Change",
+    "verified": "Verified",
+    "day": "Day"
+  },
+  "wage": {
+    "daily": "Daily",
+    "monthly": "Monthly",
+    "hourly": "Hourly"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "jobList": "Job List",
+    "assignments": "My Assignments",
+    "profile": "Profile",
+    "worker": "Worker",
+    "viewProfile": "View Profile"
+  }
+}

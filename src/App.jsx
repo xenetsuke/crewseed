@@ -12,6 +12,7 @@ import { Toaster } from "react-hot-toast";
 
 import Preloader from "./components/Preloader";
 import AppSkeleton from "./components/AppSkeleton";
+import "./i18n"; // 🔥 VERY IMPORTANT
 
 /* ✅ React Query Client */
 const queryClient = new QueryClient({

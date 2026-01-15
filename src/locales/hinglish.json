@@ -1,0 +1,230 @@
+{
+  "profile": {
+    "tabs": {
+      "personal": "Personal Details",
+      "professional": "Professional Info",
+      "documents": "Documents & Verification",
+      "workHistory": "Work History"
+    },
+    "edit": "Profile Edit karein",
+    "fullName": "Full Name",
+    "age": "Age",
+    "gender": "Gender",
+    "primaryPhone": "Primary Phone Number",
+    "phonePlaceholder": "10 digit ka number enter karein",
+    "whatsapp": "WhatsApp Number",
+    "email": "Email ID",
+    "currentAddress": "Current Address",
+    "city": "City",
+    "state": "State",
+    "pincode": "Pincode",
+    "section": {
+      "profileInfo": "Profile Information",
+      "contactInfo": "Contact Details",
+      "addressInfo": "Address Information"
+    }
+  },
+
+  "logout": {
+    "button": "Logout",
+    "confirmTitle": "Logout Confirm karein",
+    "confirmMessage": "Kya aap sure ho ki logout karna chahte ho?"
+  },
+
+  "gender": {
+    "male": "Male",
+    "female": "Female",
+    "other": "Other"
+  },
+
+  "state": {
+    "maharashtra": "Maharashtra",
+    "delhi": "Delhi",
+    "karnataka": "Karnataka",
+    "tamilNadu": "Tamil Nadu",
+    "gujarat": "Gujarat",
+    "rajasthan": "Rajasthan",
+    "uttarPradesh": "Uttar Pradesh",
+    "westBengal": "West Bengal"
+  },
+
+  "validation": {
+    "phone10Digits": "Please sahi 10-digit mobile number daalein",
+    "verifyPhoneFirst": "Pehle apna phone number verify karein"
+  },
+
+  "documents": {
+    "aadhaar": {
+      "title": "Aadhaar Card",
+      "number": "Aadhaar Number"
+    },
+    "pan": {
+      "title": "PAN Card",
+      "number": "PAN Number"
+    },
+    "bank": {
+      "title": "Bank Details",
+      "accountHolderName": "Account Holder Name",
+      "accountNumber": "Account Number",
+      "ifsc": "IFSC Code",
+      "bankName": "Bank Name"
+    },
+    "status": {
+      "verified": "Verified",
+      "pending": "Verification Pending",
+      "rejected": "Rejected",
+      "notUploaded": "Not Uploaded"
+    }
+  },
+
+  "workHistory": {
+    "recentAssignments": "Recent Kaam",
+    "untitled": "Untitled Job",
+    "stats": {
+      "jobsCompleted": "Jobs Complete",
+      "totalEarnings": "Total Kamai",
+      "avgRating": "Average Rating"
+    },
+    "fields": {
+      "jobTitle": "Job Title",
+      "company": "Company Name",
+      "location": "Work Location",
+      "wage": "Wage Amount"
+    }
+  },
+  "assignments": {
+    "title": "My Assignments",
+    "subtitle": "Apne applications aur saved jobs manage karein",
+    "tabs": {
+      "active": "Active",
+      "completed": "Completed",
+      "saved": "Saved Jobs"
+    },
+    "applied": "Applied",
+    "urgent": "Urgent",
+    "hourlyRate": "Hourly Rate",
+    "totalPay": "Total Pay",
+    "keyRequirements": "Key Requirements",
+    "shiftSchedule": "Shift Schedule",
+    "posted": "Posted",
+    "applicants": "Applicants",
+    "empty": {
+      "active": "Koi active application nahi hai",
+      "completed": "Koi completed job nahi hai",
+      "saved": "Koi saved job nahi hai"
+    },
+    "company": "Company"
+  },
+  "dashboard": {
+    "greeting": {
+      "morning": "Good Morning",
+      "afternoon": "Good Afternoon",
+      "evening": "Good Evening"
+    },
+    "settings": "Settings",
+
+    "status": {
+      "label": "Status",
+      "active": "Active",
+      "away": "Away",
+      "activeDesc": "Aapki profile recruiters ko dikh rahi hai.",
+      "awayDesc": "Abhi recruiters aapko search mein nahi dekh paayenge.",
+      "online": "Online",
+      "offline": "Offline"
+    },
+
+    "rating": {
+      "title": "Worker Rating",
+      "topRated": "Top Rated",
+      "basedOn": "{{count}} completed kaam ke base par"
+    },
+
+    "jobs": {
+      "matched": "Matched Jobs",
+      "seeAll": "See All",
+      "verifiedRecruiter": "Verified Recruiter",
+      "noMatches": "Better matches dhoonde ja rahe hain..."
+    },
+    "dashboard": {
+      "actions": {
+        "profile": "My Profile",
+        "applications": "Applications",
+        "manage": "Manage",
+        "documents": "Documents",
+        "verify": "Verify",
+        "history": "History",
+        "past": "Past"
+      },
+      "activity": {
+        "savedJobs": "Saved Jobs",
+        "savedJobsDesc": "Aapke {{count}} jobs saved hain. Review karke apply karein!"
+      },
+      "status": {
+        "visible": "Aapki profile recruiters ko dikh rahi hai."
+      }
+    },
+    "profileCompletion": {
+      "title": "Profile Completion",
+      "subtitle": "Better matches ke liye apni profile complete karein",
+      "missing": "Missing Information:",
+      "cta": "Complete Profile"
+    },
+    "shortcuts": {
+      "title": "Shortcuts",
+      "profile": "My Profile",
+      "apps": "Apps",
+      "manage": "Manage",
+      "docs": "Docs",
+      "verify": "Verify",
+      "history": "History",
+      "past": "Past"
+    },
+    "activity": {
+      "title": "Recent Activity",
+      "viewAll": "View All",
+      "empty": "Koi recent activity nahi hai"
+    },
+    "time": {
+      "justNow": "Abhi abhi",
+      "minutesAgo": "{{count}} min pehle",
+      "hoursAgo": "{{count}} hr pehle",
+      "daysAgo": "{{count}} din pehle"
+    },
+
+    "finance": {
+      "title": "Financial Overview",
+      "calculatedEarnings": "Calculated Earnings",
+      "latest": "Latest",
+      "profileStrength": "Profile Strength",
+      "viewHistory": "View Detailed History"
+    }
+  },
+
+  "common": {
+    "edit": "Edit",
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "viewAll": "View All",
+    "showLess": "Show Less",
+    "na": "NA",
+    "verified": "Verified",
+    "viewDetails": "Details dekhein"
+  },
+
+  "wage": {
+    "daily": "Daily",
+    "monthly": "Monthly",
+    "hourly": "Hourly"
+  },
+
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "jobList": "Job List",
+    "assignments": "My Assignments",
+    "profile": "Profile",
+    "worker": "Worker",
+    "viewProfile": "View Profile"
+  }
+}

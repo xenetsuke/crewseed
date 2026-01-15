@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Icon from "../../../components/AppIcon";
@@ -43,20 +45,16 @@ const buildInitialData = (documents = {}) => ({
 });
 
 const DocumentsVerificationTab = ({ documents, onSave }) => {
-  /* 🧠 Last saved backend state */
+  const { t } = useTranslation();
+
   const [initialData, setInitialData] = useState(() =>
     buildInitialData(documents)
   );
-
-  /* ✏ Editable form state */
   const [formData, setFormData] = useState(() =>
     buildInitialData(documents)
   );
 
-  /* 🔒 Edit toggle */
   const [isEditing, setIsEditing] = useState(false);
-
-  /* ⏳ Save loading */
   const [loading, setLoading] = useState(false);
 
   /* =========================================================
@@ -69,20 +67,38 @@ const DocumentsVerificationTab = ({ documents, onSave }) => {
   }, [documents]);
 
   /* =========================================================
-     Status Badge
+     Status Badge (i18n)
   ========================================================= */
   const getStatusBadge = (status) => {
     const statusConfig = {
-      VERIFIED: { color: "bg-green-500", text: "Verified", icon: "CheckCircle" },
-      PENDING: { color: "bg-yellow-500", text: "Pending", icon: "Clock" },
-      REJECTED: { color: "bg-red-500", text: "Rejected", icon: "XCircle" },
-      NOT_UPLOADED: { color: "bg-gray-500", text: "Not Uploaded", icon: "Upload" },
+      VERIFIED: {
+        color: "bg-green-500",
+        text: t("documents.status.verified"),
+        icon: "CheckCircle",
+      },
+      PENDING: {
+        color: "bg-yellow-500",
+        text: t("documents.status.pending"),
+        icon: "Clock",
+      },
+      REJECTED: {
+        color: "bg-red-500",
+        text: t("documents.status.rejected"),
+        icon: "XCircle",
+      },
+      NOT_UPLOADED: {
+        color: "bg-gray-500",
+        text: t("documents.status.notUploaded"),
+        icon: "Upload",
+      },
     };
 
     const config = statusConfig[status] || statusConfig.NOT_UPLOADED;
 
     return (
-      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${config.color} text-white text-xs`}>
+      <div
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${config.color} text-white text-xs`}
+      >
         <Icon name={config.icon} size={12} />
         {config.text}
       </div>
@@ -90,7 +106,7 @@ const DocumentsVerificationTab = ({ documents, onSave }) => {
   };
 
   /* =========================================================
-     File Upload (only in edit mode)
+     File Upload
   ========================================================= */
   const handleFileUpload = async (docType, file) => {
     if (!file || !isEditing) return;
@@ -124,7 +140,7 @@ const DocumentsVerificationTab = ({ documents, onSave }) => {
   };
 
   /* =========================================================
-     Cancel → restore backend data
+     Cancel
   ========================================================= */
   const handleCancel = () => {
     setFormData(initialData);
@@ -132,7 +148,7 @@ const DocumentsVerificationTab = ({ documents, onSave }) => {
   };
 
   /* =========================================================
-     Save → backend
+     Save
   ========================================================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -141,7 +157,7 @@ const DocumentsVerificationTab = ({ documents, onSave }) => {
     setLoading(true);
 
     const payload = {
-      ...documents, // IMPORTANT: keeps profile.id
+      ...documents,
       aadhaar: formData.aadhaar,
       pan: formData.pan,
       bankDetails: formData.bankDetails,
@@ -162,15 +178,15 @@ const DocumentsVerificationTab = ({ documents, onSave }) => {
       <div className="flex justify-end mb-3">
         {!isEditing ? (
           <Button type="button" onClick={() => setIsEditing(true)}>
-            ✏ Edit
+            ✏ {t("common.edit")}
           </Button>
         ) : (
           <div className="flex gap-3">
             <Button type="button" variant="outline" onClick={handleCancel}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" loading={loading}>
-              Save
+              {t("common.save")}
             </Button>
           </div>
         )}
@@ -179,13 +195,15 @@ const DocumentsVerificationTab = ({ documents, onSave }) => {
       {/* ================= AADHAAR ================= */}
       <div className="card p-4 md:p-6">
         <div className="flex justify-between mb-4">
-          <h3 className="text-lg font-semibold">Aadhaar Card</h3>
+          <h3 className="text-lg font-semibold">
+            {t("documents.aadhaar.title")}
+          </h3>
           {getStatusBadge(formData.aadhaar.status)}
         </div>
 
         <Input
           disabled={!isEditing}
-          label="Aadhaar Number"
+          label={t("documents.aadhaar.number")}
           value={formData.aadhaar.number}
           onChange={(e) =>
             handleInputChange("aadhaar", "number", e.target.value)
@@ -203,13 +221,15 @@ const DocumentsVerificationTab = ({ documents, onSave }) => {
       {/* ================= PAN ================= */}
       <div className="card p-4 md:p-6">
         <div className="flex justify-between mb-4">
-          <h3 className="text-lg font-semibold">PAN Card</h3>
+          <h3 className="text-lg font-semibold">
+            {t("documents.pan.title")}
+          </h3>
           {getStatusBadge(formData.pan.status)}
         </div>
 
         <Input
           disabled={!isEditing}
-          label="PAN Number"
+          label={t("documents.pan.number")}
           value={formData.pan.number}
           onChange={(e) =>
             handleInputChange("pan", "number", e.target.value.toUpperCase())
@@ -226,39 +246,57 @@ const DocumentsVerificationTab = ({ documents, onSave }) => {
 
       {/* ================= BANK ================= */}
       <div className="card p-4 md:p-6">
-        <h3 className="text-lg font-semibold mb-4">Bank Details</h3>
+        <h3 className="text-lg font-semibold mb-4">
+          {t("documents.bank.title")}
+        </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             disabled={!isEditing}
-            label="Account Holder Name"
+            label={t("documents.bank.accountHolderName")}
             value={formData.bankDetails.accountHolderName}
             onChange={(e) =>
-              handleInputChange("bankDetails", "accountHolderName", e.target.value)
+              handleInputChange(
+                "bankDetails",
+                "accountHolderName",
+                e.target.value
+              )
             }
           />
           <Input
             disabled={!isEditing}
-            label="Account Number"
+            label={t("documents.bank.accountNumber")}
             value={formData.bankDetails.accountNumber}
             onChange={(e) =>
-              handleInputChange("bankDetails", "accountNumber", e.target.value)
+              handleInputChange(
+                "bankDetails",
+                "accountNumber",
+                e.target.value
+              )
             }
           />
           <Input
             disabled={!isEditing}
-            label="IFSC Code"
+            label={t("documents.bank.ifsc")}
             value={formData.bankDetails.ifscCode}
             onChange={(e) =>
-              handleInputChange("bankDetails", "ifscCode", e.target.value.toUpperCase())
+              handleInputChange(
+                "bankDetails",
+                "ifscCode",
+                e.target.value.toUpperCase()
+              )
             }
           />
           <Input
             disabled={!isEditing}
-            label="Bank Name"
+            label={t("documents.bank.bankName")}
             value={formData.bankDetails.bankName}
             onChange={(e) =>
-              handleInputChange("bankDetails", "bankName", e.target.value)
+              handleInputChange(
+                "bankDetails",
+                "bankName",
+                e.target.value
+              )
             }
           />
         </div>

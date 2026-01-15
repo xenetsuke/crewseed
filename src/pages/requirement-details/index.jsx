@@ -45,6 +45,8 @@ const RequirementDetailsPage = () => {
     },
   });
 
+  
+
   // 🧩 HELPERS (Maintain original logic)
   const formatEnum = (val) =>
     val ? val.replace(/_/g, " ").toLowerCase().split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "Not Specified";
@@ -192,7 +194,10 @@ const RequirementDetailsPage = () => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                   <RequirementDetails requirement={requirement} />
-                  <ApplicationsList applications={applications} onApprove={handleApprove} onReject={handleReject} onSelect={handleSelect} onChangeStatus={handleChangeStatus} onScheduleInterview={handleScheduleInterview} onViewProfile={handleViewProfile} />
+                  <ApplicationsList applications={applications}
+                  
+                  
+                  onApprove={handleApprove} onReject={handleReject} onSelect={handleSelect} onChangeStatus={handleChangeStatus} onScheduleInterview={handleScheduleInterview} onViewProfile={handleViewProfile} />
                   <CandidateComparison applications={applications} />
                 </div>
                 <div className="space-y-6">

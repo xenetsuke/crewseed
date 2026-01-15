@@ -1,0 +1,262 @@
+{
+  "profile": {
+    "tabs": {
+      "personal": "व्यक्तिगत जानकारी",
+      "professional": "पेशेवर जानकारी",
+      "documents": "दस्तावेज़ और सत्यापन",
+      "workHistory": "कार्य इतिहास"
+    },
+     "status": {
+      "available": "उपलब्ध",
+      "notAvailable": "अनुपलब्ध"
+    },
+    "edit": "प्रोफ़ाइल संपादित करें",
+    "fullName": "पूरा नाम",
+    "age": "उम्र",
+    "gender": "लिंग",
+    "primaryPhone": "मुख्य मोबाइल नंबर",
+    "phonePlaceholder": "10 अंकों का नंबर डालें",
+    "whatsapp": "व्हाट्सऐप नंबर",
+    "email": "ईमेल पता",
+    "currentAddress": "वर्तमान पता",
+    "city": "शहर",
+    "state": "राज्य",
+    "pincode": "पिन कोड",
+    "section": {
+      "profileInfo": "प्रोफ़ाइल जानकारी",
+      "contactInfo": "संपर्क विवरण",
+      "addressInfo": "पते की जानकारी"
+    }
+    
+  },
+  
+  "toast": {
+    "profileUpdated": "प्रोफ़ाइल सफलतापूर्वक अपडेट हो गई",
+    "profileUpdateFailed": "प्रोफ़ाइल अपडेट नहीं हो सकी",
+    "phoneVerified": "मोबाइल नंबर सफलतापूर्वक सत्यापित हो गया"
+  },
+  "otp": {
+    "sent": "{{phone}} पर OTP भेजा गया",
+    "verified": "मोबाइल नंबर सत्यापित हो गया",
+    "invalid": "गलत OTP",
+    "securityNotReady": "सुरक्षा जांच तैयार नहीं है, कृपया पुनः प्रयास करें"
+  }
+,
+
+  "jobList": {
+    "filters": {
+      "nearMe": "मेरे पास",
+      "highPay": "ज्यादा सैलरी",
+      "immediateStart": "तुरंत शुरू करें",
+      "mySkills": "मेरे कौशल"
+    }
+  },
+  "time": {
+    "recently": "हाल ही में",
+    "justNow": "अभी-अभी",
+    "minutesAgo": "{{count}} मिनट पहले",
+    "hoursAgo": "{{count}} घंटे पहले",
+    "daysAgo": "{{count}} दिन पहले"
+  },
+  
+"documents": {
+  "aadhaar": {
+    "title": "आधार कार्ड",
+    "number": "आधार नंबर"
+  },
+  "pan": {
+    "title": "पैन कार्ड",
+    "number": "पैन नंबर"
+  },
+  "bank": {
+    "title": "बैंक विवरण",
+    "accountHolderName": "खाता धारक का नाम",
+    "accountNumber": "खाता संख्या",
+    "ifsc": "आईएफएससी कोड",
+    "bankName": "बैंक का नाम"
+  },
+  "status": {
+    "verified": "सत्यापित",
+    "pending": "लंबित",
+    "rejected": "अस्वीकृत",
+    "notUploaded": "अपलोड नहीं किया गया"
+  }
+},
+
+  "dashboard": {
+    "greeting": {
+      "morning": "सुप्रभात",
+      "afternoon": "नमस्कार",
+      "evening": "शुभ संध्या"
+    },
+
+    "actions": {
+      "profile": "मेरी प्रोफ़ाइल",
+      "applications": "आवेदन",
+      "manage": "प्रबंधन",
+      "documents": "दस्तावेज़",
+      "verify": "सत्यापन",
+      "history": "इतिहास",
+      "past": "पिछला",
+      "settings": "सेटिंग्स"
+    },
+
+    "status": {
+      "label": "स्थिति",
+      "active": "सक्रिय",
+      "away": "अनुपलब्ध",
+      "visible": "आपकी प्रोफ़ाइल भर्ती करने वालों को दिखाई दे रही है।",
+      "hidden": "भर्ती करने वाले अभी आपको खोज में नहीं देख पाएंगे।",
+      "online": "ऑनलाइन",
+      "offline": "ऑफ़लाइन"
+    },
+
+    "rating": {
+      "label": "वर्कर रेटिंग",
+      "topRated": "टॉप रेटेड",
+      "basedOn": "{{count}} पूरे किए गए कार्यों के आधार पर"
+    },
+
+    "jobs": {
+      "matchedTitle": "मेल खाते काम",
+      "verifiedRecruiter": "सत्यापित भर्तीकर्ता",
+      "looking": "बेहतर मैच खोजे जा रहे हैं..."
+    },
+
+    "activity": {
+      "savedJobs": "सेव किए गए जॉब्स",
+      "savedJobsDesc": "आपके पास {{count}} सेव किए गए जॉब्स हैं।",
+      "completeProfile": "प्रोफ़ाइल पूरी करें",
+      "completeProfileDesc": "बेहतर मैच पाने के लिए अपनी प्रोफ़ाइल पूरी करें",
+      "applicationStatus": "आवेदन स्थिति: {{status}}"
+    },
+    
+
+    "shortcuts": {
+      "label": "शॉर्टकट्स"
+    },
+
+    "financial": {
+      "title": "आर्थिक विवरण",
+      "calculated": "गणना की गई कमाई",
+      "latest": "नवीनतम",
+      "profileStrength": "प्रोफ़ाइल मज़बूती",
+      "viewHistory": "पूरा इतिहास देखें",
+      "noRecentWork": "कोई हालिया कार्य नहीं"
+    }
+  },
+
+  "common": {
+    "seeAll": "सभी देखें",
+    "edit": "संपादित करें",
+    "add": "जोड़ें",
+    "save": "सेव करें",
+    "cancel": "रद्द करें",
+    "delete": "हटाएँ",
+    "viewAll": "सभी देखें",
+    "showLess": "कम दिखाएँ",
+    "na": "लागू नहीं",
+    "verified": "सत्यापित",
+    "viewDetails": "विवरण देखें",
+    "day": "दिन",
+        "change": "बदलें"
+        
+
+  },
+    "professional": {
+    "section": {
+      "roleSkills": "वर्तमान भूमिका और कौशल"
+    },
+    "primaryJobRole": "मुख्य कार्य भूमिका",
+    "jobRolePlaceholder": "जॉब भूमिका लिखें या चुनें",
+    "skillLevel": {
+      "label": "कौशल स्तर",
+      "beginner": "शुरुआती",
+      "intermediate": "मध्यम",
+      "expert": "विशेषज्ञ"
+    },
+    "otherSkills": "अन्य कौशल",
+    "addSkill": "कौशल जोड़ें",
+    "experienceDetails": "अनुभव विवरण",
+    "yearsExperience": "अनुभव के वर्ष",
+    "shiftPreference": "शिफ्ट प्राथमिकता",
+    "shift": {
+      "morning": "सुबह (6 AM - 2 PM)",
+      "day": "दिन (9 AM - 6 PM)",
+      "evening": "शाम (2 PM - 10 PM)",
+      "night": "रात (10 PM - 6 AM)"
+    },
+    "workType": {
+      "label": "कार्य प्रकार",
+      "fullTime": "पूर्णकालिक",
+      "partTime": "अंशकालिक",
+      "contract": "ठेका",
+      "temporary": "अस्थायी"
+    },
+    "availability": "उपलब्धता",
+    "wageInfo": "मजदूरी जानकारी",
+    "wageType": "मजदूरी प्रकार",
+    "wageAmount": "मजदूरी राशि",
+    "wageNegotiable": "मजदूरी पर बातचीत संभव है"
+  },
+
+  "days": {
+    "mon": "सोम",
+    "tue": "मंगल",
+    "wed": "बुध",
+    "thu": "गुरु",
+    "fri": "शुक्र",
+    "sat": "शनि",
+    "sun": "रवि"
+  },
+
+
+  "wage": {
+    "daily": "दैनिक",
+    "monthly": "मासिक",
+    "hourly": "प्रति घंटा"
+  },
+
+  "sidebar": {
+    "dashboard": "डैशबोर्ड",
+    "jobList": "नौकरी सूची",
+    "assignments": "मेरे कार्य",
+    "profile": "प्रोफ़ाइल",
+    "worker": "कर्मी",
+    "viewProfile": "प्रोफ़ाइल देखें"
+  },
+
+  "assignments": {
+  "title": "मेरे कार्य",
+  "subtitle": "अपने आवेदनों और सेव किए गए जॉब्स को प्रबंधित करें",
+  "tabs": {
+    "active": "सक्रिय",
+    "completed": "पूरा हुआ",
+    "saved": "सेव किए गए",
+    "applied": "आवेदन किया",
+    "urgent": "जरूरी",
+    "hourlyRate": "प्रति घंटा दर",
+    "totalPay": "कुल भुगतान",
+    "keyRequirements": "मुख्य आवश्यकताएं",
+    "shiftSchedule": "शिफ्ट का समय",
+    "posted": "पोस्ट किया गया",
+    "applicants": "आवेदक"
+  },
+  "empty": {
+    "active": "कोई सक्रिय आवेदन नहीं है",
+    "completed": "कोई पूरा हुआ कार्य नहीं है",
+    "saved": "कोई सेव किया गया जॉब नहीं है"
+  },
+  "company": "कंपनी"
+},
+"assignmentStatus": {
+  "APPLIED": "आवेदन किया",
+  "UNDER_REVIEW": "समीक्षा के अधीन",
+  "INTERVIEWING": "इंटरव्यू जारी",
+  "SELECTED": "चयनित",
+  "REJECTED": "अस्वीकृत",
+  "JOINED": "जुड़ गए",
+  "NO_SHOW": "अनुपस्थित",
+  "SAVED": "सेव किया गया"
+}
+}

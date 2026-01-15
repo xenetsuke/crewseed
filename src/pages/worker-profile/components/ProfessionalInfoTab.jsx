@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
 import Input from "../../../components/ui/Input";
 import Button from "../../../components/ui/Button";
 import Select from "../../../components/ui/Select";
@@ -23,10 +25,14 @@ const buildInitialData = (data = {}) => ({
 });
 
 const ProfessionalInfoTab = ({ data, onSave }) => {
+  const { t } = useTranslation();
+
   const [initialData, setInitialData] = useState(() =>
     buildInitialData(data || {})
   );
-  const [formData, setFormData] = useState(() => buildInitialData(data || {}));
+  const [formData, setFormData] = useState(() =>
+    buildInitialData(data || {})
+  );
 
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -43,7 +49,7 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
   }, [data]);
 
   /* ======================================================
-     Job Role Suggestions (used only for datalist)
+     OPTIONS (i18n safe)
   ====================================================== */
   const jobRoleOptions = [
     "Construction Worker",
@@ -73,33 +79,33 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
   ];
 
   const skillLevelOptions = [
-    { value: "beginner", label: "Beginner" },
-    { value: "intermediate", label: "Intermediate" },
-    { value: "expert", label: "Expert" },
+    { value: "beginner", label: t("professional.skillLevel.beginner", "Beginner") },
+    { value: "intermediate", label: t("professional.skillLevel.intermediate", "Intermediate") },
+    { value: "expert", label: t("professional.skillLevel.expert", "Expert") },
   ];
 
   const shiftOptions = [
-    { value: "morning", label: "Morning (6 AM - 2 PM)" },
-    { value: "day", label: "Day (9 AM - 6 PM)" },
-    { value: "evening", label: "Evening (2 PM - 10 PM)" },
-    { value: "night", label: "Night (10 PM - 6 AM)" },
+    { value: "morning", label: t("professional.shift.morning", "Morning (6 AM - 2 PM)") },
+    { value: "day", label: t("professional.shift.day", "Day (9 AM - 6 PM)") },
+    { value: "evening", label: t("professional.shift.evening", "Evening (2 PM - 10 PM)") },
+    { value: "night", label: t("professional.shift.night", "Night (10 PM - 6 AM)") },
   ];
 
   const workTypeOptions = [
-    { value: "full-time", label: "Full-Time" },
-    { value: "part-time", label: "Part-Time" },
-    { value: "contract", label: "Contract" },
-    { value: "temporary", label: "Temporary" },
+    { value: "full-time", label: t("professional.workType.fullTime", "Full-Time") },
+    { value: "part-time", label: t("professional.workType.partTime", "Part-Time") },
+    { value: "contract", label: t("professional.workType.contract", "Contract") },
+    { value: "temporary", label: t("professional.workType.temporary", "Temporary") },
   ];
 
   const daysOfWeek = [
-    { value: "monday", label: "Mon" },
-    { value: "tuesday", label: "Tue" },
-    { value: "wednesday", label: "Wed" },
-    { value: "thursday", label: "Thu" },
-    { value: "friday", label: "Fri" },
-    { value: "saturday", label: "Sat" },
-    { value: "sunday", label: "Sun" },
+    { value: "monday", label: t("days.mon", "Mon") },
+    { value: "tuesday", label: t("days.tue", "Tue") },
+    { value: "wednesday", label: t("days.wed", "Wed") },
+    { value: "thursday", label: t("days.thu", "Thu") },
+    { value: "friday", label: t("days.fri", "Fri") },
+    { value: "saturday", label: t("days.sat", "Sat") },
+    { value: "sunday", label: t("days.sun", "Sun") },
   ];
 
   /* ======================================================
@@ -183,7 +189,7 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
   if (!formData) {
     return (
       <div className="text-center py-6 text-muted-foreground">
-        Loading professional details...
+        {t("common.loading", "Loading professional details...")}
       </div>
     );
   }
@@ -194,15 +200,15 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
       <div className="flex justify-end mb-3">
         {!isEditing ? (
           <Button type="button" onClick={() => setIsEditing(true)}>
-            ✏ Edit
+            ✏ {t("common.edit", "Edit")}
           </Button>
         ) : (
           <div className="flex gap-3">
             <Button type="button" variant="outline" onClick={handleCancel}>
-              Cancel
+              {t("common.cancel", "Cancel")}
             </Button>
             <Button type="submit" loading={loading}>
-              Save
+              {t("common.save", "Save")}
             </Button>
           </div>
         )}
@@ -212,32 +218,34 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
       <div>
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Icon name="Briefcase" size={20} />
-          Current Role & Skills
+          {t("professional.section.roleSkills", "Current Role & Skills")}
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* ✅ UPDATED PRIMARY JOB ROLE */}
-          <div>
-            <Input
-              disabled={!isEditing}
-              label="Primary Job Role"
-              placeholder="Type or select your job role"
-              value={formData.primaryJobRole}
-              onChange={(e) => handleChange("primaryJobRole", e.target.value)}
-              list="job-role-suggestions"
-              required
-            />
+          <Input
+            disabled={!isEditing}
+            label={t("professional.primaryJobRole", "Primary Job Role")}
+            placeholder={t(
+              "professional.jobRolePlaceholder",
+              "Type or select your job role"
+            )}
+            value={formData.primaryJobRole}
+            onChange={(e) =>
+              handleChange("primaryJobRole", e.target.value)
+            }
+            list="job-role-suggestions"
+            required
+          />
 
-            <datalist id="job-role-suggestions">
-              {jobRoleOptions.map((role) => (
-                <option key={role} value={role} />
-              ))}
-            </datalist>
-          </div>
+          <datalist id="job-role-suggestions">
+            {jobRoleOptions.map((role) => (
+              <option key={role} value={role} />
+            ))}
+          </datalist>
 
           <Select
             disabled={!isEditing}
-            label="Skill Level"
+            label={t("professional.skillLevel.label", "Skill Level")}
             options={skillLevelOptions}
             value={formData.skillLevel}
             onChange={(value) => handleChange("skillLevel", value)}
@@ -247,17 +255,19 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
 
         {/* Secondary Skills */}
         <div className="mt-4">
-          <label className="block text-sm font-medium mb-2">Other Skills</label>
+          <label className="block text-sm font-medium mb-2">
+            {t("professional.otherSkills", "Other Skills")}
+          </label>
 
           <div className="flex gap-2 mb-3">
             <Input
               disabled={!isEditing}
               value={newSkill}
               onChange={(e) => setNewSkill(e.target.value)}
-              placeholder="Add a skill"
+              placeholder={t("professional.addSkill", "Add a skill")}
             />
             <Button type="button" onClick={handleAddSkill} variant="outline">
-              Add
+              {t("common.add", "Add")}
             </Button>
           </div>
 
@@ -286,12 +296,14 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
       <div className="border-t pt-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Icon name="Award" size={20} />
-          Experience Details
+          {t("professional.experienceDetails", "Experience Details")}
         </h3>
 
         <label className="block text-sm mb-2">
-          Years of Experience: {formData.yearsExperience}
+          {t("professional.yearsExperience", "Years of Experience")}:
+          {" "}{formData.yearsExperience}
         </label>
+
         <input
           type="range"
           min="0"
@@ -307,14 +319,14 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <Select
             disabled={!isEditing}
-            label="Shift Preference"
+            label={t("professional.shiftPreference", "Shift Preference")}
             options={shiftOptions}
             value={formData.shiftPreference}
             onChange={(v) => handleChange("shiftPreference", v)}
           />
           <Select
             disabled={!isEditing}
-            label="Work Type"
+            label={t("professional.workType.label", "Work Type")}
             options={workTypeOptions}
             value={formData.workType}
             onChange={(v) => handleChange("workType", v)}
@@ -324,7 +336,10 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
 
       {/* ================= AVAILABILITY ================= */}
       <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold mb-3">Availability</h3>
+        <h3 className="text-lg font-semibold mb-3">
+          {t("professional.availability", "Availability")}
+        </h3>
+
         <div className="grid grid-cols-7 gap-2">
           {daysOfWeek.map((day) => (
             <button
@@ -348,17 +363,17 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
       <div className="border-t pt-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Icon name="IndianRupee" size={20} />
-          Wage Information
+          {t("professional.wageInfo", "Wage Information")}
         </h3>
 
         <div className="grid grid-cols-2 gap-4">
           <Select
             disabled={!isEditing}
-            label="Wage Type"
+            label={t("professional.wageType", "Wage Type")}
             options={[
-              { value: "daily", label: "Daily" },
-              { value: "hourly", label: "Hourly" },
-              { value: "monthly", label: "Monthly" },
+              { value: "daily", label: t("wage.daily", "Daily") },
+              { value: "hourly", label: t("wage.hourly", "Hourly") },
+              { value: "monthly", label: t("wage.monthly", "Monthly") },
             ]}
             value={formData.wageType}
             onChange={(v) => handleChange("wageType", v)}
@@ -366,19 +381,23 @@ const ProfessionalInfoTab = ({ data, onSave }) => {
 
           <Input
             disabled={!isEditing}
-            label="Wage Amount"
+            label={t("professional.wageAmount", "Wage Amount")}
             type="number"
             value={formData.wageAmount}
-            onChange={(e) => handleChange("wageAmount", Number(e.target.value))}
+            onChange={(e) =>
+              handleChange("wageAmount", Number(e.target.value))
+            }
           />
         </div>
 
         <div className="mt-3">
           <Checkbox
             disabled={!isEditing}
-            label="Wage is negotiable"
+            label={t("professional.wageNegotiable", "Wage is negotiable")}
             checked={formData.wageNegotiable}
-            onChange={(e) => handleChange("wageNegotiable", e.target.checked)}
+            onChange={(e) =>
+              handleChange("wageNegotiable", e.target.checked)
+            }
           />
         </div>
       </div>

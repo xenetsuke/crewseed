@@ -2,9 +2,11 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
+import { useTranslation } from 'react-i18next';
 
 const ProfileCompletionCard = ({ completionPercentage = 0, missingFields = [] }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const getCompletionColor = () => {
     if (completionPercentage >= 80) return 'var(--color-success)';
@@ -16,11 +18,14 @@ const ProfileCompletionCard = ({ completionPercentage = 0, missingFields = [] })
     <div className="card p-6 bg-gradient-to-br from-primary/5 to-accent/5">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold mb-1">Profile Completion</h3>
+          <h3 className="text-lg font-semibold mb-1">
+            {t('profileCompletion.title')}
+          </h3>
           <p className="text-sm text-muted-foreground">
-            Complete your profile to get better matches
+            {t('profileCompletion.subtitle')}
           </p>
         </div>
+
         <div className="w-16 h-16 rounded-full flex items-center justify-center bg-background border-4 border-border relative">
           <svg className="absolute inset-0 w-full h-full -rotate-90">
             <circle
@@ -47,19 +52,30 @@ const ProfileCompletionCard = ({ completionPercentage = 0, missingFields = [] })
           </span>
         </div>
       </div>
+
       {missingFields?.length > 0 && (
         <div className="space-y-2 mb-4">
-          <p className="text-sm font-medium">Missing Information:</p>
+          <p className="text-sm font-medium">
+            {t('profileCompletion.missing')}
+          </p>
           <ul className="space-y-1">
             {missingFields?.slice(0, 3)?.map((field, index) => (
-              <li key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Icon name="AlertCircle" size={14} color="var(--color-warning)" />
+              <li
+                key={index}
+                className="flex items-center gap-2 text-sm text-muted-foreground"
+              >
+                <Icon
+                  name="AlertCircle"
+                  size={14}
+                  color="var(--color-warning)"
+                />
                 {field}
               </li>
             ))}
           </ul>
         </div>
       )}
+
       <Button
         variant="default"
         size="sm"
@@ -68,7 +84,7 @@ const ProfileCompletionCard = ({ completionPercentage = 0, missingFields = [] })
         iconPosition="right"
         onClick={() => navigate('/worker-profile')}
       >
-        Complete Profile
+        {t('profileCompletion.cta')}
       </Button>
     </div>
   );

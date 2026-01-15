@@ -104,9 +104,9 @@ const Routes = () => {
           <Route
             path="/worker-job-list"
             element={
-              <ProtectedRoute allowedRoles={["APPLICANT"]}>
+              <PublicRoute>
                 <WorkerJobList />
-              </ProtectedRoute>
+              </PublicRoute>
             }
           />
 
@@ -134,7 +134,7 @@ const Routes = () => {
               <ProtectedRoute allowedRoles={["APPLICANT"]}>
                 <WorkerProfile />
               </ProtectedRoute>
-            }
+            }  
           />
 
        
@@ -156,7 +156,7 @@ const Routes = () => {
             }
           />
 
-          {/* =========================
+          {/* ======= ==================
               Employer Routes
           ========================= */}
           <Route
