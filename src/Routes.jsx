@@ -207,9 +207,9 @@ const Routes = () => {
           <Route
             path="/find-workers"
             element={
-              <ProtectedRoute allowedRoles={["EMPLOYER"]}>
+              <PublicRoute>
                 <FindWorkers />
-              </ProtectedRoute>
+              </PublicRoute>
             }
           />
 
