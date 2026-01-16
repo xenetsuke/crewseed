@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useQuery } from "@tanstack/react-query";
@@ -11,8 +11,8 @@ import Image from "../../components/AppImage";
 
 // Services
 import { getAllJobs } from "../../Services/JobService";
-import { updateProfile, getProfile } from "../../Services/ProfileService";
-import { changeProfile, setProfile } from "../../features/ProfileSlice";
+import { getProfile, updateProfile } from "../../Services/ProfileService";
+import { setProfile, changeProfile } from "../../features/ProfileSlice";
 
 const WorkerAssignments = () => {
   const navigate = useNavigate();
@@ -22,12 +22,10 @@ const WorkerAssignments = () => {
   const profile = useSelector((state) => state.profile);
   const user = useSelector((state) => state.user);
 
+  const hasFetchedProfile = useRef(false);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState("active");
-
-  const [activeAssignments, setActiveAssignments] = useState([]);
-  const [completedAssignments, setCompletedAssignments] = useState([]);
-  const [savedJobs, setSavedJobs] = useState([]);
 
   /* ================= REACT QUERY ================= */
   const { data: allJobs = [], isLoading } = useQuery({
@@ -37,65 +35,32 @@ const WorkerAssignments = () => {
     refetchOnWindowFocus: false,
   });
 
-  /* ================= DATA PROCESSING ================= */
+  /* ================= PROFILE FETCH (SAFE, ONCE) ================= */
   useEffect(() => {
-    if (!user?.id || !allJobs) return;
+    if (!user?.id) return;
+    if (profile?.id) return;
+    if (hasFetchedProfile.current) return;
 
-    const appliedJobs = allJobs.filter((job) =>
-      job.applicants?.some((app) => app.applicantId === user.id)
-    );
+    hasFetchedProfile.current = true;
 
-    const appliedIds = new Set(appliedJobs.map((j) => j.id));
-
-    const active = appliedJobs
-      .filter((job) => {
-        const myApp = job.applicants?.find(
-          (a) => a.applicantId === user.id
-        );
-        return ["APPLIED", "UNDER_REVIEW", "INTERVIEWING"].includes(
-          myApp?.applicationStatus
-        );
-      })
-      .map((job) => formatJobData(job, user.id));
-
-    const completed = appliedJobs
-      .filter((job) => {
-        const myApp = job.applicants?.find(
-          (a) => a.applicantId === user.id
-        );
-        return ["SELECTED", "REJECTED", "JOINED", "NO_SHOW"].includes(
-          myApp?.applicationStatus
-        );
-      })
-      .map((job) => formatJobData(job, user.id));
-
-    if (profile?.savedJobs) {
-      const saved = allJobs
-        .filter(
-          (job) =>
-            profile.savedJobs.includes(job.id) && !appliedIds.has(job.id)
-        )
-        .map((job) => formatJobData(job, user.id));
-      setSavedJobs(saved);
-    }
-
-    setActiveAssignments(active);
-    setCompletedAssignments(completed);
-  }, [allJobs, user?.id, profile?.savedJobs]);
-
-  /* ================= PROFILE SYNC ================= */
-  useEffect(() => {
     const fetchProfile = async () => {
-      if (user?.id && !profile?.id) {
+      try {
         const p = await getProfile(user.id);
         dispatch(setProfile(p));
+      } catch (e) {
+        console.error("Profile fetch failed", e);
       }
     };
-    fetchProfile();
-  }, [user?.id, profile?.id, dispatch]);
 
+    fetchProfile();
+  }, [user?.id, dispatch]);
+
+  /* ================= FORMATTER ================= */
   const formatJobData = (job, userId) => {
-    const myApp = job.applicants?.find((a) => a.applicantId === userId);
+    const myApp = job.applicants?.find(
+      (a) => a.applicantId === userId
+    );
+
     return {
       ...job,
       title: job.jobTitle,
@@ -106,7 +71,8 @@ const WorkerAssignments = () => {
       location: job.fullWorkAddress,
       dailyWage: job.baseWageAmount,
       status: myApp?.applicationStatus || "SAVED",
-      duration: job.experienceLevel?.replace("_", " ") || t("common.na"),
+      duration:
+        job.experienceLevel?.replace("_", " ") || t("common.na"),
       benefits: {
         transport: job.transportProvided,
         food: job.foodProvided,
@@ -114,6 +80,61 @@ const WorkerAssignments = () => {
       },
     };
   };
+
+  /* ================= DERIVED DATA (NO STATE, NO LOOP) ================= */
+  const { activeAssignments, completedAssignments, savedJobs } = useMemo(() => {
+    if (!user?.id || !allJobs) {
+      return {
+        activeAssignments: [],
+        completedAssignments: [],
+        savedJobs: [],
+      };
+    }
+
+    const appliedJobs = allJobs.filter((job) =>
+      job.applicants?.some((app) => app.applicantId === user.id)
+    );
+
+    const appliedIds = new Set(appliedJobs.map((j) => j.id));
+
+    const activeAssignments = appliedJobs
+      .filter((job) => {
+        const myApp = job.applicants?.find(
+          (a) => a.applicantId === user.id
+        );
+        return ["APPLIED", "UNDER_REVIEW", "INTERVIEWING"].includes(
+          myApp?.applicationStatus
+        );
+      })
+      .map((job) => formatJobData(job, user.id));
+
+    const completedAssignments = appliedJobs
+      .filter((job) => {
+        const myApp = job.applicants?.find(
+          (a) => a.applicantId === user.id
+        );
+        return ["SELECTED", "REJECTED", "JOINED", "NO_SHOW"].includes(
+          myApp?.applicationStatus
+        );
+      })
+      .map((job) => formatJobData(job, user.id));
+
+    const savedJobs = profile?.savedJobs
+      ? allJobs
+          .filter(
+            (job) =>
+              profile.savedJobs.includes(job.id) &&
+              !appliedIds.has(job.id)
+          )
+          .map((job) => formatJobData(job, user.id))
+      : [];
+
+    return {
+      activeAssignments,
+      completedAssignments,
+      savedJobs,
+    };
+  }, [allJobs, user?.id, profile?.savedJobs]);
 
   const handleRemoveSavedJob = async (jobId) => {
     if (!profile?.id) return;
@@ -154,13 +175,15 @@ const WorkerAssignments = () => {
                   <Icon name="Trash2" size={18} />
                 </button>
               ) : (
-                <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md border
-                  ${job.status === 'SELECTED' || job.status === 'JOINED' 
-                    ? 'bg-green-50 text-green-700 border-green-200' 
-                    : 'bg-primary/5 text-primary border-primary/20'}`}
-                >
-                  {t(`assignmentStatus.${job.status}`, job.status)}
-                </span>
+             <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md border
+  ${job.status === 'SELECTED' || job.status === 'JOINED' 
+    ? 'bg-green-50 text-green-700 border-green-200' 
+    : job.status === 'REJECTED'
+      ? 'bg-red-50 text-red-700 border-red-200'
+      : 'bg-primary/5 text-primary border-primary/20'}`}
+>
+  {t(`assignmentStatus.${job.status}`, job.status)}
+</span>
               )}
             </div>
 

@@ -15,11 +15,15 @@ import JobApplicationModal from "../../components/JobApplicationModal";
 import ApplyNowButton from "../../components/ApplyNowButton";
 import WorkerSidebar from "../../components/navigation/WorkerSidebar";
 
+import { useQueryClient } from "@tanstack/react-query";
+
+
 const MobileJobDetails = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
   const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
 
   const profile = useSelector((state) => state.profile);
   const user = useSelector((state) => state.user);
@@ -29,7 +33,7 @@ const MobileJobDetails = () => {
   const [rawJobData, setRawJobData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
-  const [hasApplied, setHasApplied] = useState(false);
+  // const [hasApplied, setHasApplied] = useState(false);
 
   const searchParams = new URLSearchParams(location.search);
   const jobIdFromQuery = searchParams.get("id");
@@ -45,7 +49,9 @@ const MobileJobDetails = () => {
     const userApp = res.applicants?.find(
       (app) => String(app.applicantId) === String(user?.id)
     );
-    setHasApplied(!!(userApp || res.hasAppliedByUser || res.appliedStatus === "APPLIED"));
+    // setHasApplied(!!(userApp || res.hasAppliedByUser || res.appliedStatus === "APPLIED"));
+
+
 
     const employer = res.employer ? {
       id: res.employer.id,
@@ -111,6 +117,15 @@ const MobileJobDetails = () => {
       employer,
     };
   }, [rawJobData, i18n.language, t, user?.id]);
+
+  const hasApplied = useMemo(() => {
+  if (!rawJobData || !user?.id) return false;
+
+  return rawJobData.applicants?.some(
+    (app) => String(app.applicantId) === String(user.id)
+  );
+}, [rawJobData, user?.id]);
+
 
   const handleSaveJob = async () => {
     if (!profile?.id || !jobId) return;
@@ -193,6 +208,13 @@ const MobileJobDetails = () => {
       </div>
     </div>
   );
+
+const handleApplySuccess = () => {
+  queryClient.invalidateQueries(["allJobs"]); // 🔥 THIS IS THE KEY
+  setShowApplicationModal(false);
+};
+
+
 
   const workerProfile = {
     name: profile?.fullName || t("profile.fullName"),
@@ -385,16 +407,38 @@ const MobileJobDetails = () => {
         </div>
       </main>
 
-      <JobApplicationModal
-        isOpen={showApplicationModal}
-        onClose={() => setShowApplicationModal(false)}
-        jobData={jobData}
-        workerProfile={workerProfile}
-        onSubmit={() => {
-          setHasApplied(true);
-          setShowApplicationModal(false);
-        }}
-      />
+<JobApplicationModal
+  isOpen={showApplicationModal}
+  onClose={() => setShowApplicationModal(false)}
+  jobData={jobData}
+  workerProfile={workerProfile}
+  onSubmit={() => {
+    // 🔥 OPTIMISTIC UPDATE
+    queryClient.setQueryData(["allJobs"], (oldJobs = []) =>
+      oldJobs.map((job) =>
+        job.id === jobId
+          ? {
+              ...job,
+              applicants: [
+                ...(job.applicants || []),
+                {
+                  applicantId: user.id,
+                  applicationStatus: "APPLIED",
+                },
+              ],
+            }
+          : job
+      )
+    );
+
+    // 🔄 Background refetch (safety)
+    queryClient.invalidateQueries(["allJobs"]);
+
+    setShowApplicationModal(false);
+  }}
+/>
+
+
     </div>
   );
 };

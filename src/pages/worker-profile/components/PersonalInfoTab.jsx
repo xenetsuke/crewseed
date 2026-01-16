@@ -248,13 +248,40 @@ const PersonalInfoTab = ({ profile, onSave, onVerifyPhone }) => {
           {t("profile.section.addressInfo", "Address Information")}
         </h3>
 
-        <Input
-          disabled={!isEditing}
-          label={t("profile.currentAddress", "Current Address")}
-          value={formData.currentAddress}
-          onChange={(e) => handleChange("currentAddress", e.target.value)}
-          required
-        />
+        <div className="space-y-4">
+          <Input
+            disabled={!isEditing}
+            label={t("profile.currentAddress", "Current Address")}
+            value={formData.currentAddress}
+            onChange={(e) => handleChange("currentAddress", e.target.value)}
+            required
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              disabled={!isEditing}
+              label={t("profile.currentCity", "City")}
+              value={formData.currentCity}
+              onChange={(e) => handleChange("currentCity", e.target.value)}
+              required
+            />
+            <Select
+              disabled={!isEditing}
+              label={t("profile.currentState", "State")}
+              options={indianStates}
+              value={formData.currentState}
+              onChange={(value) => handleChange("currentState", value)}
+              required
+            />
+            <Input
+              disabled={!isEditing}
+              label={t("profile.pincode", "Pincode")}
+              value={formData.pincode}
+              onChange={(e) => handleChange("pincode", e.target.value)}
+              required
+            />
+          </div>
+        </div>
       </section>
     </form>
   );

@@ -110,19 +110,19 @@ function WorkerJobList() {
   /* =========================================================
       FETCH PROFILE (Watch IDs only)
   ========================================================= */
-  useEffect(() => {
-    const fetchProfileData = async () => {
-      try {
-        if (user?.id) {
-          const userProfile = await getProfile(user.id);
-          dispatch(setProfile(userProfile));
-        }
-      } catch (err) {
-        console.error("Failed to fetch profile:", err);
-      }
-    };
-    if (user?.id && !profile?.id) fetchProfileData();
-  }, [user?.id, profile?.id, dispatch]);
+  // useEffect(() => {
+  //   const fetchProfileData = async () => {
+  //     try {
+  //       if (user?.id) {
+  //         const userProfile = await getProfile(user.id);
+  //         dispatch(setProfile(userProfile));
+  //       }
+  //     } catch (err) {
+  //       console.error("Failed to fetch profile:", err);
+  //     }
+  //   };
+  //   if (user?.id && !profile?.id) fetchProfileData();
+  // }, [user?.id, profile?.id, dispatch]);
 
   /* =========================================================
       EVENT HANDLERS
@@ -350,14 +350,24 @@ function WorkerJobList() {
                           <Button variant="outline" fullWidth className="h-10 text-xs font-bold" onClick={(e) => { e.stopPropagation(); handleViewJobDetails(job.id); }}>
                             Details
                           </Button>
-                          <Button 
-                            variant="default" 
-                            fullWidth 
-                            className={`h-10 text-xs font-bold ${isApplied ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}
-                            disabled={isApplied}
-                          >
-                            {isApplied ? (appStatus === 'APPLIED' ? 'Applied' : appStatus.replace('_', ' ')) : "Apply Now"}
-                          </Button>
+                         <Button
+  variant="default"
+  fullWidth
+  className={`h-10 text-xs font-bold ${
+    isApplied
+      ? appStatus === "REJECTED"
+        ? "bg-red-600 hover:bg-red-700 text-white" 
+        : "bg-green-600 hover:bg-green-700 text-white"
+      : ""
+  }`}
+  disabled={isApplied}
+>
+  {isApplied
+    ? appStatus === "APPLIED"
+      ? "Applied"
+      : appStatus.replace("_", " ")
+    : "Apply Now"}
+</Button>
                         </div>
                       </div>
                     </div>
