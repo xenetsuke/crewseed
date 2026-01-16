@@ -77,34 +77,48 @@ const JobApplicationModal = ({ isOpen, onClose, jobData, onSubmit }) => {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
-    setIsSubmitting(true);
+ const handleSubmit = async () => {
+  if (!validateForm()) return;
+  setIsSubmitting(true);
 
-    try {
-      const applicantDTO = {
-        applicantId: user?.id,
-        name: formData.fullName || "",
-        email: formData.email || "",
-        phone: Number(formData.phone) || 0,
-        resume: "", 
-        coverLetter: formData.coverLetter || "",
-        timestamp: new Date().toISOString(),
-        applicationStatus: "APPLIED", // Changed to match typical backend status
-      };
+  try {
+    const applicantDTO = {
+      applicantId: user?.id,
+      name: formData.fullName || "",
+      email: formData.email || "",
+      phone: Number(formData.phone) || 0,
+      resume: "",
+      coverLetter: formData.coverLetter || "",
+      timestamp: new Date().toISOString(),
+      applicationStatus: "APPLIED",
+    };
 
-      await applyJob(applicantDTO, jobData?.id);
-      
-      if (onSubmit) onSubmit();
-      onClose();
-    } catch (err) {
-      console.error("❌ Submission Error:", err);
-      const msg = err?.response?.data?.errorMessage || "Failed to submit application";
-      setErrors({ submit: msg });
-    } finally {
-      setIsSubmitting(false);
+    await applyJob(applicantDTO, jobData?.id);
+
+    // 🔥 pass applied applicant back
+    if (onSubmit) {
+      onSubmit({
+        jobId: jobData?.id,
+        applicant: {
+          applicantId: user?.id,
+          applicationStatus: "APPLIED",
+        },
+      });
     }
-  };
+
+    onClose();
+  } catch (err) {
+    console.error("❌ Submission Error:", err);
+    const msg =
+      err?.response?.data?.errorMessage ||
+      err?.response?.data?.message ||
+      "Failed to submit application";
+    setErrors({ submit: msg });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   if (!isOpen) return null;
 

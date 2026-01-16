@@ -71,7 +71,6 @@ const SHOULD_SHOW_PRELOADER = (() => {
   }
 })();
 
-
 function App() {
   const [showPreloader, setShowPreloader] = useState(SHOULD_SHOW_PRELOADER);
 
@@ -105,7 +104,5 @@ function App() {
     </QueryClientProvider>
   );
 }
-
-
 
 export default App;

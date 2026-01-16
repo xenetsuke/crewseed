@@ -142,11 +142,19 @@ const WorkerProfile = () => {
   };
 
   /* ---------------- LOGOUT ---------------- */
-  const handleLogout = () => {
-    dispatch(removeUser());
-    dispatch(clearProfile());
-    localStorage.clear();
-    window.location.replace("/login");
+  const handleLogout = async () => {
+    try {
+      dispatch(removeUser());
+      dispatch(clearProfile());
+      dispatch(removeJwt());
+      await persistor.purge();
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.replace("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+      window.location.href = "/login";
+    }
   };
 
   /* ---------------- TABS ---------------- */

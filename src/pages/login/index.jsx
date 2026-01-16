@@ -41,6 +41,7 @@ import toast, { Toaster } from "react-hot-toast";
 
 // 🔹 JWT
 import jwtDecode from "jwt-decode";
+import { store } from "Store";
 
 const formatPhoneNumber = (number) => {
   const cleaned = number.replace(/\D/g, "");
@@ -58,7 +59,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-
+const PROFILE_CACHE_KEY = "profile_cache";
+const PROFILE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
   // Animation States
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSettling, setIsSettling] = useState(false);
@@ -113,58 +115,145 @@ const Login = () => {
     }
   }, [cooldown]);
 
-  const handlePostLogin = async (token) => {
-    setShowPostLoginLoader(true);
-    try {
-      await new Promise((r) => requestAnimationFrame(r));
+const handlePostLogin = async (token) => {
+  setShowPostLoginLoader(true);
 
-      const decoded = jwtDecode(token);
-      toast.dismiss();
+  try {
+    // ⏳ Allow browser to settle (important after idle)
+    await new Promise((r) => requestAnimationFrame(r));
 
-      const isWorkerPage = userRole === "worker";
-      const isApplicantAccount = decoded.accountType === "APPLICANT";
+    const decoded = jwtDecode(token);
+    toast.dismiss();
 
-      if ((isWorkerPage && !isApplicantAccount) || (!isWorkerPage && isApplicantAccount)) {
-        dispatch(removeJwt());
-        localStorage.removeItem("token");
-        
-        // ✅ CLOSE BOTH LOADERS ON ERROR NOTIFICATION
-        setShowPostLoginLoader(false);
-        setLoading(false);
+    const isWorkerPage = userRole === "worker";
+    const isApplicantAccount = decoded.accountType === "APPLICANT";
 
-        toast.error(
-          `This account is registered as an ${isApplicantAccount ? "Worker" : "Employer"}. Please switch roles.`,
-          { icon: <ShieldAlert className="text-red-500" /> }
-        );
-        return;
-      }
+    /* ======================================================
+       🔐 ROLE MISMATCH CHECK (CRITICAL)
+    ====================================================== */
+    if (
+      (isWorkerPage && !isApplicantAccount) ||
+      (!isWorkerPage && isApplicantAccount)
+    ) {
+      dispatch(removeJwt());
+      localStorage.removeItem("token");
+      localStorage.removeItem(PROFILE_CACHE_KEY);
 
-      localStorage.setItem("token", token);
-      dispatch(setJwt(token));
-      dispatch(setUser(decoded));
-
-      let destination;
-
-      if (!decoded.profileId) {
-        destination = isApplicantAccount ? "/worker-profile-setup" : "/company-onboarding";
-      } else {
-        try {
-          const profile = await getProfile(decoded.profileId);
-          dispatch(setProfile(profile));
-          destination = !profile.completed
-            ? (isApplicantAccount ? "/worker-profile-setup" : "/company-onboarding")
-            : (isApplicantAccount ? "/worker-profile" : "/employer-dashboard");
-        } catch {
-          destination = isApplicantAccount ? "/worker-profile" : "/employer-dashboard";
-        }
-      }
-
-      navigate(destination);
-    } catch (err) {
       setShowPostLoginLoader(false);
       setLoading(false);
+
+      toast.error(
+        `This account is registered as an ${
+          isApplicantAccount ? "Worker" : "Employer"
+        }. Please switch roles.`,
+        { icon: <ShieldAlert className="text-red-500" /> }
+      );
+      return;
     }
-  };
+
+    /* ======================================================
+       ✅ SAVE AUTH STATE
+    ====================================================== */
+    localStorage.setItem("token", token);
+    dispatch(setJwt(token));
+    dispatch(setUser(decoded));
+
+    /* ======================================================
+       🚀 FAST PATH — REDUX PERSIST
+    ====================================================== */
+    const state = store.getState();
+    const reduxProfile = state.profile;
+
+    if (
+      reduxProfile?.id === decoded.profileId &&
+      reduxProfile?.completed === true
+    ) {
+      navigate(
+        isApplicantAccount ? "/worker-profile" : "/employer-dashboard"
+      );
+      return;
+    }
+
+    /* ======================================================
+       🚀 FAST PATH — LOCALSTORAGE CACHE
+    ====================================================== */
+    const cached = localStorage.getItem(PROFILE_CACHE_KEY);
+
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      const isExpired =
+        Date.now() - parsed.cachedAt > PROFILE_CACHE_TTL;
+
+      if (
+        !isExpired &&
+        parsed.id === decoded.profileId &&
+        parsed.completed === true
+      ) {
+        dispatch(setProfile(parsed));
+
+        navigate(
+          isApplicantAccount ? "/worker-profile" : "/employer-dashboard"
+        );
+
+        // 🔄 Background refresh (NON-BLOCKING)
+        setTimeout(async () => {
+          try {
+            const fresh = await getProfile(decoded.profileId);
+            dispatch(setProfile(fresh));
+            localStorage.setItem(
+              PROFILE_CACHE_KEY,
+              JSON.stringify({ ...fresh, cachedAt: Date.now() })
+            );
+          } catch (e) {
+            console.warn("⚠️ Background profile refresh failed");
+          }
+        }, 1500);
+
+        return;
+      }
+    }
+
+    /* ======================================================
+       🟡 NO PROFILE YET → ONBOARDING
+    ====================================================== */
+    if (!decoded.profileId) {
+      navigate(
+        isApplicantAccount
+          ? "/worker-profile-setup"
+          : "/company-onboarding"
+      );
+      return;
+    }
+
+    /* ======================================================
+       🐢 API FALLBACK (ONLY WHEN REQUIRED)
+    ====================================================== */
+    const profile = await getProfile(decoded.profileId);
+
+    dispatch(setProfile(profile));
+
+    localStorage.setItem(
+      PROFILE_CACHE_KEY,
+      JSON.stringify({ ...profile, cachedAt: Date.now() })
+    );
+
+    navigate(
+      profile.completed
+        ? isApplicantAccount
+          ? "/worker-profile"
+          : "/employer-dashboard"
+        : isApplicantAccount
+        ? "/worker-profile-setup"
+        : "/company-onboarding"
+    );
+
+  } catch (err) {
+    console.error("❌ Post-login failed", err);
+    setShowPostLoginLoader(false);
+    setLoading(false);
+  }
+};
+
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -284,7 +373,7 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 py-8 overflow-hidden relative">
       <Toaster position="top-center" containerStyle={{ zIndex: 99999 }} />
       
-      {(loading || showPostLoginLoader) && <Preloader />}
+{loading && <Preloader />}
 
       <style>
         {`
