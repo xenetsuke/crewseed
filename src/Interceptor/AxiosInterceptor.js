@@ -38,8 +38,9 @@ axiosInstance.interceptors.request.use(
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log("🔐 JWT attached");
-    }
+if (import.meta.env.DEV) {
+  console.log("🔐 AUTH HEADER ATTACHED");
+}    }
 
     console.log("🚀 Final API Request:", {
       method: config.method?.toUpperCase(),
