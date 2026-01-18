@@ -40,7 +40,12 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
 if (import.meta.env.DEV) {
   console.log("🔐 AUTH HEADER ATTACHED");
-}    }
+}   
+    
+     if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    }
+    }
 
     console.log("🚀 Final API Request:", {
       method: config.method?.toUpperCase(),
