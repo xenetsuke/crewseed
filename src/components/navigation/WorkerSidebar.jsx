@@ -6,17 +6,23 @@ import { useTranslation } from "react-i18next";
 import Icon from "../AppIcon";
 
 const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
-  const { t } = useTranslation(); // ✅ CONNECT TO i18n
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [jwtUser, setJwtUser] = useState(null);
+
+  // 🔔 Pending attendance / assignment actions (later from API)
+  const pendingAssignmentsCount = 1;
 
   const user = useSelector((state) => state.user);
   const workerProfile = useSelector((state) => state?.profile);
   const token = useSelector((state) => state?.jwt);
 
-  const [jwtUser, setJwtUser] = useState(null);
-
+  /* =========================
+      Decode JWT
+  ========================= */
   useEffect(() => {
     const storedToken = token || localStorage.getItem("token");
     if (storedToken) {
@@ -42,7 +48,7 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   };
 
   /* =========================
-      TRANSLATED NAV ITEMS ✅
+      Navigation Items
   ========================= */
   const navigationItems = [
     {
@@ -60,6 +66,15 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
       path: "/worker-assignments",
       icon: "ClipboardList",
     },
+
+    // ✅ NEW — Assignment Details
+    {
+      label: t("sidebar.assignmentDetails"),
+      path: "/assignment-details",
+      icon: "ClipboardCheck",
+      badge: pendingAssignmentsCount,
+    },
+
     {
       label: t("sidebar.profile"),
       path: "/worker-profile",
@@ -73,7 +88,7 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   };
 
   /* =========================
-      Display Data
+      Display Info
   ========================= */
   const displayName =
     workerProfile?.fullName ||
@@ -157,6 +172,13 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
               <span className="sidebar-nav-item-text">
                 {item.label}
               </span>
+
+              {/* 🔔 Badge */}
+              {!isCollapsed && item.badge > 0 && (
+                <span className="ml-auto bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {item.badge}
+                </span>
+              )}
             </div>
           ))}
         </nav>

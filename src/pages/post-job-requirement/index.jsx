@@ -45,6 +45,7 @@ const PostJobRequirement = () => {
   const [formData, setFormData] = useState({
     jobTitle: "",
     jobRole: "",
+    companyName:"",
     category: "", // Must be one of VALID_CATEGORIES
     employmentType: "",
     location: "",
@@ -131,6 +132,8 @@ useEffect(() => {
           id: jobId,
           jobTitle: res.jobTitle ?? "",
           jobRole: res.jobRole ?? "",
+              companyName:res.companyName ?? "",
+
           
           category: VALID_CATEGORIES.includes(res.industryCategory)
             ? res.industryCategory
@@ -218,6 +221,8 @@ const buildJobDtoPayload = (status) => {
       jobStatus: status,
       jobTitle: formData.jobTitle || "",
       jobRole: formData.jobRole || "",
+                    companyName:formData.companyName ?? "",
+
       jobDescription: formData.description || "",
       industryCategory: VALID_CATEGORIES.includes(formData.category?.toUpperCase())
         ? formData.category.toUpperCase()

@@ -288,6 +288,7 @@
     "assignments": "My Assignments",
     "profile": "Profile",
     "worker": "Worker",
-    "viewProfile": "View Profile"
+    "viewProfile": "View Profile",
+    "assignmentDetails": "Assignment Details"
   }
 }
