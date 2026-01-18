@@ -132,7 +132,7 @@ const WorkerAttendanceHR = () => {
       backendJobId: job.id,
       jobTitle: job.jobTitle,
       location: job.locationName || "Site",
-      managerName: job.managerName?.companyName || "Bobis",
+      managerName: job.managerName,
       workers: expandedJobId === job.id && attendanceByJob?.length ? buildWorkers(attendanceByJob) : [],
     }));
   }, [jobsFromApi, attendanceByJob, expandedJobId]);
