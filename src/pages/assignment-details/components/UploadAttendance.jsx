@@ -3,9 +3,12 @@ import { Camera, CheckCircle2, Upload } from "lucide-react";
 
 const UploadAttendance = ({ status, onUpload }) => {
   const [uploading, setUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+
   const fileInputRef = useRef(null);
 
-  const canUpload = status === "NOT_STARTED";
+  // Allow upload only if not started AND not already uploaded locally
+  const canUpload = status === "NOT_STARTED" && !uploadSuccess;
 
   const handleFileSelect = async (event) => {
     const file = event.target.files?.[0];
@@ -13,19 +16,27 @@ const UploadAttendance = ({ status, onUpload }) => {
 
     setUploading(true);
 
-    // 📍 Capture GPS (optional but logged)
+    // 📍 Capture GPS (optional)
     navigator.geolocation.getCurrentPosition(
-      pos => {
+      (pos) => {
         console.log("GPS:", pos.coords.latitude, pos.coords.longitude);
       },
-      err => console.warn("GPS denied")
+      () => console.warn("GPS denied")
     );
 
     // 🕒 Capture Date & Time
     const checkInTime = new Date().toISOString();
 
-    await onUpload(file, checkInTime);
-    setUploading(false);
+    try {
+      await onUpload(file, checkInTime);
+
+      // ✅ IMMEDIATE UI SUCCESS
+      setUploadSuccess(true);
+    } catch (error) {
+      console.error("Upload failed:", error);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -35,7 +46,7 @@ const UploadAttendance = ({ status, onUpload }) => {
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"   // 📷 opens camera on mobile
+        capture="environment"
         hidden
         onChange={handleFileSelect}
       />
@@ -45,15 +56,17 @@ const UploadAttendance = ({ status, onUpload }) => {
         onClick={() => fileInputRef.current.click()}
         className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black transition
           ${
-            !canUpload
+            uploadSuccess
+              ? "bg-emerald-600 text-white"
+              : !canUpload
               ? "bg-slate-200 text-slate-500 cursor-not-allowed"
               : "bg-indigo-600 text-white hover:bg-indigo-700"
           }`}
       >
-        {!canUpload ? (
+        {uploadSuccess ? (
           <>
             <CheckCircle2 className="w-5 h-5" />
-            Attendance Submitted
+            Uploaded Successfully
           </>
         ) : uploading ? (
           <>
