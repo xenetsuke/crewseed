@@ -36,7 +36,7 @@ const AssignmentDetails = () => {
               location: snapshot.location || "Location Unavailable",
               shift: snapshot.shift || "Shift Unavailable",
               companyName: snapshot.companyName || "Company",
-              managerName: snapshot.managerName || "Manager",
+              managerName: snapshot.managerName || "Manage",
               role: a.hrSnapshot?.workerRole || "Worker",
               dailyWage: a.hrSnapshot?.dailyWage || 0,
               supervisor: "Site Supervisor",
@@ -44,24 +44,29 @@ const AssignmentDetails = () => {
             };
           }
 
-          map[a.assignmentId].attendance.push({
-            attendanceId: a.id,
-            date: a.attendanceDate,
-            status: a.status,
-            checkIn: a.checkInTime
-              ? new Date(a.checkInTime).toLocaleTimeString("en-IN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : null,
-            checkOut: a.checkOutTime
-              ? new Date(a.checkOutTime).toLocaleTimeString("en-IN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : null,
-            siteVerified: a.sitePhotoUploaded,
-          });
+       map[a.assignmentId].attendance.push({
+  attendanceId: a.id,
+  date: a.attendanceDate,
+  status: a.status,
+  checkIn: a.checkInTime
+    ? new Date(a.checkInTime).toLocaleTimeString("en-IN", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      })
+    : null,
+  checkOut: a.checkOutTime
+    ? new Date(a.checkOutTime).toLocaleTimeString("en-IN", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      })
+    : null,
+  siteVerified: a.sitePhotoUploaded,
+});
+
         });
 
         setAssignments(Object.values(map));
@@ -173,7 +178,6 @@ const AssignmentDetails = () => {
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
                           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
                             <Briefcase className="w-3 h-3" /> {assignment.companyName}
-                            <Briefcase className="w-3 h-3" /> {assignment.managerName}
                           </span>
                           <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-slate-200" />
                           <div className="flex items-center gap-1.5 text-slate-500">

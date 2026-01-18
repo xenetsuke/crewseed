@@ -17,24 +17,15 @@ const TodayAttendanceCard = ({ assignment }) => {
     todayRecord?.sitePhoto || null
   );
 
-  const handleUpload = async (file) => {
-    if (!todayRecord?.attendanceId) {
-      console.error("❌ Attendance ID missing — attendance not created yet");
-      return;
-    }
+const handleUpload = async (file) => {
+  const formData = new FormData();
+  formData.append("photo", file, "attendance.jpg"); // 👈 FIX
 
-    try {
-      const formData = new FormData();
-      formData.append("photo", file);
+  await uploadSitePhoto(todayRecord.attendanceId, formData);
 
-      await uploadSitePhoto(todayRecord.attendanceId, formData);
+  setPreviewUrl(URL.createObjectURL(file));
+};
 
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-    } catch (error) {
-      console.error("❌ Failed to upload photo", error);
-    }
-  };
 
   /* ================= EMPTY STATE ================= */
   if (!todayRecord) {
