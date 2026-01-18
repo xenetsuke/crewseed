@@ -120,6 +120,19 @@ const JobBasicDetails = ({ formData, onChange, errors }) => {
             description="Be specific and clear about the position"
           />
         </div>
+      {/* Company Name */}
+<div className="md:col-span-2">
+  <Input
+    label="Company Name"
+    type="text"
+    placeholder="Write Your Company Name"
+    value={formData?.companyName}
+    onChange={(e) => onChange("companyName", e?.target?.value)}
+    error={errors?.companyName}
+    required
+    description="Enter the legal name of your business or organization"
+  />
+</div>
 
         {/* Job Role */}
         <Select

@@ -17,7 +17,7 @@ import WorkerDashboard from "./pages/worker-dashboard";
 import WorkerMobileDashboard from "./pages/worker-mobile-dashboard";
 import WorkerJobList from "./pages/worker-job-list";
 import WorkerAssignments from "./pages/worker-assignments";
-import WorkerAssignmentTracking from "./pages/worker-assignment-tracking";
+// import WorkerAssignmentTracking from "./pages/worker-assignment-tracking";
 import WorkerProfile from "./pages/worker-profile";
 import WorkerProfileSetup from "./pages/worker-profile-setup";
 import MobileJobDetails from "./pages/mobile-job-details";
@@ -52,6 +52,10 @@ const Routes = () => {
               </PublicRoute>
             }
           />
+<Route
+  path="/assignment-details"
+  element={<AssignmentDetails />}
+/>
 
           <Route
             path="/login"
@@ -119,14 +123,14 @@ const Routes = () => {
             }
           />
 
-          <Route
+          {/* <Route
             path="/worker-assignment-tracking"
             element={
               <ProtectedRoute allowedRoles={["APPLICANT"]}>
                 <WorkerAssignmentTracking />
               </ProtectedRoute>
             }
-          />
+          /> */}
 
           <Route
             path="/worker-profile"

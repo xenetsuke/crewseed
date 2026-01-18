@@ -63,14 +63,12 @@ const getHistory = async (id, status) => {
 /* =========================
    Jobs Posted By Employer
 ========================= */
-const getJobsPostedBy = async (id) => {
+const getJobsPostedBy = async () => {
   return axiosInstance
-    .get(`/jobs/company/${id}`)
-    .then((result) => result.data)
-    .catch((error) => {
-      throw error;
-    });
+    .get(`/jobs/company`)
+    .then(res => res.data);
 };
+
 
 /* =========================
    🔥 Jobs By Company (NEW)

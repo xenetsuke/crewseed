@@ -102,7 +102,7 @@ const WorkerProfile = () => {
       window.confirmationResult = await linkWithPhoneNumber(
         auth.currentUser,
         "+91" + phone,
-        recaptcha
+        recaptcha,
       );
       setPendingPhone(phone);
       setIsOtpModalOpen(true);
@@ -128,7 +128,7 @@ const WorkerProfile = () => {
 
       await handleSaveToDB({
         ...backendProfile,
-        primaryPhone: verifiedNumber.replace("+91", "")
+        primaryPhone: verifiedNumber.replace("+91", ""),
       });
 
       toast.success(t("otp.verified"));
@@ -162,7 +162,7 @@ const WorkerProfile = () => {
     { id: "personal", label: t("profile.tabs.personal") },
     { id: "professional", label: t("profile.tabs.professional") },
     { id: "documents", label: t("profile.tabs.documents") },
-    { id: "workHistory", label: t("profile.tabs.workHistory") }
+    { id: "workHistory", label: t("profile.tabs.workHistory") },
   ];
 
   return (
@@ -174,25 +174,26 @@ const WorkerProfile = () => {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      <main className={`main-content ${sidebarCollapsed ? "sidebar-collapsed" : ""} p-4 md:p-6`}>
+      <main
+        className={`main-content ${sidebarCollapsed ? "sidebar-collapsed" : ""} p-4 md:p-6`}
+      >
         <ProfileHeader profile={backendProfile} onSave={handleSaveToDB} />
 
         {/* ACTION BAR */}
         <div className="flex justify-end gap-3 mb-4">
-       <Button
-  variant="outline"
-  onClick={handleLanguageChange}
-  iconName="Languages"
-  className="flex items-center gap-2 px-4 py-2 font-medium rounded-md
+          <Button
+            variant="outline"
+            onClick={handleLanguageChange}
+            iconName="Languages"
+            className="flex items-center gap-2 px-4 py-2 font-medium rounded-md
              hover:bg-primary/10 hover:text-primary transition"
->
-  {i18n.language === "en"
-    ? "Switch to हिंदी"
-    : i18n.language === "hi"
-    ? "Switch to Hinglish"
-    : "Switch to English"}
-</Button>
-
+          >
+            {i18n.language === "en"
+              ? "Switch to हिंदी"
+              : i18n.language === "hi"
+                ? "Switch to Hinglish"
+                : "Switch to English"}
+          </Button>
 
           <Button
             variant="outline"
@@ -230,10 +231,16 @@ const WorkerProfile = () => {
             />
           )}
           {activeTab === "professional" && (
-            <ProfessionalInfoTab data={backendProfile} onSave={handleSaveToDB} />
+            <ProfessionalInfoTab
+              data={backendProfile}
+              onSave={handleSaveToDB}
+            />
           )}
           {activeTab === "documents" && (
-            <DocumentsVerificationTab documents={backendProfile} onSave={handleSaveToDB} />
+            <DocumentsVerificationTab
+              documents={backendProfile}
+              onSave={handleSaveToDB}
+            />
           )}
           {activeTab === "workHistory" && (
             <WorkHistoryTab data={backendProfile} onSave={handleSaveToDB} />
@@ -247,14 +254,18 @@ const WorkerProfile = () => {
               <h3 className="text-lg font-bold mb-4">
                 {t("logout.confirmTitle")}
               </h3>
-              <p className="mb-6">
-                {t("logout.confirmMessage")}
-              </p>
+              <p className="mb-6">{t("logout.confirmMessage")}</p>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setShowLogoutConfirm(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowLogoutConfirm(false)}
+                >
                   {t("common.cancel")}
                 </Button>
-                <Button className="bg-red-600 text-white" onClick={handleLogout}>
+                <Button
+                  className="bg-red-600 text-white"
+                  onClick={handleLogout}
+                >
                   {t("logout.button")}
                 </Button>
               </div>
