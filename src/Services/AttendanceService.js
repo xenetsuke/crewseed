@@ -14,9 +14,7 @@ export const uploadSitePhoto = (attendanceId, formData) =>
   axiosInstance.post(
     `/attendance/upload-photo/${attendanceId}`,
     formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    }
+  
   );
 
 export const resetAttendance = (attendanceId) =>
