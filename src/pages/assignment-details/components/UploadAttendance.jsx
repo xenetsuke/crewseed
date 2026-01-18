@@ -1,39 +1,82 @@
 import React, { useRef, useState } from "react";
 import { Camera, CheckCircle2, Upload } from "lucide-react";
+import heic2any from "heic2any";
 
+/**
+ * UploadAttendance
+ * - Converts HEIC → JPEG automatically (iPhone safe)
+ * - Allows upload only when status === NOT_STARTED
+ * - Shows immediate success UI
+ */
 const UploadAttendance = ({ status, onUpload }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const fileInputRef = useRef(null);
 
-  // Allow upload only if not started AND not already uploaded locally
+  // Allow upload only if attendance not started & not already uploaded
   const canUpload = status === "NOT_STARTED" && !uploadSuccess;
 
+  /* =========================
+     HEIC → JPEG CONVERSION
+  ========================= */
+  const convertIfHeic = async (file) => {
+    const isHeic =
+      file.type === "image/heic" ||
+      file.type === "image/heif" ||
+      file.name.toLowerCase().endsWith(".heic") ||
+      file.name.toLowerCase().endsWith(".heif");
+
+    if (!isHeic) return file;
+
+    try {
+      const jpegBlob = await heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: 0.9,
+      });
+
+      return new File([jpegBlob], "attendance.jpg", {
+        type: "image/jpeg",
+        lastModified: Date.now(),
+      });
+    } catch (err) {
+      console.error("❌ HEIC conversion failed", err);
+      throw new Error("HEIC_CONVERSION_FAILED");
+    }
+  };
+
+  /* =========================
+     FILE PICK HANDLER
+  ========================= */
   const handleFileSelect = async (event) => {
-    const file = event.target.files?.[0];
+    let file = event.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
 
-    // 📍 Capture GPS (optional)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        console.log("GPS:", pos.coords.latitude, pos.coords.longitude);
-      },
-      () => console.warn("GPS denied")
-    );
-
-    // 🕒 Capture Date & Time
-    const checkInTime = new Date().toISOString();
+    // 📍 Optional GPS capture (non-blocking)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          console.log("📍 GPS:", pos.coords.latitude, pos.coords.longitude);
+        },
+        () => console.warn("⚠️ GPS denied")
+      );
+    }
 
     try {
-      await onUpload(file, checkInTime);
+      // 🔥 Convert HEIC → JPEG if needed
+      file = await convertIfHeic(file);
 
-      // ✅ IMMEDIATE UI SUCCESS
+      // 🚀 Upload to backend
+      await onUpload(file);
+
+      // ✅ Instant UI feedback
       setUploadSuccess(true);
     } catch (error) {
-      console.error("Upload failed:", error);
+      console.error("❌ Upload failed", error);
+      alert("Photo upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
@@ -41,7 +84,7 @@ const UploadAttendance = ({ status, onUpload }) => {
 
   return (
     <>
-      {/* Hidden File Picker */}
+      {/* Hidden File Input */}
       <input
         ref={fileInputRef}
         type="file"
