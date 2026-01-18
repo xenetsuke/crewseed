@@ -36,6 +36,7 @@ const AssignmentDetails = () => {
               location: snapshot.location || "Location Unavailable",
               shift: snapshot.shift || "Shift Unavailable",
               companyName: snapshot.companyName || "Company",
+              managerName: snapshot.managerName || "Manager",
               role: a.hrSnapshot?.workerRole || "Worker",
               dailyWage: a.hrSnapshot?.dailyWage || 0,
               supervisor: "Site Supervisor",
@@ -172,6 +173,7 @@ const AssignmentDetails = () => {
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
                           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
                             <Briefcase className="w-3 h-3" /> {assignment.companyName}
+                            <Briefcase className="w-3 h-3" /> {assignment.managerName}
                           </span>
                           <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-slate-200" />
                           <div className="flex items-center gap-1.5 text-slate-500">
