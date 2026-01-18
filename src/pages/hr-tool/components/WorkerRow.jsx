@@ -13,7 +13,7 @@ const WorkerRow = ({ worker, viewMonth, viewYear, viewDay }) => {
     workerId: worker.workerId,
     name: worker.name,
     role: worker.role,
-    avatar: worker.picture || "https://i.pravatar.cc/150?img=3",
+    // avatar: worker.picture || "Avatar.png",
     dailyWage: worker.dailyWage || 0,
     attendance: attendanceRecords,
     pfApplicable: worker.pfApplicable,
@@ -95,7 +95,7 @@ const WorkerRow = ({ worker, viewMonth, viewYear, viewDay }) => {
       <div className="p-4">
         {/* HEADER */}
         <div className="flex items-center gap-3 mb-4">
-          <img src={safeWorker.avatar} className="w-10 h-10 rounded-full border" alt="avatar" />
+          {/* <img src={safeWorker.avatar} className="w-10 h-10 rounded-full border" alt="avatar" /> */}
           <div>
             <h3 className="font-bold text-sm">{safeWorker.name}</h3>
             {/* <p className="text-[10px] text-slate-500 font-bold uppercase">
