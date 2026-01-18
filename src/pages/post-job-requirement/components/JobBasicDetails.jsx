@@ -133,6 +133,19 @@ const JobBasicDetails = ({ formData, onChange, errors }) => {
     description="Enter the legal name of your business or organization"
   />
 </div>
+<div className="md:col-span-2">
+<Input
+  label="Manager Name"
+  type="text"
+  placeholder="Write Manager Name"
+  value={formData?.managerName}
+  onChange={(e) => onChange("managerName", e?.target?.value)}
+  error={errors?.managerName}
+  required
+  description="Enter the full name of the manager responsible for this Job"
+ />
+
+</div>
 
         {/* Job Role */}
         <Select

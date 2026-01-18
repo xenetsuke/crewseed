@@ -46,6 +46,7 @@ const PostJobRequirement = () => {
     jobTitle: "",
     jobRole: "",
     companyName:"",
+    managerName:"",
     category: "", // Must be one of VALID_CATEGORIES
     employmentType: "",
     location: "",
@@ -133,6 +134,7 @@ useEffect(() => {
           jobTitle: res.jobTitle ?? "",
           jobRole: res.jobRole ?? "",
               companyName:res.companyName ?? "",
+              managerName:res.managerName ?? "",
 
           
           category: VALID_CATEGORIES.includes(res.industryCategory)
@@ -222,6 +224,7 @@ const buildJobDtoPayload = (status) => {
       jobTitle: formData.jobTitle || "",
       jobRole: formData.jobRole || "",
                     companyName:formData.companyName ?? "",
+                    managerName:formData.managerName ?? "",
 
       jobDescription: formData.description || "",
       industryCategory: VALID_CATEGORIES.includes(formData.category?.toUpperCase())
