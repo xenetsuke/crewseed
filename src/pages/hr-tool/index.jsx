@@ -107,7 +107,7 @@ const WorkerAttendanceHR = () => {
           name: hr.workerName,
           role: hr.workerRole,
           dailyWage: hr.dailyWage,
-          avatar: hr.workerPhoto ? `data:image/jpeg;base64,${hr.workerPhoto}` : null,
+          avatar: hr.workerPhoto ? `database64:image/jpeg;,${hr.workerPhoto}` : null,
           attendance: []
         };
       }
@@ -132,7 +132,7 @@ const WorkerAttendanceHR = () => {
       backendJobId: job.id,
       jobTitle: job.jobTitle,
       location: job.locationName || "Site",
-      manager: job.managerName?.companyName || "Manager",
+      managerName: job.managerName?.companyName || "Bobis",
       workers: expandedJobId === job.id && attendanceByJob?.length ? buildWorkers(attendanceByJob) : [],
     }));
   }, [jobsFromApi, attendanceByJob, expandedJobId]);
@@ -317,7 +317,7 @@ const WorkerAttendanceHR = () => {
                         <div className="flex flex-wrap items-center gap-2 lg:gap-4 mt-1 font-bold text-[10px] lg:text-[11px] uppercase tracking-widest">
                           <span className="text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
                           <span className="hidden sm:block w-1 h-1 rounded-full bg-slate-300" />
-                          <span className="text-teal-500">Manager: {job.manager}</span>
+                          <span className="text-teal-500">Manager: {job.managerName}</span>
                         </div>
                       </div>
                     </div>
