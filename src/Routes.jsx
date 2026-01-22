@@ -33,6 +33,7 @@ import CompanyOnboarding from "./pages/company-onboarding";
 import AssignmentDetails from "./pages/assignment-details";
 import NotificationsSystem from "./pages/notifications-system";
 import HRToolComingSoon from "./pages/hr-tool";
+import AttendanceUploadPage from "pages/AttendanceUploadPage/AttendanceUploadPage.jsx";
 
 const Routes = () => {
   return (
@@ -55,6 +56,16 @@ const Routes = () => {
 <Route
   path="/assignment-details"
   element={<AssignmentDetails />}
+/>
+
+ 
+<Route
+  path="/attendance/upload/:token"
+         element=  {  <PublicRoute>
+
+  <AttendanceUploadPage />
+                </PublicRoute>
+         }
 />
 
           <Route

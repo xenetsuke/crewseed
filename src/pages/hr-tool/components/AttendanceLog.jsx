@@ -14,6 +14,8 @@ import { approveAttendance, resetAttendance, updateHrPayroll } from "Services/At
 import { formatTimeIST } from "utils/time";
 import { cn } from "utils/cn";
 import { STATUS_UI } from "./attendanceStatusUI";
+import { ExternalLink } from "lucide-react";
+import { generateAttendancePhotoLink } from "../../../Services/AttendanceService";
 
 /** * Helper to calculate totals based on current values (prop + local edits) 
  */
@@ -298,6 +300,29 @@ const AttendanceLog = ({ logs = [], highlightedDay, onStatusUpdate }) => {
                       <span className="text-xs font-bold uppercase tracking-wide">Save Changes</span>
                     </button>
                   )}
+{/* 🔗 SEND PHOTO LINK (HR ONLY) */}
+{(log.status === "NOT_STARTED" || log.status === "PENDING_VERIFICATION") && (
+  <button
+    onClick={async () => {
+      try {
+        const res = await generateAttendancePhotoLink(log.attendanceId);
+        const { uploadUrl, expiresAt } = res.data;
+
+        await navigator.clipboard.writeText(uploadUrl);
+
+        toast.success(
+          `Photo link copied!\nExpires: ${new Date(expiresAt).toLocaleString("en-IN")}`
+        );
+      } catch (err) {
+        toast.error("Failed to generate photo link");
+      }
+    }}
+    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2"
+  >
+    <ExternalLink className="w-4 h-4" />
+    Photo Link
+  </button>
+)}
 
                   {/* ACTION FOOTER */}
                   <div className="pt-2 flex gap-2">

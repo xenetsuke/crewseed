@@ -15,6 +15,11 @@ export const uploadSitePhoto = (attendanceId, formData) =>
     `/attendance/upload-photo/${attendanceId}`,
     formData
   );
+// =========================
+// HR – GENERATE PHOTO LINK
+// =========================
+export const generateAttendancePhotoLink = (attendanceId) =>
+  axiosInstance.post(`/attendance/generate-upload-link/${attendanceId}`);
 
 
 export const resetAttendance = (attendanceId) =>
