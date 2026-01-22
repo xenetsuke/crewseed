@@ -1,156 +1,349 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Camera,
-  CheckCircle2,
-  AlertCircle,
-  MapPin,
-  Zap,
   RotateCcw,
-  XCircle
+  CalendarDays,
+  Minus,
+  Plus,
+  Clock,
+  Coins,
+  Save
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { approveAttendance, resetAttendance } from "Services/AttendanceService";
+import { approveAttendance, resetAttendance, updateHrPayroll } from "Services/AttendanceService";
 import { formatTimeIST } from "utils/time";
 import { cn } from "utils/cn";
+import { STATUS_UI } from "./attendanceStatusUI";
 
-const STATUS_UI = {
-  PENDING: { stripe: "bg-amber-500", badge: "bg-amber-100 text-amber-700", label: "Pending Verification" },
-  APPROVED: { stripe: "bg-emerald-500", badge: "bg-emerald-100 text-emerald-700", label: "Approved" },
-  REJECTED: { stripe: "bg-rose-500", badge: "bg-rose-100 text-rose-700", label: "Rejected" },
-  REUPLOAD_SENT: { stripe: "bg-yellow-500", badge: "bg-yellow-100 text-yellow-700", label: "Reupload Sent" },
-  EMPTY: { stripe: "bg-slate-200", badge: "bg-slate-100 text-slate-400", label: "No Record" }
+/** * Helper to calculate totals based on current values (prop + local edits) 
+ */
+const calculateTotals = (currentPayroll) => {
+  const daily = Number(currentPayroll.dailyPay || 0);
+  const ot = Number(currentPayroll.overtimePay || 0);
+  const bata = Number(currentPayroll.bata || 0);
+  const advance = Number(currentPayroll.advanceDeduction || 0);
+  const pf = Number(currentPayroll.pfDeduction || 0);
+  const esi = Number(currentPayroll.esiDeduction || 0);
+
+  const gross = daily + ot + bata;
+  const deductions = pf + esi + advance;
+  const net = gross - deductions;
+
+  return {
+    ...currentPayroll,
+    grossPay: gross,
+    totalDeductions: deductions,
+    netPayable: net, 
+  };
 };
 
-const AttendanceLog = ({ logs = [], highlightedDay, onStatusChange }) => {
+const AttendanceLog = ({ logs = [], highlightedDay, onStatusUpdate }) => {
+  const [processingId, setProcessingId] = useState(null);
+  const [pendingChanges, setPendingChanges] = useState({}); // Local state for unsaved edits
   const logRefs = useRef({});
+  const actionLockRef = useRef(false);
 
+  /* Scroll to highlighted day */
   useEffect(() => {
     if (highlightedDay && logRefs.current[highlightedDay]) {
       logRefs.current[highlightedDay].scrollIntoView({
         behavior: "smooth",
         block: "nearest",
-        inline: "center"
+        inline: "center",
       });
     }
   }, [highlightedDay]);
 
-  const handleVerify = async (log) => {
-    try {
-      await approveAttendance(log.attendanceId, true, "");
-      onStatusChange(log.attendanceId, "APPROVED");
-      toast.success("Attendance approved");
-    } catch { toast.error("Failed to approve"); }
+  /* Clear local changes when backend logs change */
+  // useEffect(() => {
+  //   setPendingChanges({});
+  // }, [logs]);
+
+  // Handles local UI updates (Plus/Minus) without API call
+  const handleLocalUpdate = (attendanceId, field, delta, currentPayroll) => {
+    const currentValue = Number(pendingChanges[attendanceId]?.[field] ?? currentPayroll[field] ?? 0);
+    const newValue = Math.max(0, currentValue + delta);
+
+    setPendingChanges((prev) => ({
+      ...prev,
+      [attendanceId]: {
+        ...(prev[attendanceId] || {}),
+        [field]: newValue,
+      },
+    }));
   };
 
-  const handleAbsent = async (log) => {
+  // The "Submit" action - Sends data to API and shows Toast
+  const submitPayrollChanges = async (log, mergedPayroll) => {
+    const changes = pendingChanges[log.attendanceId];
+    if (!changes) return;
+
     try {
-      await approveAttendance(log.attendanceId, false, "Marked absent by employer");
-      onStatusChange(log.attendanceId, "REJECTED");
-      toast.success("Marked as absent");
-    } catch { toast.error("Failed to mark absent"); }
+      setProcessingId(`${log.attendanceId}-save`);
+      
+      // Calculate final totals before sending
+      const finalPayload = calculateTotals({ ...log.payroll, ...changes });
+      
+      await updateHrPayroll(log.attendanceId, finalPayload);
+      onStatusUpdate?.(log.attendanceId, log.status); // Refresh parent data
+      
+      // Clear local pending changes on success
+      setPendingChanges((prev) => {
+        const next = { ...prev };
+        delete next[log.attendanceId];
+        return next;
+      });
+
+      toast.success("Payroll updated successfully");
+    } catch (error) {
+      toast.error("Failed to save changes");
+    } finally {
+      setProcessingId(null);
+    }
   };
 
-  const handleReUpload = async (log) => {
+  const runAction = async (attendanceId, newStatus, successMsg, apiFn) => {
+    if (!attendanceId || String(attendanceId).startsWith("temp")) {
+      toast.error("Attendance not yet created for this day");
+      return;
+    }
+    if (actionLockRef.current) return;
+    actionLockRef.current = true;
+    setProcessingId(attendanceId);
+
+    // Optimistic update
+    onStatusUpdate?.(attendanceId, newStatus); 
+    toast.success(successMsg);
+
     try {
-      await resetAttendance(log.attendanceId);
-      onStatusChange(log.attendanceId, "PENDING");
-      toast.success("Reopened for re-upload");
-    } catch { toast.error("Failed to request re-upload"); }
+      await apiFn(); 
+    } catch (error) {
+      console.error("Attendance update failed:", error);
+      toast.error("Update failed. Please try again.");
+    } finally {
+      setProcessingId(null);
+      actionLockRef.current = false;
+    }
   };
 
   return (
     <div className="bg-slate-50/50 p-4 border-t border-slate-100">
-      <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-hide px-2">
+      <div className="flex overflow-x-auto gap-6 pb-4 px-2 no-scrollbar">
         {logs.map((log) => {
           const dateObj = new Date(log.date);
           const dayNum = dateObj.getDate();
-          const isHighlighted = highlightedDay === dayNum;
-          const ui = STATUS_UI[log.status] || STATUS_UI.PENDING;
+          const ui = STATUS_UI[log.status] || STATUS_UI.EMPTY;
+          const isProcessing = String(processingId).startsWith(log.attendanceId);
+
+          const isApproved = log.status === "APPROVED";
+          const isHalfDay = log.status === "HALF_DAY";
+          const isAbsent = log.status === "REJECTED" || log.status === "AUTO_MARKED_ABSENT";
+          const isEmpty = log.isEmpty === true;
+
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const logDate = new Date(log.date);
+          logDate.setHours(0, 0, 0, 0);
+          const isFutureDay = logDate > today && !log.attendanceId;
+
+          // Merge server data with local unsaved changes
+          const activeChanges = pendingChanges[log.attendanceId] || {};
+          const mergedPayroll = { ...log.payroll, ...activeChanges };
+          const calculated = calculateTotals(mergedPayroll);
+          const hasUnsavedChanges = Object.keys(activeChanges).length > 0;
 
           return (
             <div
-              key={log.attendanceId}
+              key={log.attendanceId || dayNum}
               ref={(el) => (logRefs.current[dayNum] = el)}
               className={cn(
                 "min-w-[320px] bg-white border rounded-2xl p-4 shadow-sm relative transition-all duration-300",
-                isHighlighted ? "border-slate-900 ring-2 ring-slate-900/10 scale-[1.02] z-10" : "border-slate-200"
+                highlightedDay === dayNum ? "ring-2 ring-blue-500 border-transparent scale-[1.02]" : "border-slate-200",
+                isProcessing && "ring-1 ring-slate-100 opacity-90"
               )}
             >
-              <div className={cn("absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl", ui.stripe)} />
+              <div className={cn("absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl transition-colors duration-500", ui.stripe)} />
 
               <div className="flex gap-4">
-                <div className="w-24 h-24 rounded-xl border overflow-hidden bg-slate-50 flex-shrink-0">
+                <div className="w-20 h-20 border rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
                   {log.sitePhoto ? (
-                    <img src={log.sitePhoto} alt="Site" className="w-full h-full object-cover" />
+                    <img src={log.sitePhoto} className="w-full h-full object-cover" alt="Verification" />
                   ) : (
                     <div className="h-full flex items-center justify-center text-slate-400">
-                      <Camera className="w-6 h-6 opacity-20" />
+                      <Camera className="w-6 h-6 opacity-30" />
                     </div>
                   )}
                 </div>
 
                 <div className="flex-1">
-                  <div className="flex justify-between">
-                    <div>
-                      <p className="text-sm font-black">{dateObj.toLocaleDateString("en-IN")}</p>
-                      <div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase">
-                        <MapPin className="w-3 h-3" /> GPS Verified
-                      </div>
+                  <div className="flex justify-between items-start">
+                    <p className="text-sm font-black text-slate-800">
+                      {dateObj.toLocaleDateString("en-IN", { day: '2-digit', month: 'short' })}
+                    </p>
+                    <div className={cn("flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors", ui.badge)}>
+                      {ui.icon && <ui.icon className="w-3.5 h-3.5" />}
+                      {ui.label}
                     </div>
-                    <span className={cn("p-1.5 rounded-full ring-4", ui.badge)}>
-                      {log.status === "APPROVED" ? <CheckCircle2 className="w-4 h-4" /> : 
-                       log.status === "REJECTED" ? <XCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                    </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 mt-4">
-                    <div className="bg-slate-50 px-2 py-1 rounded-lg border">
-                      <span className="text-[9px] font-bold uppercase text-slate-400 block">Check In</span>
-                      <span className="text-xs font-black">{log.checkIn ? formatTimeIST(log.checkIn) : "--:--"}</span>
+                  <div className="grid grid-cols-2 gap-2 mt-3 text-slate-600">
+                    <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 text-[11px] font-bold">
+                      <span className="block text-[9px] text-slate-400 uppercase">In</span>
+                      {log.checkIn ? formatTimeIST(log.checkIn) : "--:--"}
                     </div>
-                    <div className="bg-slate-50 px-2 py-1 rounded-lg border">
-                      <span className="text-[9px] font-bold uppercase text-slate-400 block">Check Out</span>
-                      <span className="text-xs font-black">{log.checkOut ? formatTimeIST(log.checkOut) : "--:--"}</span>
+                    <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 text-[11px] font-bold">
+                      <span className="block text-[9px] text-slate-400 uppercase">Out</span>
+                      {log.checkOut ? formatTimeIST(log.checkOut) : "--:--"}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {!log.isEmpty && (
-                <>
-                  <div className="mt-4 flex gap-2">
-                    <span className="text-[10px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded uppercase">
-                      {log.dayType || "FULL DAY"}
+              {/* EARNINGS & HR CONTROLS SECTION */}
+              {!isEmpty && !isFutureDay && (
+                <div className="mt-3 space-y-3 border-t border-slate-50 pt-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Net Earned</span>
+                    <span className={cn("text-sm font-black", calculated.netPayable < 0 ? "text-rose-600" : "text-emerald-600")}>
+                      ₹{calculated.netPayable.toLocaleString("en-IN")}
                     </span>
-                    {log.otHours > 0 && (
-                      <span className="text-[10px] font-black bg-amber-50 text-amber-600 px-2 py-0.5 rounded flex items-center gap-1">
-                        <Zap className="w-3 h-3" /> {log.otHours}h OT
-                      </span>
-                    )}
                   </div>
 
-                  <div className="mt-4 pt-4 border-t flex gap-2">
-                    {log.status === "PENDING" && (
-                      <>
-                        <button onClick={() => handleVerify(log)} className="flex-1 bg-emerald-600 text-white py-2 rounded-xl text-xs font-bold">Verify</button>
-                        <button onClick={() => handleAbsent(log)} className="flex-1 border border-rose-200 text-rose-600 py-2 rounded-xl text-xs font-bold">Absent</button>
-                      </>
+                  {/* SUMMARY TILES (PF, ESI, ADVANCE) */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100 flex flex-col items-center">
+                      <span className="text-[8px] font-bold text-slate-400 uppercase">PF</span>
+                      <span className="text-[10px] font-black text-slate-600">₹{mergedPayroll.pfDeduction || 0}</span>
+                    </div>
+                    <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100 flex flex-col items-center">
+                      <span className="text-[8px] font-bold text-slate-400 uppercase">ESI</span>
+                      <span className="text-[10px] font-black text-slate-600">₹{mergedPayroll.esiDeduction || 0}</span>
+                    </div>
+                    <div className="bg-rose-50 p-1.5 rounded-lg border border-rose-100 flex flex-col items-center">
+                      <span className="text-[8px] font-bold text-rose-400 uppercase">Advance</span>
+                      <span className="text-[10px] font-black text-rose-600">₹{mergedPayroll.advanceDeduction || 0}</span>
+                    </div>
+                  </div>
+
+                  {(isApproved || isHalfDay) && (
+ <div className="grid grid-cols-3 gap-2">
+                      {/* <button
+                        onClick={() => 
+                          runAction(
+                            log.attendanceId, 
+                            isHalfDay ? "APPROVED" : "HALF_DAY", 
+                            isHalfDay ? "Marked Full Day" : "Marked Half Day", 
+                            () => approveAttendance(log.attendanceId, true, isHalfDay ? "FULL_DAY" : "HALF_DAY")
+                          )
+                        }
+                        className={cn("py-2 rounded-lg text-[10px] font-black uppercase transition-colors", isHalfDay ? "bg-indigo-600 text-white" : "bg-indigo-50 text-indigo-600")}
+                      >
+                        H-Day
+                      </button> */}
+
+                      <div className="flex items-center justify-between bg-slate-50 rounded-lg px-1.5 py-1">
+                        <button onClick={() => handleLocalUpdate(log.attendanceId, "overtimePay", 50, mergedPayroll)}>
+                          <Plus className="w-3 h-3 text-emerald-600" />
+                        </button>
+                        <div className="flex flex-col items-center">
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          <span className="text-[8px] font-bold text-slate-500">₹{mergedPayroll.overtimePay || 0}</span>
+                        </div>
+                        <button onClick={() => handleLocalUpdate(log.attendanceId, "overtimePay", -50, mergedPayroll)}>
+                          <Minus className="w-3 h-3 text-rose-600" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between bg-slate-50 rounded-lg px-1.5 py-1">
+                        <button onClick={() => handleLocalUpdate(log.attendanceId, "bata", 50, mergedPayroll)}>
+                          <Plus className="w-3 h-3 text-emerald-600" />
+                        </button>
+                        <div className="flex flex-col items-center">
+                          <span className="text-[8px] font-black text-slate-400 leading-none">BATA</span>
+                          <span className="text-[8px] font-bold text-slate-500">₹{mergedPayroll.bata || 0}</span>
+                        </div>
+                        <button onClick={() => handleLocalUpdate(log.attendanceId, "bata", -50, mergedPayroll)}>
+                          <Minus className="w-3 h-3 text-rose-600" />
+                        </button>
+                      </div>
+
+                      {/* ADVANCE DEDUCTION CONTROLS (Working same as Overtime/Bata) */}
+                      <div className="flex items-center justify-between bg-rose-50 rounded-lg px-1.5 py-1">
+                        <button onClick={() => handleLocalUpdate(log.attendanceId, "advanceDeduction", 100, mergedPayroll)}>
+                          <Plus className="w-3 h-3 text-rose-600" />
+                        </button>
+                        <div className="flex flex-col items-center">
+                          <Coins className="w-3 h-3 text-rose-400" />
+                          <span className="text-[8px] font-bold text-rose-500">₹{mergedPayroll.advanceDeduction || 0}</span>
+                        </div>
+                        <button onClick={() => handleLocalUpdate(log.attendanceId, "advanceDeduction", -100, mergedPayroll)}>
+                          <Minus className="w-3 h-3 text-rose-600" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* SUBMIT BUTTON */}
+                  {hasUnsavedChanges && (
+                    <button
+                      onClick={() => submitPayrollChanges(log, mergedPayroll)}
+                      disabled={isProcessing}
+                      className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2 transition-all shadow-sm"
+                    >
+                      {isProcessing ? (
+                        <RotateCcw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Save className="w-3.5 h-3.5" />
+                      )}
+                      <span className="text-xs font-bold uppercase tracking-wide">Save Changes</span>
+                    </button>
+                  )}
+
+                  {/* ACTION FOOTER */}
+                  <div className="pt-2 flex gap-2">
+                    {!isApproved && !isHalfDay && (
+                      <button
+                        disabled={isProcessing}
+                        onClick={() => runAction(log.attendanceId, "APPROVED", "Marked Present", () => approveAttendance(log.attendanceId, true, ""))}
+                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold disabled:bg-slate-200"
+                      >
+                        Mark Present
+                      </button>
                     )}
-                    {log.status === "APPROVED" && (
-                      <button onClick={() => handleAbsent(log)} className="flex-1 border border-rose-200 text-rose-600 py-2 rounded-xl text-xs font-bold">Change to Absent</button>
+
+                    {!isAbsent && (
+                      <button
+                        disabled={isProcessing}
+                        onClick={() => runAction(log.attendanceId, "REJECTED", "Marked Absent", () => approveAttendance(log.attendanceId, false, "Employer marked absent"))}
+                        className="flex-1 py-2.5 border border-rose-200 text-rose-600 rounded-xl text-xs font-bold disabled:border-slate-100"
+                      >
+                        Mark Absent
+                      </button>
                     )}
-                    {log.status === "REJECTED" && (
-                      <button onClick={() => handleVerify(log)} className="flex-1 bg-emerald-600 text-white py-2 rounded-xl text-xs font-bold">Change to Approved</button>
-                    )}
-                    <button onClick={() => handleReUpload(log)} className="flex items-center gap-1 px-3 border border-slate-200 hover:bg-slate-50 text-slate-600 py-2 rounded-xl text-xs font-bold transition-colors">
-                      <RotateCcw className="w-4 h-4" /> Re-Upload
+
+                    <button
+                      disabled={isProcessing}
+                      onClick={() => runAction(log.attendanceId, "PENDING_VERIFICATION", "Record Reset", () => resetAttendance(log.attendanceId))}
+                      className="px-4 py-2.5 border border-slate-200 rounded-xl disabled:opacity-50"
+                    >
+                      <RotateCcw className={cn("w-4 h-4", isProcessing && "animate-spin")} />
                     </button>
                   </div>
-                </>
+                </div>
               )}
-              {log.isEmpty && (
-                <div className="mt-4 py-2 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  No activity recorded for this day
+
+              {/* EMPTY LOG OR FUTURE DAY FOOTER */}
+              {(isEmpty || isFutureDay) && (
+                <div className="mt-4 pt-4 border-t border-slate-50">
+                  {isFutureDay ? (
+                    <div className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      <CalendarDays className="w-3.5 h-3.5" /> Upcoming Shift
+                    </div>
+                  ) : (
+                    <div className="flex-1 py-2.5 text-center text-[10px] font-bold text-slate-400 uppercase tracking-tighter self-center">
+                      No logs for this day
+                    </div>
+                  )}
                 </div>
               )}
             </div>

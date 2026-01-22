@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import WorkerSidebar from "components/navigation/WorkerSidebar";
-import { MapPin, ChevronDown, Briefcase, Wallet, Clock, LayoutGrid } from "lucide-react";
+import { MapPin, ChevronDown, Briefcase, Wallet, Clock, TrendingUp } from "lucide-react";
 import { cn } from "utils/cn";
 
 import AssignmentHeader from "./components/AssignmentHeader";
@@ -8,7 +8,24 @@ import TodayAttendanceCard from "./components/TodayAttendanceCard";
 import AttendanceCalendar from "./components/AttendanceCalendar";
 import AttendanceHistory from "./components/AttendanceHistory";
 
-import { getMyAttendanceHistory } from "Services/AttendanceService";
+import { getMyAttendanceHistory } from "../../Services/AttendanceService";
+import { getAssignmentByIdAndJob } from "../../Services/AssignmentService";
+
+/* ===============================
+    TIME FORMATTER (SAFE)
+================================ */
+export const formatTimeIST = (value) => {
+  if (!value) return "--:--";
+  if (typeof value === "string" && value.length === 8 && value.includes(":")) {
+    const [h, m] = value.split(":");
+    const d = new Date();
+    d.setHours(parseInt(h, 10), parseInt(m, 10), 0);
+    return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  }
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return "--:--";
+  return date.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true });
+};
 
 const EMPTY_STATE = [];
 
@@ -19,7 +36,7 @@ const AssignmentDetails = () => {
 
   useEffect(() => {
     getMyAttendanceHistory()
-      .then((res) => {
+      .then(async (res) => {
         const data = res.data || [];
         if (!data.length) {
           setAssignments(EMPTY_STATE);
@@ -27,116 +44,108 @@ const AssignmentDetails = () => {
         }
 
         const map = {};
+        const assignmentFetches = {};
+
         data.forEach((a) => {
           const snapshot = a.jobSnapshot || {};
           if (!map[a.assignmentId]) {
             map[a.assignmentId] = {
               assignmentId: a.assignmentId,
+              jobId: a.jobId,
+              workerId: a.workerId,
               jobTitle: snapshot.jobTitle || "Archived Job",
-              location: snapshot.location || "Location Unavailable",
-              shift: snapshot.shift || "Shift Unavailable",
               companyName: snapshot.companyName || "Company",
-              managerName: snapshot.managerName || "Manage",
+              managerName: snapshot.managerName || "Manager",
+              location: snapshot.location || "Location Unavailable",
+              shift: "--:--",
               role: a.hrSnapshot?.workerRole || "Worker",
-              dailyWage: a.hrSnapshot?.dailyWage || 0,
-              supervisor: "Site Supervisor",
+              dailyWage: a.hrSnapshot?.payroll?.dailyPay || 0,
               attendance: [],
             };
+            assignmentFetches[a.assignmentId] = getAssignmentByIdAndJob(a.assignmentId, a.jobId, a.workerId);
           }
 
        map[a.assignmentId].attendance.push({
   attendanceId: a.id,
   date: a.attendanceDate,
   status: a.status,
-  checkIn: a.checkInTime
-    ? new Date(a.checkInTime).toLocaleTimeString("en-IN", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-        timeZone: "Asia/Kolkata",
-      })
-    : null,
-  checkOut: a.checkOutTime
-    ? new Date(a.checkOutTime).toLocaleTimeString("en-IN", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-        timeZone: "Asia/Kolkata",
-      })
-    : null,
+  checkIn: a.checkInTime ? formatTimeIST(a.checkInTime) : "--:--",
+  checkOut: a.checkOutTime ? formatTimeIST(a.checkOutTime) : "--:--",
   siteVerified: a.sitePhotoUploaded,
+
+  // ✅ CRITICAL FIX: ATTACH PAYROLL
+  payroll: {
+    basePay: a.hrSnapshot?.payroll?.basePay || 0,
+    dailyPay: a.hrSnapshot?.payroll?.dailyPay || 0,
+    overtimePay: a.hrSnapshot?.payroll?.overtimePay || 0,
+    bata: a.hrSnapshot?.payroll?.bata || 0,
+    pfDeduction: a.hrSnapshot?.payroll?.pfDeduction || 0,
+    esiDeduction: a.hrSnapshot?.payroll?.esiDeduction || 0,
+    advanceDeduction: a.hrSnapshot?.payroll?.advanceDeduction || 0,
+    totalDeductions: a.hrSnapshot?.payroll?.totalDeductions || 0,
+    netPayable: a.hrSnapshot?.payroll?.netPayable || 0,
+  },
 });
 
         });
 
+        await Promise.all(
+          Object.entries(assignmentFetches).map(async ([assignmentId, promise]) => {
+            try {
+              const assignment = await promise;
+              if (assignment?.shiftStartTime && assignment?.shiftEndTime) {
+                map[assignmentId].shift = `${formatTimeIST(assignment.shiftStartTime)} - ${formatTimeIST(assignment.shiftEndTime)}`;
+              }
+            } catch (e) {}
+          })
+        );
         setAssignments(Object.values(map));
       })
-      .catch(() => {
-        setAssignments(EMPTY_STATE);
-      });
+      .catch(() => setAssignments(EMPTY_STATE));
   }, []);
 
   const getPayroll = (assignment) => {
-    const approvedDays = assignment.attendance.filter(
-      (a) => a.status === "APPROVED"
-    ).length;
-
-    return {
-      verifiedDays: approvedDays,
-      gross: approvedDays * assignment.dailyWage,
-    };
+    const netTotal = assignment.attendance.reduce((sum, a) => sum + Number(a.payroll?.netPayable || 0), 0);
+    return { netTotal };
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Sidebar - Fixed Layer */}
-      <div className="fixed inset-y-0 left-0 z-50 shadow-2xl shadow-blue-900/10">
-        <WorkerSidebar
-          isCollapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
+    <div className="min-h-screen bg-[#F1F5F9]">
+      <div className="fixed inset-y-0 left-0 z-50 shadow-2xl">
+        <WorkerSidebar isCollapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
 
-      {/* Main Content Area */}
-      <main
-        className={cn(
-          "transition-all duration-500 ease-in-out min-h-screen",
-          sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
-        )}
-      >
-        {/* Top Sticky Header for context */}
-        {/* <div className="sticky top-0 z-40 bg-[#F8FAFC]/80 backdrop-blur-md border-b border-slate-200/60 px-6 py-4 mb-4">
-           <div className="max-w-5xl mx-auto flex items-center gap-2 text-blue-600">
-              <LayoutGrid className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Worker Dashboard</span>
-           </div>
-        </div> */}
-
-        <div className="p-6 md:p-10 max-w-5xl mx-auto">
-          {/* Main Typography Header */}
-          <header className="mb-12 relative">
-            <div className="absolute -left-4 top-0 w-1 h-12 bg-blue-600 rounded-full hidden md:block" />
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
-              My <span className="text-blue-600">Assignments</span>
-            </h1>
-            <p className="text-slate-500 font-medium mt-3 text-lg">
-              Manage your active work contracts and verify attendance.
-            </p>
+      <main className={cn("transition-all duration-500 ease-in-out min-h-screen", sidebarCollapsed ? "lg:ml-20" : "lg:ml-64")}>
+        <div className="p-4 md:p-8 lg:p-12 max-w-6xl mx-auto">
+          {/* HEADER SECTION */}
+          <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">
+                My <span className="text-blue-600">Assignments</span>
+              </h1>
+              <p className="text-slate-500 mt-2 text-base md:text-lg font-medium">
+                Real-time tracking of your work contracts and earnings.
+              </p>
+            </div>
+            <div className="bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm hidden md:flex items-center gap-3">
+              <TrendingUp className="text-emerald-500 w-5 h-5" />
+              <span className="text-sm font-bold text-slate-600 uppercase tracking-wider">Active Status</span>
+            </div>
           </header>
 
+          {/* EMPTY STATE */}
           {assignments.length === 0 && (
-            <div className="text-center py-32 bg-white rounded-[2.5rem] border border-dashed border-slate-300 shadow-inner">
-              <div className="bg-blue-50 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 transform rotate-3">
-                <Briefcase className="text-blue-400 w-10 h-10" />
+            <div className="text-center py-24 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Briefcase className="w-10 h-10 text-slate-300" />
               </div>
-              <h3 className="text-slate-900 font-black text-xl">No active assignments</h3>
-              <p className="text-slate-400 mt-2 max-w-xs mx-auto">
-                Once you are assigned to a job, your schedule and earnings will appear here.
-              </p>
+              <h3 className="font-black text-2xl text-slate-800">No active assignments</h3>
+              <p className="text-slate-500 mt-2">When you are assigned a job, it will appear here.</p>
             </div>
           )}
 
-          <div className="space-y-8">
+          {/* ASSIGNMENT LIST */}
+          <div className="space-y-6">
             {assignments.map((assignment) => {
               const isOpen = expandedAssignment === assignment.assignmentId;
               const payroll = getPayroll(assignment);
@@ -145,91 +154,83 @@ const AssignmentDetails = () => {
                 <div
                   key={assignment.assignmentId}
                   className={cn(
-                    "bg-white rounded-[2.5rem] border transition-all duration-500 overflow-hidden",
-                    isOpen 
-                      ? "shadow-[0_20px_50px_rgba(30,58,138,0.1)] border-blue-200 ring-1 ring-blue-100" 
-                      : "shadow-sm hover:shadow-xl hover:-translate-y-1 border-slate-200"
+                    "bg-white rounded-[2rem] transition-all duration-300 overflow-hidden border",
+                    isOpen ? "border-blue-300 ring-4 ring-blue-50 shadow-2xl" : "border-white shadow-md hover:shadow-xl hover:translate-y-[-2px]"
                   )}
                 >
-                  {/* ================= CARD HEADER ================= */}
+                  {/* CARD HEADER / TOGGLE */}
                   <div
-                    className="p-6 md:p-10 flex items-center justify-between cursor-pointer group"
-                    onClick={() =>
-                      setExpandedAssignment(isOpen ? null : assignment.assignmentId)
-                    }
+                    className="p-5 md:p-8 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-6"
+                    onClick={() => setExpandedAssignment(isOpen ? null : assignment.assignmentId)}
                   >
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-start md:items-center gap-4 md:gap-6">
                       <div className={cn(
-                        "w-20 h-20 rounded-[1.5rem] flex items-center justify-center transition-all duration-300 shadow-lg",
-                        isOpen 
-                          ? "bg-blue-600 text-white shadow-blue-200 scale-110" 
-                          : "bg-slate-50 text-blue-600 group-hover:bg-blue-50 shadow-transparent"
+                        "w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shrink-0 transition-colors",
+                        isOpen ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-600"
                       )}>
-                        <MapPin className={cn("transition-transform duration-500", isOpen ? "w-9 h-9" : "w-8 h-8")} />
+                        <MapPin className="w-7 h-7" />
                       </div>
 
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                           <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-black rounded-md uppercase tracking-wider">Active Job</span>
-                        </div>
-                        <h2 className="text-2xl font-black text-slate-900 tracking-tight group-hover:text-blue-600 transition-colors truncate">
+                        <h2 className="text-xl md:text-2xl font-black text-slate-900 truncate">
                           {assignment.jobTitle}
                         </h2>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
-                          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                            <Briefcase className="w-3 h-3" /> {assignment.companyName}
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                          <span className="text-xs md:text-sm font-bold text-slate-400 flex items-center gap-1">
+                            <Briefcase className="w-3.5 h-3.5" />
+                            {assignment.companyName}
                           </span>
-                          <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-slate-200" />
-                          <div className="flex items-center gap-1.5 text-slate-500">
-                            <Clock className="w-4 h-4 text-blue-500" />
-                            <span className="text-sm font-bold text-slate-600">{assignment.shift}</span>
-                          </div>
+                          <span className="text-xs md:text-sm font-bold text-blue-600 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            {assignment.shift}
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-8">
-                      <div className="text-right hidden lg:block">
-                        <div className="flex items-center gap-1.5 justify-end text-slate-400 mb-1">
-                          <Wallet className="w-4 h-4" />
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Total Earnings</span>
+                    {/* EARNINGS SECTION - Now visible on all screens */}
+                    <div className="flex items-center justify-between sm:justify-end gap-6 border-t sm:border-t-0 pt-4 sm:pt-0">
+                      <div className="text-left sm:text-right">
+                        <div className="flex items-center gap-1 sm:justify-end text-slate-400 mb-1">
+                          <Wallet className="w-3.5 h-3.5" />
+                          <span className="text-[10px] font-black uppercase tracking-widest">Total Earned</span>
                         </div>
-                        <p className="font-black text-3xl text-emerald-600 tracking-tighter">
-                          ₹{payroll.gross.toLocaleString('en-IN')}
+                        <p className={cn(
+                          "text-2xl md:text-3xl font-black tabular-nums",
+                          payroll.netTotal < 0 ? "text-rose-600" : "text-emerald-600"
+                        )}>
+                          ₹{payroll.netTotal.toLocaleString("en-IN")}
                         </p>
                       </div>
-
+                      
                       <div className={cn(
-                        "w-12 h-12 rounded-2xl flex items-center justify-center border transition-all duration-500",
-                        isOpen 
-                          ? "bg-slate-900 border-slate-900 text-white rotate-180" 
-                          : "bg-white border-slate-200 text-slate-400 group-hover:border-blue-400 group-hover:text-blue-600"
+                        "w-10 h-10 rounded-full flex items-center justify-center transition-all border",
+                        isOpen ? "bg-slate-100 rotate-180 border-slate-200" : "bg-white border-slate-100"
                       )}>
-                        <ChevronDown className="w-6 h-6" />
+                        <ChevronDown className="w-5 h-5 text-slate-600" />
                       </div>
                     </div>
                   </div>
 
-                  {/* ================= CARD BODY ================= */}
+                  {/* EXPANDED CONTENT */}
                   {isOpen && (
-                    <div className="border-t border-slate-100 bg-slate-50/40 p-6 md:p-10 space-y-10 animate-in fade-in zoom-in-95 duration-500">
-                      <div className="grid grid-cols-1 gap-10">
-                        <div className="bg-white rounded-3xl p-1 shadow-sm border border-slate-100">
-                           <AssignmentHeader assignment={assignment} />
-                        </div>
-                        
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                          <div className="lg:col-span-5">
-                            <TodayAttendanceCard assignment={assignment} />
-                          </div>
-                          <div className="lg:col-span-7">
-                            <AttendanceCalendar attendance={assignment.attendance} />
-                          </div>
-                        </div>
+                    <div className="border-t border-slate-100 bg-slate-50/50 p-5 md:p-8 lg:p-10 space-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
+                      {/* <AssignmentHeader assignment={assignment} /> */}
 
-                        <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
-                           <AttendanceHistory attendance={assignment.attendance} />
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+                        <div className="lg:col-span-5 order-2 lg:order-1">
+                          <TodayAttendanceCard assignment={assignment} />
                         </div>
+                        <div className="lg:col-span-7 order-1 lg:order-2">
+                          <AttendanceCalendar 
+                            attendance={assignment.attendance} 
+                            dailyPay={assignment.dailyWage} 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden">
+                        <AttendanceHistory attendance={assignment.attendance} />
                       </div>
                     </div>
                   )}

@@ -1,42 +1,58 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   MapPin,
   Search,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Calendar,
   Bell,
-  X,
-  Camera,
-  CheckCircle2,
   Users,
-  Briefcase,
-  Menu
+  Menu,
+  Plus,
+  LayoutDashboard,
+  Loader2,
 } from "lucide-react";
-
-import StatsOverview from "./components/StatsOverview";
+import CustomJobManager from "./CustomJobManager";
 import WorkerRow from "./components/WorkerRow";
+import EditAssignmentDrawer from "./components/EditAssignmentDrawer";
+import ManageWorkersDrawer from "./components/ManageWorkersDrawer";
 import { cn } from "utils/cn";
 import EmployerSidebar from "components/navigation/EmployerSidebar";
-import { useQuery } from "@tanstack/react-query";
-import { getJobsPostedBy } from "../../Services/JobService";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getJobsPostedBy,getJob } from "../../Services/JobService"; // Ensure getJobById is imported
 import { getAttendanceByJob } from "../../Services/AttendanceService";
-import { getEmployerDashboardStats } from "Services/EmployerDashboardService";
+import { getAssignmentsByJob } from "../../Services/AssignmentService";
+import { getProfile } from "../../Services/ProfileService";
+import { useSelector } from "react-redux";
+// import { updateHrPayroll } from "../../Services/AttendanceService";
+
 
 const WorkerAttendanceHR = () => {
   const [expandedJobId, setExpandedJobId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showCustomJob, setShowCustomJob] = useState(false);
+  const queryClient = useQueryClient();
+  queryClient.invalidateQueries(["attendance", expandedJobId]);
+
+  // EDIT JOB STATES
+  const [editJobOpen, setEditJobOpen] = useState(false);
+  const [selectedJobForEdit, setSelectedJobForEdit] = useState(null);
+
+  // DRAWER STATES
+  const [manageWorkersOpen, setManageWorkersOpen] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+
+  const employerId = useSelector((state) => state.user?.id);
 
   const [viewDate, setViewDate] = useState(new Date(2026, 0, 1));
-  const [selectedDay, setSelectedDay] = useState("ALL");
-
   const currentMonth = viewDate.getMonth();
   const currentYear = viewDate.getFullYear();
 
-  const { data: jobsFromApi = [] } = useQuery({
+  const { data: jobsFromApi = [], isLoading: isJobsLoading } = useQuery({
     queryKey: ["employerJobs"],
     queryFn: getJobsPostedBy,
   });
@@ -46,333 +62,274 @@ const WorkerAttendanceHR = () => {
     "July", "August", "September", "October", "November", "December"
   ];
 
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
   const changeMonth = (offset) => {
     setViewDate(new Date(currentYear, currentMonth + offset, 1));
-    setSelectedDay("ALL");
   };
 
-  const { data: attendanceByJob = [] } = useQuery({
+  const { data: attendanceResponse } = useQuery({
     queryKey: ["attendance", expandedJobId],
     queryFn: () => getAttendanceByJob(expandedJobId),
     enabled: !!expandedJobId,
   });
 
-  const [showNotifPanel, setShowNotifPanel] = useState(false);
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      workerName: "Lakhan Yadav",
-      workerId: "W103",
-      message: "uploaded a site photo. Please mark attendance.",
-      time: "Just now",
-      read: false,
-    },
-    {
-      id: 2,
-      workerName: "Ravi Kumar",
-      workerId: "W101",
-      message: "updated shift remarks.",
-      time: "1 hour ago",
-      read: true,
-    }
-  ]);
+  useEffect(() => {
+    console.log("🟡 expandedJobId:", expandedJobId);
+    console.log("🟢 RAW attendanceResponse:", attendanceResponse);
+  }, [attendanceResponse, expandedJobId]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const markAllRead = () => setNotifications(notifications.map(n => ({ ...n, read: true })));
-  const removeNotification = (id) => setNotifications(notifications.filter(n => n.id !== id));
+  const attendanceByJob = useMemo(() => {
+    if (!attendanceResponse) return [];
+    if (Array.isArray(attendanceResponse)) return attendanceResponse;
+    if (Array.isArray(attendanceResponse.data)) return attendanceResponse.data;
+    if (Array.isArray(attendanceResponse.attendances)) return attendanceResponse.attendances;
+    return [];
+  }, [attendanceResponse]);
 
-  const { data: statsFromApi } = useQuery({
-    queryKey: ["employerDashboardStats"],
-    queryFn: getEmployerDashboardStats,
+  const { data: assignmentsByJob = [] } = useQuery({
+    queryKey: ["assignments", expandedJobId],
+    queryFn: () => getAssignmentsByJob(expandedJobId),
+    enabled: !!expandedJobId,
   });
 
-  const stats = statsFromApi ?? {
-    totalGross: 0,
-    pendingApprovals: 0,
-    totalOTHours: 0,
-    complianceEnabled: true,
-  };
+  const { data: profilesMap = {} } = useQuery({
+    queryKey: ["workerProfiles", expandedJobId],
+    enabled: !!expandedJobId && assignmentsByJob.length > 0,
+    queryFn: async () => {
+      const map = {};
+      for (const a of assignmentsByJob) {
+        const profile = await getProfile(a.workerId);
+        map[a.workerId] = profile;
+      }
+      return map;
+    },
+  });
 
-  const buildWorkers = (attendanceList = []) => {
-    const map = {};
-    attendanceList.forEach(a => {
+  const buildWorkers = (assignments = [], attendanceList = []) => {
+    const attendanceMap = {};
+    if (!Array.isArray(attendanceList)) return [];
+
+    attendanceList.forEach((a) => {
       const hr = a.hrSnapshot;
       if (!hr) return;
-      if (!map[hr.workerId]) {
-        map[hr.workerId] = {
-          workerId: hr.workerId,
-          name: hr.workerName,
-          role: hr.workerRole,
-          dailyWage: hr.dailyWage,
-          avatar: hr.workerPhoto ? `database64:image/jpeg;,${hr.workerPhoto}` : null,
-          attendance: []
-        };
+      const workerId = Number(hr.workerId);
+      if (!attendanceMap[workerId]) {
+        attendanceMap[workerId] = [];
       }
-      map[hr.workerId].attendance.push({
-        attendanceId: a.id,
+      attendanceMap[workerId].push({
+        attendanceId: hr.attendanceId || a._id,
         date: a.attendanceDate,
-        checkIn: a.checkInTime,
-        checkOut: a.checkOutTime,
-        status: a.status === "PENDING_VERIFICATION" ? "PENDING" : a.status,
-        otHours: a.otHours ?? 0,
-        dayType: a.dayType ?? "FULL_DAY",
-        remarks: a.employerRemark,
-        sitePhoto: a.sitePhoto ? `data:image/jpeg;base64,${a.sitePhoto}` : null
+        status: hr.status,
+        checkIn: a.checkInTime || null,
+        checkOut: a.checkOutTime || null,
+        payroll: {
+          basePay: hr.payroll?.basePay || 0,
+          dailyPay: hr.payroll?.dailyPay || 0,
+          overtimePay: hr.payroll?.overtimePay || 0,
+          bata: hr.payroll?.bata || 0,
+          pfDeduction: hr.payroll?.pfDeduction || 0,
+          esiDeduction: hr.payroll?.esiDeduction || 0,
+          advanceDeduction: hr.payroll?.advanceDeduction || 0,
+          totalDeductions: hr.payroll?.totalDeductions || 0,
+          grossPay: hr.payroll?.grossPay || 0,
+          netPayable: hr.payroll?.netPayable || 0,
+        },
+        sitePhoto: a.sitePhoto ? `data:image/jpeg;base64,${a.sitePhoto}` : null,
       });
     });
-    return Object.values(map);
+
+    return assignments.map((a) => ({
+      workerId: Number(a.workerId),
+      name: profilesMap[a.workerId]?.fullName || "Worker",
+      role: profilesMap[a.workerId]?.primaryJobRole || "Worker",
+      assignment: a,
+      attendance: attendanceMap[Number(a.workerId)] || [],
+    }));
   };
 
   const jobs = useMemo(() => {
-    return jobsFromApi.map(job => ({
+    return jobsFromApi.map((job) => ({
       jobId: `JOB${job.id}`,
       backendJobId: job.id,
       jobTitle: job.jobTitle,
-      location: job.locationName || "Site",
+      fullWorkAddress: job.fullWorkAddress || "",
       managerName: job.managerName,
-      workers: expandedJobId === job.id && attendanceByJob?.length ? buildWorkers(attendanceByJob) : [],
+      City:job.city || "Site",
+      workers:
+        Number(expandedJobId) === Number(job.id)
+          ? buildWorkers(assignmentsByJob, attendanceByJob)
+          : [],
     }));
-  }, [jobsFromApi, attendanceByJob, expandedJobId]);
+  }, [jobsFromApi, assignmentsByJob, attendanceByJob, expandedJobId, profilesMap]);
+
+  if (isJobsLoading) {
+    return (
+      <div className="min-h-screen bg-[#F1F5F9] flex flex-col items-center justify-center">
+        <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Sidebar - Fixed Position */}
-      <div className={cn(
-        "fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out",
-        mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-      )}>
-        <EmployerSidebar
-          isCollapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
+    <div className="min-h-screen bg-[#F1F5F9]">
+      <div className={cn("fixed inset-y-0 left-0 z-[100] transition-all duration-300", mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0")}>
+        <EmployerSidebar isCollapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
 
-      {/* Mobile Overlay */}
       {mobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/20 z-40 lg:hidden" 
-          onClick={() => setMobileMenuOpen(false)}
-        />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[90] lg:hidden" onClick={() => setMobileMenuOpen(false)} />
       )}
 
-      {/* Main Content Area - Adjusted for Fixed Sidebar */}
-      <main className={cn(
-        "transition-all duration-300 min-h-screen",
-        sidebarCollapsed ? "lg:ml-20" : "lg:ml-64",
-        "ml-0" 
-      )}>
-        {/* TOP STICKY BAR */}
-        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-            <h1 className="text-lg lg:text-xl font-black text-slate-900 flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-teal-600" />
-              <span className="hidden sm:inline">Manage Workforce</span>
-            </h1>
+      <main className={cn("transition-all duration-300 min-h-screen flex flex-col", sidebarCollapsed ? "lg:ml-20" : "lg:ml-64")}>
+        <header className="sticky top-0 z-30 bg-white/70 backdrop-blur-xl border-b border-slate-200/60 px-4 lg:px-8 py-4">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button onClick={() => setMobileMenuOpen(true)} className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl">
+                <Menu className="w-6 h-6" />
+              </button>
+              <h1 className="text-lg lg:text-xl font-black text-slate-900 flex items-center gap-2">
+                <LayoutDashboard className="w-5 h-5 text-teal-600" />
+                <span className="hidden sm:inline">Workforce Control</span>
+              </h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="relative group hidden md:block">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search workers..."
+                  className="pl-10 pr-4 py-2 bg-slate-100 rounded-xl text-sm w-48 lg:w-72 outline-none"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <button className="p-2.5 rounded-xl border bg-white relative">
+                <Bell className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto w-full px-4 lg:px-8 py-8 flex-1">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
+            <div>
+              <h2 className="text-teal-600 text-xs font-black uppercase tracking-widest">Operational Overview</h2>
+              <h3 className="text-3xl font-black text-slate-900">Active Sites</h3>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1 bg-white p-1.5 rounded-2xl border">
+                <button onClick={() => changeMonth(-1)} className="p-2"><ChevronLeft className="w-5 h-5" /></button>
+                <span className="font-bold text-xs px-2">{months[currentMonth]} {currentYear}</span>
+                <button onClick={() => changeMonth(1)} className="p-2"><ChevronRight className="w-5 h-5" /></button>
+              </div>
+              <button
+                onClick={() => setShowCustomJob(true)}
+                className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase hover:bg-teal-600 transition-all"
+              >
+                <Plus className="w-4 h-4" /> Create Custom Job
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 lg:gap-4">
-            <div className="relative group hidden md:block">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
-              <input
-                type="text"
-                placeholder="Find a worker..."
-                className="pl-10 pr-4 py-2 bg-slate-100/50 border-transparent border focus:border-teal-500 focus:bg-white rounded-xl text-sm w-48 lg:w-64 outline-none transition-all"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            <div className="relative">
-              <button
-                onClick={() => setShowNotifPanel(!showNotifPanel)}
-                className={cn(
-                  "p-2 lg:p-2.5 rounded-xl transition-all relative",
-                  showNotifPanel ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                )}
-              >
-                <Bell className="w-5 h-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {showNotifPanel && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowNotifPanel(false)} />
-                  <div className="absolute right-0 mt-4 w-[calc(100vw-2rem)] sm:w-96 bg-white border border-slate-200 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in slide-in-from-top-2 duration-200">
-                    <div className="p-5 bg-slate-50 border-b flex justify-between items-center">
-                      <span className="font-bold text-xs uppercase tracking-widest text-slate-500">Live Updates</span>
-                      <button onClick={markAllRead} className="text-[10px] font-black text-teal-600 hover:text-teal-700">MARK ALL AS READ</button>
+          <div className="space-y-6 pb-24">
+            {jobs.map((job) => (
+              <div key={job.jobId} className="bg-white rounded-[2rem] border overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <div
+                  className="p-6 lg:p-8 flex flex-col md:flex-row md:items-center justify-between cursor-pointer"
+                  onClick={() => setExpandedJobId(Number(expandedJobId) === Number(job.backendJobId) ? null : Number(job.backendJobId))}
+                >
+                  <div className="flex items-center gap-5">
+                    <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-colors", Number(expandedJobId) === Number(job.backendJobId) ? "bg-teal-600 text-white" : "bg-slate-50 text-slate-400")}>
+                      <MapPin className="w-6 h-6" />
                     </div>
-                    <div className="max-h-[450px] overflow-y-auto">
-                      {notifications.length > 0 ? (
-                        notifications.map((n) => (
-                          <div key={n.id} className={cn("p-4 border-b last:border-0 flex gap-4 transition-colors", !n.read ? "bg-teal-50/30" : "hover:bg-slate-50")}>
-                            <div className="w-10 h-10 rounded-2xl bg-white border shadow-sm flex items-center justify-center shrink-0">
-                              <Camera className="w-5 h-5 text-teal-500" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs text-slate-600 leading-relaxed">
-                                <span className="font-bold text-slate-900">{n.workerName}</span> {n.message}
-                              </p>
-                              <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{n.time}</span>
-                            </div>
-                            <button onClick={() => removeNotification(n.id)} className="text-slate-300 hover:text-rose-500 transition-colors self-start">
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900">{job.jobTitle}</h3>
+<p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+  {job.fullWorkAddress || job.City || "Site"} • {job.managerName}
+</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 mt-4 md:mt-0">
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const fullJob = await getJob(job.backendJobId);
+                          setSelectedJobForEdit(fullJob);
+                          setEditJobOpen(true);
+                        } catch (error) {
+                          console.error("Failed to fetch job details", error);
+                        }
+                      }}
+                      className="text-xs font-black text-slate-600 hover:text-teal-600 uppercase tracking-wider bg-slate-100 px-4 py-2 rounded-xl transition-colors"
+                    >
+                      ✏️ Edit Job
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedJobId(job.backendJobId);
+                        setManageWorkersOpen(true);
+                      }}
+                      className="flex items-center gap-2 text-xs font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-wider bg-indigo-50 px-4 py-2 rounded-xl transition-colors"
+                    >
+                      <Users className="w-4 h-4" /> Manage Workers
+                    </button>
+                    <ChevronDown className={cn("w-6 h-6 text-slate-400 transition-transform duration-300", Number(expandedJobId) === Number(job.backendJobId) && "rotate-180 text-teal-600")} />
+                  </div>
+                </div>
+
+                {Number(expandedJobId) === Number(job.backendJobId) && (
+                  <div className="px-6 lg:px-8 pb-8 pt-2 bg-slate-50/50">
+                    <div className="bg-white rounded-3xl border p-4">
+                      {job.workers.length === 0 ? (
+                        <div className="py-10 text-center text-slate-400 text-xs font-bold uppercase">No Workers Assigned</div>
                       ) : (
-                        <div className="py-12 text-center">
-                          <CheckCircle2 className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Inbox Zero</p>
+                        <div className="grid grid-cols-1 gap-4">
+                          {job.workers.filter((w) => w.name.toLowerCase().includes(searchQuery.toLowerCase())).map((worker) => (
+                            <WorkerRow key={worker.workerId} worker={worker} viewMonth={currentMonth} viewYear={currentYear} onEditAssignment={(assignment) => { setSelectedAssignment(assignment); setEditOpen(true); }} />
+                          ))}
                         </div>
                       )}
                     </div>
                   </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-6xl mx-auto px-4 lg:px-8 py-6 lg:py-8">
-          {/* HEADER & DATE SELECTOR */}
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8 lg:mb-10">
-            <div>
-              <h2 className="text-teal-600 g:text-3xl font-bold uppercase tracking-widest mb-1">Operational Overview</h2>
-              {/* <h2 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">Active Jobs</h2> */}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm w-full lg:w-fit">
-              <div className="flex items-center flex-1 justify-between lg:justify-start">
-                <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-slate-900">
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                
-                <div className="flex items-center px-2 lg:px-4 gap-2 lg:gap-3">
-                  <Calendar className="w-4 h-4 text-teal-500 hidden sm:block" />
-                  <div className="flex items-center font-black text-[10px] lg:text-xs text-slate-700 uppercase tracking-wider">
-                    <select
-                      value={currentMonth}
-                      onChange={(e) => setViewDate(new Date(currentYear, Number(e.target.value), 1))}
-                      className="bg-transparent appearance-none cursor-pointer outline-none hover:text-teal-600"
-                    >
-                      {months.map((m, i) => <option key={m} value={i}>{m}</option>)}
-                    </select>
-                    <span className="mx-1">/</span>
-                    <select
-                      value={currentYear}
-                      onChange={(e) => setViewDate(new Date(Number(e.target.value), currentMonth, 1))}
-                      className="bg-transparent appearance-none cursor-pointer outline-none hover:text-teal-600"
-                    >
-                      {years.map(y => <option key={y} value={y}>{y}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <button onClick={() => changeMonth(1)} className="p-2 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-slate-900">
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* <StatsOverview stats={stats} /> */}
-
-          {/* PROJECT LIST */}
-          <div className="space-y-4 lg:space-y-6 mt-8 lg:mt-10 pb-24">
-            {jobs.map(job => (
-              <div key={job.jobId} className="group relative">
-                <div className={cn(
-                  "bg-white rounded-2xl lg:rounded-[2rem] border transition-all duration-300 overflow-hidden",
-                  expandedJobId === job.backendJobId 
-                    ? "border-teal-200 shadow-xl ring-4 ring-teal-500/5" 
-                    : "border-slate-200 shadow-sm hover:border-teal-300 hover:shadow-md"
-                )}>
-                  <div
-                    className="p-5 lg:p-8 flex flex-col md:flex-row md:items-center justify-between gap-4 lg:gap-6 cursor-pointer"
-                    onClick={() => setExpandedJobId(expandedJobId === job.backendJobId ? null : job.backendJobId)}
-                  >
-                    <div className="flex items-center gap-4 lg:gap-6">
-                      <div className={cn(
-                        "w-12 h-12 lg:w-16 lg:h-16 rounded-2xl lg:rounded-3xl flex items-center justify-center transition-colors shrink-0",
-                        expandedJobId === job.backendJobId ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-500 group-hover:bg-teal-50 group-hover:text-teal-600"
-                      )}>
-                        <MapPin className="w-6 h-6 lg:w-8 lg:h-8" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-lg lg:text-xl font-black text-slate-900 tracking-tight group-hover:text-teal-600 transition-colors truncate">{job.jobTitle}</h3>
-                        <div className="flex flex-wrap items-center gap-2 lg:gap-4 mt-1 font-bold text-[10px] lg:text-[11px] uppercase tracking-widest">
-                          <span className="text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location}</span>
-                          <span className="hidden sm:block w-1 h-1 rounded-full bg-slate-300" />
-                          <span className="text-teal-500">Manager: {job.managerName}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between md:justify-end gap-4 lg:gap-8 border-t md:border-t-0 pt-4 md:pt-0">
-                      <div className="text-left md:text-right">
-                        <div className="flex items-center gap-2 justify-start md:justify-end">
-                          <Users className="w-4 h-4 text-slate-400" />
-                          <span className="text-xs lg:text-sm font-black text-slate-900">{expandedJobId === job.backendJobId ? job.workers.length : "--"} Workers</span>
-                        </div>
-                        <p className="text-[9px] lg:text-[10px] font-bold text-emerald-500 uppercase mt-0.5 tracking-tighter">● Attendance active</p>
-                      </div>
-                      <div className={cn(
-                        "w-8 h-8 lg:w-10 lg:h-10 rounded-full flex items-center justify-center transition-all border shrink-0",
-                        expandedJobId === job.backendJobId ? "bg-slate-900 border-slate-900 text-white rotate-180" : "bg-white border-slate-200 text-slate-400"
-                      )}>
-                        <ChevronDown className="w-4 h-4 lg:w-5 lg:h-5" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {expandedJobId === job.backendJobId && (
-                    <div className="px-4 lg:px-8 pb-5 lg:pb-8 pt-2 bg-slate-50/50">
-                      <div className="bg-white rounded-2xl lg:rounded-3xl border border-slate-200 p-1 lg:p-2 space-y-2 shadow-inner overflow-x-auto">
-                        {job.workers.length === 0 ? (
-                          <div className="py-10 lg:py-12 text-center">
-                            <Briefcase className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-                            <p className="text-xs lg:text-sm text-slate-400 font-bold uppercase tracking-widest">No Active Records Found</p>
-                          </div>
-                        ) : (
-                          <div className="min-w-[600px] lg:min-w-0">
-                            {job.workers
-                              .filter(w =>
-                                w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                w.workerId.toLowerCase().includes(searchQuery.toLowerCase())
-                              )
-                              .map(worker => (
-                                <WorkerRow
-                                  key={worker.workerId}
-                                  worker={worker}
-                                  viewMonth={currentMonth}
-                                  viewYear={currentYear}
-                                  viewDay={selectedDay}
-                                />
-                              ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             ))}
           </div>
         </div>
+
+        <EditAssignmentDrawer open={editOpen} assignment={selectedAssignment} onClose={() => setEditOpen(false)} onSaved={() => { queryClient.invalidateQueries(["assignments", expandedJobId]); queryClient.invalidateQueries(["attendance", expandedJobId]); setEditOpen(false); }} />
+        
+        <ManageWorkersDrawer open={manageWorkersOpen} jobId={selectedJobId} employerId={employerId} onClose={() => setManageWorkersOpen(false)} />
+
+        {/* CREATE DRAWER */}
+        {showCustomJob && (
+          <div className="fixed inset-0 z-[120] flex justify-end">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCustomJob(false)} />
+            <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl p-8 overflow-y-auto">
+              <CustomJobManager mode="CREATE" onSuccess={() => { setShowCustomJob(false); queryClient.invalidateQueries(["employerJobs"]); }} />
+            </div>
+          </div>
+        )}
+
+        {/* ✅ STEP 5: EDIT DRAWER */}
+        {editJobOpen && (
+          <div className="fixed inset-0 z-[120] flex justify-end">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setEditJobOpen(false)} />
+            <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl p-8 overflow-y-auto">
+              <CustomJobManager
+                mode="EDIT"
+                jobId={selectedJobForEdit?.id}
+                initialData={selectedJobForEdit}
+                onSuccess={() => {
+                  setEditJobOpen(false);
+                  queryClient.invalidateQueries(["employerJobs"]);
+                }}
+              />
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

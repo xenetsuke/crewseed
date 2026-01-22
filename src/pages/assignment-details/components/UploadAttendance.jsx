@@ -1,58 +1,47 @@
 import React, { useRef, useState } from "react";
-import { Camera, CheckCircle2, Upload } from "lucide-react";
-import heic2any from "heic2any";
+import { Camera } from "lucide-react";
 
 const UploadAttendance = ({ status, onUpload }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const fileInputRef = useRef(null);
 
-  const canUpload = status === "NOT_STARTED" && !uploadSuccess;
+  const canUpload = status === "NOT_STARTED" || uploadSuccess;
 
-  const convertIfHeic = async (file) => {
-    const isHeic =
-      file.type === "image/heic" ||
-      file.type === "image/heif" ||
-      file.name.toLowerCase().endsWith(".heic");
+  const handleButtonClick = () => {
+    if (uploadSuccess) {
+      const confirmReplace = window.confirm(
+        "A photo is already uploaded. Do you want to replace it?"
+      );
+      if (!confirmReplace) return;
+    }
 
-    if (!isHeic) return file;
-
-    const jpegBlob = await heic2any({
-      blob: file,
-      toType: "image/jpeg",
-      quality: 0.9,
-    });
-
-    return new File([jpegBlob], "attendance.jpg", {
-      type: "image/jpeg",
-      lastModified: Date.now(),
-    });
+    fileInputRef.current?.click();
   };
 
-  const handleFileSelect = async (e) => {
-    let file = e.target.files?.[0];
+  const handleFileSelect = async (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
+
+    const confirmUpload = window.confirm(
+      "Do you want to upload this attendance photo?"
+    );
+    if (!confirmUpload) {
+      event.target.value = "";
+      return;
+    }
 
     setUploading(true);
 
     try {
-      file = await convertIfHeic(file);
-
-      console.log("📸 Uploading file:", {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-      });
-
-      if (!file.size) throw new Error("EMPTY_FILE_FROM_IOS");
-
       await onUpload(file);
       setUploadSuccess(true);
     } catch (err) {
       console.error("❌ Upload failed", err);
-      alert("Photo upload failed. Please retry.");
+      alert("Upload failed. Please retry.");
     } finally {
       setUploading(false);
+      event.target.value = "";
     }
   };
 
@@ -68,29 +57,23 @@ const UploadAttendance = ({ status, onUpload }) => {
 
       <button
         disabled={!canUpload || uploading}
-        onClick={() => fileInputRef.current.click()}
-        className={`w-full py-3 rounded-xl font-black flex gap-2 justify-center
-          ${
-            uploadSuccess
-              ? "bg-emerald-600 text-white"
-              : !canUpload
-              ? "bg-slate-200 text-slate-500"
-              : "bg-indigo-600 text-white hover:bg-indigo-700"
-          }`}
+        onClick={handleButtonClick}
+        className={`w-full py-3 rounded-xl font-black flex items-center justify-center gap-2 ${
+          uploadSuccess
+            ? "bg-emerald-600 text-white"
+            : uploading
+            ? "bg-slate-400 text-white"
+            : !canUpload
+            ? "bg-slate-200 text-slate-500"
+            : "bg-indigo-600 text-white"
+        }`}
       >
-        {uploadSuccess ? (
-          <>
-            <CheckCircle2 /> Uploaded
-          </>
-        ) : uploading ? (
-          <>
-            <Upload className="animate-pulse" /> Uploading...
-          </>
-        ) : (
-          <>
-            <Camera /> Upload Site Photo
-          </>
-        )}
+        <Camera className="w-4 h-4" />
+        {uploadSuccess
+          ? "Replace Photo"
+          : uploading
+          ? "Uploading..."
+          : "Upload Site Photo"}
       </button>
     </>
   );
