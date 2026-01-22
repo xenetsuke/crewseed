@@ -13,9 +13,9 @@ export const checkOut = (assignmentId) =>
 export const uploadSitePhoto = (attendanceId, formData) =>
   axiosInstance.post(
     `/attendance/upload-photo/${attendanceId}`,
-    formData,
-  
+    formData
   );
+
 
 export const resetAttendance = (attendanceId) =>
   axiosInstance.post(`/attendance/reset/${attendanceId}`);
@@ -42,3 +42,11 @@ export const approveAttendance = (attendanceId, approve, remark) =>
   axiosInstance.post(
     `/attendance/approve/${attendanceId}?approve=${approve}&remark=${remark || ""}`
   );
+
+
+  export const updateHrPayroll = (attendanceId, payroll) => {
+  return axiosInstance.post(
+    `/attendance/hr-payroll/${attendanceId}`,
+    payroll
+  );
+};
