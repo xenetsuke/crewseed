@@ -33,8 +33,15 @@ const WorkerAttendanceHR = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showCustomJob, setShowCustomJob] = useState(false);
+  const [frontendUpdateFlag, setFrontendUpdateFlag] = useState(0);
+
   const queryClient = useQueryClient();
-  queryClient.invalidateQueries(["attendance", expandedJobId]);
+useEffect(() => {
+  if (expandedJobId) {
+    queryClient.invalidateQueries(["attendance", expandedJobId]);
+    queryClient.invalidateQueries(["assignments", expandedJobId]);
+  }
+}, [frontendUpdateFlag, expandedJobId]);
 
   // EDIT JOB STATES
   const [editJobOpen, setEditJobOpen] = useState(false);
@@ -287,7 +294,19 @@ const WorkerAttendanceHR = () => {
                       ) : (
                         <div className="grid grid-cols-1 gap-4">
                           {job.workers.filter((w) => w.name.toLowerCase().includes(searchQuery.toLowerCase())).map((worker) => (
-                            <WorkerRow key={worker.workerId} worker={worker} viewMonth={currentMonth} viewYear={currentYear} onEditAssignment={(assignment) => { setSelectedAssignment(assignment); setEditOpen(true); }} />
+<WorkerRow
+  key={worker.workerId}
+  worker={worker}
+  viewMonth={currentMonth}
+  viewYear={currentYear}
+  onEditAssignment={(assignment) => {
+    setSelectedAssignment(assignment);
+    setEditOpen(true);
+  }}
+  onAttendanceUpdated={() => {
+    setFrontendUpdateFlag((prev) => prev + 1);
+  }}
+/>
                           ))}
                         </div>
                       )}

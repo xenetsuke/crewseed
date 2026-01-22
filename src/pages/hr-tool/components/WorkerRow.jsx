@@ -11,26 +11,35 @@ const WorkerRow = ({
   onEditAssignment,
   viewMonth,
   viewYear,
-  onGeneratePayroll,
-  onLockPayroll,
+  onAttendanceUpdated, // ✅ ADD THIS
 }) => {
+
+
   if (!worker) return null;
   const assignmentId = worker.assignment?.id;
 
-  const [attendanceRecords, setAttendanceRecords] = useState(
-    worker.attendance || []
-  );
+  // const [attendanceRecords, setAttendanceRecords] = useState(
+  //   worker.attendance || []
+  // );
   const [showLogs, setShowLogs] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [hoveredDay, setHoveredDay] = useState(null);
+const [isDirty, setIsDirty] = useState(false);
 
   const currentMonth = viewMonth;
   const currentYear = viewYear;
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  
+// useEffect(() => {
+//   if (!isDirty) {
+//     setAttendanceRecords(worker.attendance || []);
+//   }
+// }, [worker.attendance, isDirty]);
 
-  useEffect(() => {
-    setAttendanceRecords(worker.attendance || []);
-  }, [worker.attendance]);
+  // useEffect(() => {
+  //   setAttendanceRecords(worker.attendance || []);
+  // }, [worker.attendance]);
+const attendanceRecords = worker.attendance || [];
 
   // ✅ SINGLE PAYROLL SOURCE (HR SNAPSHOT)
   const effectivePayroll = useMemo(() => {
@@ -175,11 +184,11 @@ const downloadPayrollChit = () => {
   };
 
   const handleAttendanceStatusChange = (attendanceId, newStatus) => {
-    setAttendanceRecords((prev) =>
-      prev.map((a) =>
-        a.attendanceId === attendanceId ? { ...a, status: newStatus } : a
-      )
-    );
+    // setAttendanceRecords((prev) =>
+    //   prev.map((a) =>
+    //     a.attendanceId === attendanceId ? { ...a, status: newStatus } : a
+    //   )
+    // );
   };
 
   const getDayInfo = (day) => {
@@ -345,11 +354,13 @@ const downloadPayrollChit = () => {
 
       {showLogs && (
         <div className="border-t border-slate-100 bg-slate-50/30 animate-in slide-in-from-top-2 duration-300">
-          <AttendanceLog
-            logs={fullMonthLogs}
-            highlightedDay={selectedDay}
-            onStatusUpdate={handleAttendanceStatusChange}
-          />
+      <AttendanceLog
+  logs={fullMonthLogs}
+  highlightedDay={selectedDay}
+  onStatusUpdate={handleAttendanceStatusChange}
+  onRefresh={onAttendanceUpdated}
+/>
+
         </div>
       )}
     </div>
