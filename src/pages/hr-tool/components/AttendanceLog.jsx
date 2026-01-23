@@ -363,27 +363,29 @@ const copyToClipboard = (text) => {
                   {(log.status === "NOT_STARTED" || log.status === "PENDING_VERIFICATION") && (
                     <button
                       disabled={isRefreshing || isCopying}
-                      onClick={async () => {
-                        try {
-                          // 1. Set Loading State
-                          setProcessingId(`${log.attendanceId}-copy`);
-                          
-                          // 2. Artificial 3 second delay
-                          await new Promise(resolve => setTimeout(resolve, 3000));
+                    onClick={async () => {
+  try {
+    const res = await generateAttendancePhotoLink(log.attendanceId);
+    const { uploadUrl } = res.data;
 
-                          // 3. API Call
-                          const res = await generateAttendancePhotoLink(log.attendanceId);
-                          const { uploadUrl, expiresAt } = res.data;
-                          
-                          // 4. Copy and Show Success
-await copyToClipboard(uploadUrl);
-                          toast.success("Copy Successful"); // Changed message as requested
-                        } catch (err) {
-                          toast.error("Failed to generate photo link");
-                        } finally {
-                          setProcessingId(null);
-                        }
-                      }}
+    // ✅ BEST MOBILE SOLUTION
+    if (navigator.share) {
+      await navigator.share({
+        title: "Attendance Photo Upload",
+        text: "Upload your attendance photo using this link",
+        url: uploadUrl,
+      });
+      toast.success("Share opened");
+      return;
+    }
+
+    // Fallback (desktop only)
+    window.open(uploadUrl, "_blank");
+  } catch (err) {
+    toast.error("Failed to generate photo link");
+  }
+}}
+
                       className={cn(
                         "w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 touch-manipulation transition-colors",
                         isCopying ? "bg-indigo-50 text-indigo-600" : "bg-indigo-600 hover:bg-indigo-700 text-white"
