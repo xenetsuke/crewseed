@@ -82,6 +82,34 @@ const AttendanceLog = ({
       },
     }));
   };
+// ✅ MOBILE-SAFE CLIPBOARD COPY (FIXES PERMISSION + MOBILE ISSUE)
+const copyToClipboard = (text) => {
+  try {
+    // Modern browsers (desktop)
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+
+    // 🔥 Fallback for mobile & in-app browsers
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.top = "-9999px";
+    textarea.style.left = "-9999px";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    const success = document.execCommand("copy");
+    document.body.removeChild(textarea);
+
+    if (!success) throw new Error("Copy failed");
+    return Promise.resolve();
+  } catch (err) {
+    return Promise.reject(err);
+  }
+};
 
   // The "Submit" action - Sends data to API and shows Toast
   const submitPayrollChanges = async (log, mergedPayroll) => {
@@ -348,7 +376,7 @@ const AttendanceLog = ({
                           const { uploadUrl, expiresAt } = res.data;
                           
                           // 4. Copy and Show Success
-                          await navigator.clipboard.writeText(uploadUrl);
+await copyToClipboard(uploadUrl);
                           toast.success("Copy Successful"); // Changed message as requested
                         } catch (err) {
                           toast.error("Failed to generate photo link");
