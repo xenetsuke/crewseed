@@ -19,6 +19,8 @@ const EditAssignmentDrawer = ({ open, onClose, assignment, onSaved ,}) => {
       // workerRole: assignment.workerRole || "",
       remarks: assignment.remarks || "",
 
+  shiftStartTime: assignment.shiftStartTime?.substring(0,5) || "",
+  shiftEndTime: assignment.shiftEndTime?.substring(0,5) || "",
       payroll: {
         basePay: assignment.payroll?.basePay ?? 0,
         dailyPay: assignment.payroll?.dailyPay ?? 0,
@@ -48,21 +50,28 @@ const EditAssignmentDrawer = ({ open, onClose, assignment, onSaved ,}) => {
       },
     }));
   };
+const updateShift = (field, value) => {
+  setForm((f) => ({
+    ...f,
+    [field]: value ? `${value}:00` : null,
+  }));
+};
 
   /* ===============================
      SAVE (AssignmentDTO)
   =============================== */
-  const handleSave = async () => {
-    try {
-      await updateAssignment(form);
-      toast.success("Assignment updated successfully");
-      onSaved?.();
-      onClose();
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to update assignment");
-    }
-  };
+const handleSave = async () => {
+  try {
+    await updateAssignment(form);
+    toast.success("Assignment updated successfully");
+    onSaved?.();
+    onClose();
+  } catch (e) {
+    console.error(e);
+    toast.error("Failed to update assignment");
+  }
+};
+
 
   return (
     <>
@@ -97,6 +106,26 @@ const EditAssignmentDrawer = ({ open, onClose, assignment, onSaved ,}) => {
               setForm({ ...form, remarks: e.target.value })
             }
           />
+<div className="border-t pt-4 space-y-4">
+  <h3 className="text-sm font-black uppercase text-slate-600">
+    Shift Timing (Applies to next attendance)
+  </h3>
+
+ <Input
+  label="Shift Start Time"
+  type="time"
+  value={form.shiftStartTime?.substring(0,5) || ""}
+  onChange={(e) => updateShift("shiftStartTime", e.target.value)}
+/>
+
+<Input
+  label="Shift End Time"
+  type="time"
+  value={form.shiftEndTime?.substring(0,5) || ""}
+  onChange={(e) => updateShift("shiftEndTime", e.target.value)}
+/>
+
+</div>
 
           {/* PAYROLL */}
           <div className="border-t pt-4 space-y-4">
@@ -122,23 +151,23 @@ const EditAssignmentDrawer = ({ open, onClose, assignment, onSaved ,}) => {
               }
             />
 
-            <Input
+            {/* <Input
               label="Overtime Pay"
               type="number"
               value={form.payroll.overtimePay}
               onChange={(e) =>
                 handlePayrollChange("overtimePay", Number(e.target.value))
               }
-            />
+            /> */}
 
-            <Input
+            {/* <Input
               label="Bata / Allowance"
               type="number"
               value={form.payroll.bata}
               onChange={(e) =>
                 handlePayrollChange("bata", Number(e.target.value))
               }
-            />
+            /> */}
 
             <Input
               label="PF Deduction"
@@ -157,7 +186,7 @@ const EditAssignmentDrawer = ({ open, onClose, assignment, onSaved ,}) => {
                 handlePayrollChange("esiDeduction", Number(e.target.value))
               }
             />
-
+{/* 
             <Input
               label="Advance Deduction"
               type="number"
@@ -165,7 +194,7 @@ const EditAssignmentDrawer = ({ open, onClose, assignment, onSaved ,}) => {
               onChange={(e) =>
                 handlePayrollChange("advanceDeduction", Number(e.target.value))
               }
-            />
+            /> */}
           </div>
         </div>
 

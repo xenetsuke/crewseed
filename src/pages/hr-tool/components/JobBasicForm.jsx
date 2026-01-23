@@ -12,7 +12,7 @@ import {
   Clock
 } from "lucide-react";
 
-// ✅ Helper component outside to prevent focus loss
+// ✅ FIX 1: Nullish coalescing used (value ?? "") to preserve 0
 const FormField = ({ label, name, type = "text", placeholder, icon: Icon, value, onChange }) => (
   <div className="flex flex-col gap-1.5">
     <label className="text-sm font-semibold text-slate-700 ml-1">
@@ -26,7 +26,7 @@ const FormField = ({ label, name, type = "text", placeholder, icon: Icon, value,
         name={name}
         type={type}
         placeholder={placeholder}
-        value={value || ""}
+        value={value ?? ""}
         onChange={onChange}
         className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
       />
@@ -36,40 +36,51 @@ const FormField = ({ label, name, type = "text", placeholder, icon: Icon, value,
 
 const JobBasicForm = ({ data, setData }) => {
   
-  // 🔍 Sync payroll.basePay when baseWageAmount changes
+  // ✅ FIX 3: Removed implicit syncing to 0. Only syncs if baseWageAmount has a value.
   useEffect(() => {
-    if (data.baseWageAmount !== data.payroll?.basePay) {
+    if (
+      data.baseWageAmount != null && 
+      data.baseWageAmount !== data.payroll?.basePay
+    ) {
       setData(prev => ({
         ...prev,
         payroll: {
-          ...prev.payroll,
-          basePay: prev.baseWageAmount,
+          ...(prev.payroll || {}),
+          basePay: data.baseWageAmount,
         },
       }));
     }
   }, [data.baseWageAmount, setData]);
 
-  // 🛠️ Enhanced handleChange to support nested payroll fields
+  // ✅ FIX 2: Enhanced handleChange with Number normalization and empty string handling
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     
     setData((prev) => {
-      // Handle nested payroll fields (e.g., name="payroll.dailyPay")
+      // -------------------------------
+      // PAYROLL FIELDS (Nested)
+      // -------------------------------
       if (name.startsWith("payroll.")) {
         const key = name.split(".")[1];
         return {
           ...prev,
           payroll: {
             ...(prev.payroll || {}),
-            [key]: value,
+            [key]: type === "number" 
+                   ? (value === "" ? null : Number(value)) 
+                   : value,
           },
         };
       }
 
-      // Handle root level fields
+      // -------------------------------
+      // ROOT LEVEL FIELDS
+      // -------------------------------
       return {
         ...prev,
-        [name]: value,
+        [name]: type === "number" 
+                ? (value === "" ? null : Number(value)) 
+                : value,
       };
     });
   };
@@ -104,14 +115,6 @@ const JobBasicForm = ({ data, setData }) => {
               value={data.companyName} 
               onChange={handleChange}
             />
-            {/* <FormField 
-              label="Location" 
-              name="fullWorkAddress" 
-              placeholder="e.g. Gorakhpur" 
-              icon={Building2} 
-              value={data.fullWorkAddress} 
-              onChange={handleChange}
-            /> */}
             <FormField 
               label="Manager Name" 
               name="managerName" 
@@ -126,14 +129,12 @@ const JobBasicForm = ({ data, setData }) => {
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Clock size={18}/></div>
                 <select
                   name="paymentFrequency"
-                  value={data.paymentFrequency || "DAILY"}
+                  value={data.paymentFrequency || "MONTHLY"}
                   onChange={handleChange}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
                 >
-                  {/* <option value="DAILY">Daily</option> */}
                   <option value="MONTHLY">Monthly</option>
-                  {/* <option value="HOURLY">Hourly</option> */}
-                  {/* <option value="YEARLY">Yearly</option> */}
+                  <option value="DAILY">Daily</option>
                 </select>
               </div>
             </div>
@@ -155,22 +156,22 @@ const JobBasicForm = ({ data, setData }) => {
         <section>
           <div className="flex items-center gap-2 mb-4 text-slate-500">
             <Wallet size={16} />
-            <span className="text-xs font-bold uppercase tracking-wider">Earnings & Allowances(Updated for all Workers)</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Earnings & Allowances</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <FormField label="Daily Pay" name="payroll.dailyPay" type="number" placeholder="0.00" icon={IndianRupee} value={data.payroll?.dailyPay} onChange={handleChange} />
-            <FormField label="Overtime Pay" name="payroll.overtimePay" type="number" placeholder="0.00" icon={IndianRupee} value={data.payroll?.overtimePay} onChange={handleChange} />
-            <FormField label="Bata / Allowance" name="payroll.bata" type="number" placeholder="0.00" icon={IndianRupee} value={data.payroll?.bata} onChange={handleChange} />
+            {/* <FormField label="Overtime Pay" name="payroll.overtimePay" type="number" placeholder="0.00" icon={IndianRupee} value={data.payroll?.overtimePay} onChange={handleChange} /> */}
+            {/* <FormField label="Bata / Allowance" name="payroll.bata" type="number" placeholder="0.00" icon={IndianRupee} value={data.payroll?.bata} onChange={handleChange} /> */}
           </div>
 
           <div className="flex items-center gap-2 mb-4 mt-8 text-slate-500">
             <MinusCircle size={16} />
             <span className="text-xs font-bold uppercase tracking-wider">Standard Deductions</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField label="PF Deduction" name="payroll.pfDeduction" type="number" placeholder="0.00" icon={Hash} value={data.payroll?.pfDeduction} onChange={handleChange} />
             <FormField label="ESI Deduction" name="payroll.esiDeduction" type="number" placeholder="0.00" icon={Hash} value={data.payroll?.esiDeduction} onChange={handleChange} />
-            <FormField label="Advance Recovery" name="payroll.advanceDeduction" type="number" placeholder="0.00" icon={Hash} value={data.payroll?.advanceDeduction} onChange={handleChange} />
+            {/* <FormField label="Advance Recovery" name="payroll.advanceDeduction" type="number" placeholder="0.00" icon={Hash} value={data.payroll?.advanceDeduction} onChange={handleChange} /> */}
           </div>
         </section>
 
