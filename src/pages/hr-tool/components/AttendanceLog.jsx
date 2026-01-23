@@ -9,7 +9,8 @@ import {
   Coins,
   Save,
   Loader,
-  ExternalLink
+  ExternalLink,
+  Check // Imported Check icon for success state visual
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { approveAttendance, resetAttendance, updateHrPayroll, generateAttendancePhotoLink } from "Services/AttendanceService";
@@ -62,11 +63,11 @@ const AttendanceLog = ({
     if (highlightedDay && logRefs.current[highlightedDay]) {
       logRefs.current[highlightedDay].scrollIntoView({
         behavior: "smooth",
-        block: "nearest",
+        block: "center", // Changed to center for vertical view
         inline: "center",
       });
     }
-  }, [highlightedDay]); // <--- CHANGED: Removed 'logs' so it doesn't jump on save
+  }, [highlightedDay]); 
 
   // Handles local UI updates (Plus/Minus) without API call
   const handleLocalUpdate = (attendanceId, field, delta, currentPayroll) => {
@@ -145,17 +146,23 @@ const AttendanceLog = ({
   return (
     <div className="bg-slate-50/50 md:p-4 border-t border-slate-100">
       {/* Mobile Changes: 
-         - snap-x snap-mandatory: Enables carousel-like scrolling on mobile
-         - scroll-pl-4: Sets left padding for the snap area
-         - gap-3: Tighter gap on mobile
+           - Changed to flex-col for vertical optimization
+           - Removed snap-x/overflow-x for mobile, kept for larger screens if needed
+           - w-full for cards
       */}
-      <div className="flex overflow-x-auto gap-3 py-4 px-4 snap-x snap-mandatory scroll-pl-4 no-scrollbar sm:gap-6 sm:px-2">
+<div className="
+  flex flex-row gap-4
+  overflow-x-auto py-4 px-4
+  snap-x snap-mandatory
+  no-scrollbar
+">
         {logs.map((log) => {
           const dateObj = new Date(log.date);
           const dayNum = dateObj.getDate();
           const ui = STATUS_UI[log.status] || STATUS_UI.EMPTY;
           
           const isProcessing = String(processingId).startsWith(log.attendanceId);
+          const isCopying = processingId === `${log.attendanceId}-copy`; // Specific loading state for copying
           const isRefreshing = refreshingId === log.attendanceId; 
 
           const isApproved = log.status === "APPROVED";
@@ -179,14 +186,15 @@ const AttendanceLog = ({
               key={log.attendanceId || dayNum}
               ref={(el) => (logRefs.current[dayNum] = el)}
               /* Mobile Changes:
-                 - min-w-[88vw]: Takes up most of the mobile screen width
-                 - snap-center: Locks the card to center of screen when scrolling stops
+                  - w-full: Full width vertical stacking
+                  - sm:min-w-[320px]: Keep card size on desktop
               */
-              className={cn(
-                "min-w-[88vw] sm:min-w-[320px] snap-center bg-white border rounded-2xl p-4 shadow-sm relative transition-all duration-300",
-                highlightedDay === dayNum ? "ring-2 ring-blue-500 border-transparent scale-[1.02]" : "border-slate-200",
-                isProcessing && "ring-1 ring-slate-100 opacity-90"
-              )}
+           className={cn(
+  "min-w-[300px] sm:min-w-[340px] snap-center bg-white border rounded-2xl p-4 shadow-sm relative transition-all duration-300",
+  highlightedDay === dayNum ? "ring-2 ring-blue-500 border-transparent scale-[1.01]" : "border-slate-200",
+  isProcessing && "ring-1 ring-slate-100 opacity-90"
+)}
+
             >
               <div className={cn("absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl transition-colors duration-500", ui.stripe)} />
 
@@ -326,21 +334,44 @@ const AttendanceLog = ({
                   {/* 🔗 SEND PHOTO LINK (HR ONLY) */}
                   {(log.status === "NOT_STARTED" || log.status === "PENDING_VERIFICATION") && (
                     <button
-                      disabled={isRefreshing}
+                      disabled={isRefreshing || isCopying}
                       onClick={async () => {
                         try {
+                          // 1. Set Loading State
+                          setProcessingId(`${log.attendanceId}-copy`);
+                          
+                          // 2. Artificial 3 second delay
+                          await new Promise(resolve => setTimeout(resolve, 3000));
+
+                          // 3. API Call
                           const res = await generateAttendancePhotoLink(log.attendanceId);
                           const { uploadUrl, expiresAt } = res.data;
+                          
+                          // 4. Copy and Show Success
                           await navigator.clipboard.writeText(uploadUrl);
-                          toast.success(`Photo link copied!\nExpires: ${new Date(expiresAt).toLocaleString("en-IN")}`);
+                          toast.success("Copy Successful"); // Changed message as requested
                         } catch (err) {
                           toast.error("Failed to generate photo link");
+                        } finally {
+                          setProcessingId(null);
                         }
                       }}
-                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 touch-manipulation"
+                      className={cn(
+                        "w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 touch-manipulation transition-colors",
+                        isCopying ? "bg-indigo-50 text-indigo-600" : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                      )}
                     >
-                      <ExternalLink className="w-4 h-4" />
-                      Photo Link
+                      {isCopying ? (
+                         <>
+                           <Loader className="w-4 h-4 animate-spin" />
+                           Generating...
+                         </>
+                      ) : (
+                        <>
+                          <ExternalLink className="w-4 h-4" />
+                          Photo Link
+                        </>
+                      )}
                     </button>
                   )}
 
