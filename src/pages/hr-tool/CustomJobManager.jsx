@@ -16,6 +16,8 @@ const CustomJobManager = ({
   jobId,
   initialData,
   onSuccess,
+    onClose,          // ✅ ADD THIS
+
 }) => {
   // ✅ STEP 3: GUARD RENDER
   if (mode === "EDIT" && !initialData) {
@@ -100,6 +102,13 @@ const [jobData, setJobData] = useState(() => ({
     console.table(jobData);
     console.groupEnd();
   }, [jobData]);
+const handleClose = () => {
+  if (JSON.stringify(jobData) !== JSON.stringify(initialData ?? {})) {
+    const ok = window.confirm("Discard unsaved changes?");
+    if (!ok) return;
+  }
+  onClose?.();
+};
 
   /* ===============================
      CREATE
@@ -132,25 +141,45 @@ const [jobData, setJobData] = useState(() => ({
   /* ===============================
      EDIT
   =============================== */
-  const handleEdit = async (editPayload) => {
-    console.group("✏️ EDIT JOB");
-    console.log("Job ID:", jobId);
-    console.log("Edit payload:", editPayload);
-    console.groupEnd();
-
-    try {
-      await editCustomJob(jobId, editPayload);
-      console.log("✅ Job updated successfully");
-      alert("Job updated safely");
-      onSuccess?.();
-    } catch (err) {
-      console.error("❌ Edit job failed", err);
-    }
+const handleEdit = async (editPayload) => {
+  const payload = {
+    ...editPayload,
+    shiftStartTime: normalizeTime(editPayload.shiftStartTime),
+    shiftEndTime: normalizeTime(editPayload.shiftEndTime),
   };
+
+  console.group("✏️ EDIT JOB (NORMALIZED)");
+  console.log(payload);
+  console.groupEnd();
+
+  try {
+const employerId = JSON.parse(localStorage.getItem("user"))?.id;
+
+await editCustomJob(employerId, jobId, payload);
+    alert("Job updated safely");
+    onSuccess?.();
+  } catch (err) {
+    console.error("❌ Edit job failed", err);
+  }
+};
+
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-black">HR Custom Job Tool</h1>
+<div className="flex items-center justify-between">
+  <h1 className="text-3xl font-black">
+    {mode === "CREATE" ? "Create Custom Job" : "Edit Job"}
+  </h1>
+
+<button
+  onClick={handleClose}
+  className="rounded-xl p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 transition"
+  aria-label="Close"
+>
+  ✕
+</button>
+
+</div>
 
       {/* 🔍 CHILD PROPS LOG */}
       {console.log("➡️ Passing jobData to JobBasicForm", jobData)}

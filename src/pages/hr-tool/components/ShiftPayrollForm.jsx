@@ -9,7 +9,13 @@ import {
 } from "lucide-react";
 
 const ShiftPayrollForm = ({ data, setData, attendanceLocked = false }) => {
-  
+  const stripSeconds = (t) => (t ? t.slice(0, 5) : "");
+
+const normalizeTime = (t) => {
+  if (!t) return null;
+  return t.length === 5 ? `${t}:00` : t;
+};
+
   /**
    * ✅ FORMATTER: Converts "09:30" -> "9:30 AM"
    * Business Rule: Data remains "HH:mm", UI shows "12h"
@@ -29,9 +35,13 @@ const ShiftPayrollForm = ({ data, setData, attendanceLocked = false }) => {
     }
   };
 
-  const updateShift = (field, value) => {
-    setData((d) => ({ ...d, [field]: value }));
-  };
+const updateShift = (field, value) => {
+  setData((d) => ({
+    ...d,
+    [field]: value ? `${value}:00` : null,
+  }));
+};
+
 
   const updatePayroll = (field, value) => {
     setData((d) => ({
@@ -49,7 +59,7 @@ const ShiftPayrollForm = ({ data, setData, attendanceLocked = false }) => {
             <Clock size={24} />
           </div>
           <div>
-            <h2 className="text-xl font-black text-slate-900">Shift Schedule</h2>
+            <h2 className="text-xl font-black text-slate-900">Shift Schedule(Any update be will reflected from next shifts)</h2>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">IST Business Hours</p>
           </div>
         </div>
@@ -78,7 +88,7 @@ const ShiftPayrollForm = ({ data, setData, attendanceLocked = false }) => {
               <input
                 type="time"
                 disabled={attendanceLocked}
-                value={data.shiftStartTime || ""}
+value={data.shiftStartTime?.substring(0, 5) || ""}
                 onChange={(e) => updateShift("shiftStartTime", e.target.value)}
                 className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-lg font-bold text-slate-800 focus:bg-white focus:border-indigo-500 outline-none transition-all disabled:opacity-50"
               />
@@ -95,7 +105,7 @@ const ShiftPayrollForm = ({ data, setData, attendanceLocked = false }) => {
               <input
                 type="time"
                 disabled={attendanceLocked}
-                value={data.shiftEndTime || ""}
+value={data.shiftEndTime?.substring(0, 5) || ""}
                 onChange={(e) => updateShift("shiftEndTime", e.target.value)}
                 className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-lg font-bold text-slate-800 focus:bg-white focus:border-indigo-500 outline-none transition-all disabled:opacity-50"
               />

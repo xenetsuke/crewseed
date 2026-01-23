@@ -320,17 +320,27 @@ useEffect(() => {
 
         <EditAssignmentDrawer open={editOpen} assignment={selectedAssignment} onClose={() => setEditOpen(false)} onSaved={() => { queryClient.invalidateQueries(["assignments", expandedJobId]); queryClient.invalidateQueries(["attendance", expandedJobId]); setEditOpen(false); }} />
         
-        <ManageWorkersDrawer open={manageWorkersOpen} jobId={selectedJobId} employerId={employerId} onClose={() => setManageWorkersOpen(false)} />
+        {/* <ManageWorkersDrawer open={manageWorkersOpen} jobId={selectedJobId} employerId={employerId} onClose={() => setManageWorkersOpen(false)} /> */}
 
         {/* CREATE DRAWER */}
-        {showCustomJob && (
-          <div className="fixed inset-0 z-[120] flex justify-end">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCustomJob(false)} />
-            <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl p-8 overflow-y-auto">
-              <CustomJobManager mode="CREATE" onSuccess={() => { setShowCustomJob(false); queryClient.invalidateQueries(["employerJobs"]); }} />
-            </div>
-          </div>
-        )}
+      {showCustomJob && (
+  <div className="fixed inset-0 z-[120] flex justify-end">
+    <div
+      className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+      onClick={() => setShowCustomJob(false)}
+    />
+    <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl p-8 overflow-y-auto">
+      <CustomJobManager
+        mode="CREATE"                      // ✅ FIXED
+        onClose={() => setShowCustomJob(false)}   // ✅ FIXED
+        onSuccess={() => {
+          setShowCustomJob(false);
+          queryClient.invalidateQueries(["employerJobs"]);
+        }}
+      />
+    </div>
+  </div>
+)}
 
         {/* ✅ STEP 5: EDIT DRAWER */}
         {editJobOpen && (
@@ -341,10 +351,16 @@ useEffect(() => {
                 mode="EDIT"
                 jobId={selectedJobForEdit?.id}
                 initialData={selectedJobForEdit}
-                onSuccess={() => {
-                  setEditJobOpen(false);
-                  queryClient.invalidateQueries(["employerJobs"]);
-                }}
+            onSuccess={() => {
+  setEditJobOpen(false);
+
+  queryClient.invalidateQueries(["employerJobs"]);
+  queryClient.invalidateQueries(["attendance", expandedJobId]);
+  queryClient.invalidateQueries(["assignments", expandedJobId]);
+
+  setFrontendUpdateFlag((v) => v + 1);
+}}
+
               />
             </div>
           </div>
