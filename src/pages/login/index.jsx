@@ -228,24 +228,37 @@ const handlePostLogin = async (token) => {
     /* ======================================================
        🐢 API FALLBACK (ONLY WHEN REQUIRED)
     ====================================================== */
+ // 🚀 NAVIGATE IMMEDIATELY (DO NOT WAIT FOR PROFILE)
+navigate(
+  decoded.accountType === "APPLICANT"
+    ? "/worker-dashboard"
+    : "/employer-dashboard"
+);
+
+// 🧠 FETCH PROFILE IN BACKGROUND (NON-BLOCKING)
+setTimeout(async () => {
+  try {
     const profile = await getProfile(decoded.profileId);
 
     dispatch(setProfile(profile));
-
     localStorage.setItem(
       PROFILE_CACHE_KEY,
       JSON.stringify({ ...profile, cachedAt: Date.now() })
     );
 
-    navigate(
-      profile.completed
-        ? isApplicantAccount
-          ? "/worker-profile"
-          : "/employer-dashboard"
-        : isApplicantAccount
-        ? "/worker-profile-setup"
-        : "/company-onboarding"
-    );
+    // 🔁 redirect only if onboarding needed
+    if (!profile.completed) {
+      navigate(
+        decoded.accountType === "APPLICANT"
+          ? "/worker-profile-setup"
+          : "/company-onboarding",
+        { replace: true }
+      );
+    }
+  } catch (e) {
+    console.warn("⚠️ Profile fetch failed (background)");
+  }
+}, 0);
 
   } catch (err) {
     console.error("❌ Post-login failed", err);
@@ -352,9 +365,12 @@ const handlePostLogin = async (token) => {
         setLoading(false);
       }
     } catch (err) {
-      toast.error("Invalid email or password");
-      setLoading(false); 
-    } 
+  if (!localStorage.getItem("token")) {
+    toast.error("Invalid email or password");
+  }
+  setLoading(false);
+}
+
   };
 
   const handleRoleSwitch = () => {

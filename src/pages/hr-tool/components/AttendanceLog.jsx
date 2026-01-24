@@ -10,8 +10,8 @@ import {
   Save,
   Loader,
   ExternalLink,
-  Check, // Using this for the cinematic success state
-  Sparkles // Added for modern flair
+  Check,
+  Sparkles 
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { approveAttendance, resetAttendance, updateHrPayroll, generateAttendancePhotoLink } from "Services/AttendanceService";
@@ -47,26 +47,22 @@ const AttendanceLog = ({
   onRefresh,
 }) => {
   const [processingId, setProcessingId] = useState(null);
-  
-  // New state to handle the artificial 4-second delay
   const [extendedLoadingId, setExtendedLoadingId] = useState(null);
-  
   const [pendingChanges, setPendingChanges] = useState({});
   const logRefs = useRef({});
+  const containerRef = useRef(null);
   const actionLockRef = useRef(false);
 
-  // 1. Clear pending changes when backend logs change. 
-  // NOTE: We do NOT clear extendedLoadingId here, ensuring the animation persists.
   useEffect(() => {
     setPendingChanges({});
   }, [logs]);
 
-  // 2. Scroll to highlighted day
+  // 2. Smooth Scroll to highlighted day
   useEffect(() => {
     if (highlightedDay && logRefs.current[highlightedDay]) {
       logRefs.current[highlightedDay].scrollIntoView({
         behavior: "smooth",
-        block: "center",
+        block: "nearest", // Changed to nearest to prevent vertical jumping
         inline: "center",
       });
     }
@@ -85,7 +81,6 @@ const AttendanceLog = ({
     }));
   };
 
-  // The "Submit" action
   const submitPayrollChanges = async (log, mergedPayroll) => {
     const changes = pendingChanges[log.attendanceId];
     if (!changes) return;
@@ -96,15 +91,13 @@ const AttendanceLog = ({
 
       await updateHrPayroll(log.attendanceId, finalPayload);
       
-      // Trigger data refresh
       onRefresh?.();
       onStatusUpdate?.(log.attendanceId, log.status);
 
-      // Start the Cinematic Delay (4 Seconds)
       setExtendedLoadingId(log.attendanceId);
       setTimeout(() => {
         setExtendedLoadingId(null);
-      }, 4000); 
+      }, 7000); 
 
       setPendingChanges((prev) => {
         const next = { ...prev };
@@ -130,21 +123,17 @@ const AttendanceLog = ({
     actionLockRef.current = true;
     setProcessingId(attendanceId);
 
-    // Optimistic update
     onStatusUpdate?.(attendanceId, newStatus);
     toast.success(successMsg);
 
     try {
       await apiFn();
-      
-      // Trigger data refresh
       onRefresh?.();
 
-      // Start the Cinematic Delay (4 Seconds)
       setExtendedLoadingId(attendanceId);
       setTimeout(() => {
         setExtendedLoadingId(null);
-      }, 6000);
+      }, 9000);
 
     } catch (error) {
       console.error("Attendance update failed:", error);
@@ -158,12 +147,18 @@ const AttendanceLog = ({
 
   return (
     <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 md:p-6 border-t border-slate-200/60 min-h-[400px]">
-      <div className="
-        flex flex-row gap-6
-        overflow-x-auto py-6 px-4
-        snap-x snap-mandatory
-        no-scrollbar pb-12
-      ">
+      {/* Container with scroll-smooth and improved snapping */}
+      <div 
+        ref={containerRef}
+        className="
+          flex flex-row gap-6
+          overflow-x-auto py-6 px-8
+          snap-x snap-mandatory
+          scroll-smooth
+          scrollbar-hide
+          pb-12
+        "
+      >
         {logs.map((log) => {
           const dateObj = new Date(log.date);
           const dayNum = dateObj.getDate();
@@ -171,8 +166,6 @@ const AttendanceLog = ({
           
           const isProcessing = String(processingId).startsWith(log.attendanceId);
           const isCopying = processingId === `${log.attendanceId}-copy`;
-          
-          // Logic: Animation runs if Processing OR Extended Delay is active
           const isRefreshing = extendedLoadingId === log.attendanceId;
 
           const isApproved = log.status === "APPROVED";
@@ -208,9 +201,7 @@ const AttendanceLog = ({
               {isRefreshing && (
                 <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-md rounded-3xl flex flex-col items-center justify-center transition-all duration-700 animate-in fade-in">
                   <div className="relative">
-                     {/* Outer Ring */}
                     <div className="absolute inset-0 rounded-full border-4 border-indigo-100 animate-ping opacity-20"></div>
-                    {/* Spinner */}
                     <div className="bg-white p-4 rounded-full shadow-2xl shadow-indigo-200/50 border border-indigo-50 relative z-10">
                       <Loader className="w-8 h-8 text-indigo-600 animate-[spin_2s_linear_infinite]" />
                     </div>
@@ -228,7 +219,6 @@ const AttendanceLog = ({
               )}
 
               <div className="flex gap-5">
-                {/* Photo Section with Depth */}
                 <div className="group w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative shadow-inner ring-1 ring-slate-900/5">
                   {log.sitePhoto ? (
                     <img src={log.sitePhoto} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Verification" />
@@ -271,11 +261,8 @@ const AttendanceLog = ({
                 </div>
               </div>
 
-              {/* EARNINGS & CONTROLS */}
               {!isEmpty && !isFutureDay && (
                 <div className="mt-5 space-y-4">
-                  
-                  {/* Glassy Divider */}
                   <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
 
                   <div className="flex justify-between items-end px-1">
@@ -289,7 +276,6 @@ const AttendanceLog = ({
                     </span>
                   </div>
 
-                  {/* SUMMARY TILES */}
                   <div className="grid grid-cols-3 gap-2">
                     <div className="bg-slate-50/50 p-2 rounded-xl border border-slate-100 flex flex-col items-center justify-center gap-1 hover:bg-slate-50 transition-colors">
                       <span className="text-[9px] font-bold text-slate-400 uppercase">PF</span>
@@ -307,7 +293,6 @@ const AttendanceLog = ({
 
                   {(isApproved || isHalfDay) && (
                     <div className="grid grid-cols-3 gap-2">
-                      {/* Overtime Control */}
                       <div className="flex items-center justify-between bg-white rounded-xl border border-slate-100 shadow-sm px-1 py-1.5">
                         <button className="w-6 h-6 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 active:scale-90 transition-transform" onClick={() => handleLocalUpdate(log.attendanceId, "overtimePay", 50, mergedPayroll)}>
                           <Plus className="w-3 h-3" />
@@ -321,7 +306,6 @@ const AttendanceLog = ({
                         </button>
                       </div>
 
-                      {/* Bata Control */}
                       <div className="flex items-center justify-between bg-white rounded-xl border border-slate-100 shadow-sm px-1 py-1.5">
                         <button className="w-6 h-6 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 active:scale-90 transition-transform" onClick={() => handleLocalUpdate(log.attendanceId, "bata", 50, mergedPayroll)}>
                           <Plus className="w-3 h-3" />
@@ -335,7 +319,6 @@ const AttendanceLog = ({
                         </button>
                       </div>
 
-                      {/* Advance Control */}
                       <div className="flex items-center justify-between bg-white rounded-xl border border-rose-100 shadow-sm px-1 py-1.5">
                         <button className="w-6 h-6 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 active:scale-90 transition-transform" onClick={() => handleLocalUpdate(log.attendanceId, "advanceDeduction", 100, mergedPayroll)}>
                           <Plus className="w-3 h-3" />
@@ -351,7 +334,6 @@ const AttendanceLog = ({
                     </div>
                   )}
                   
-                  {/* SUBMIT BUTTON */}
                   {hasUnsavedChanges && (
                     <button
                       onClick={() => submitPayrollChanges(log, mergedPayroll)}
@@ -367,7 +349,6 @@ const AttendanceLog = ({
                     </button>
                   )}
 
-                  {/* 🔗 SEND PHOTO LINK */}
                   {(log.status === "NOT_STARTED" || log.status === "PENDING_VERIFICATION") && (
                     <button
                       disabled={isRefreshing || isCopying}
@@ -410,7 +391,6 @@ const AttendanceLog = ({
                     </button>
                   )}
 
-                  {/* ACTION FOOTER */}
                   <div className="pt-2 flex gap-3">
                     {!isApproved && !isHalfDay && (
                       <button
@@ -443,7 +423,6 @@ const AttendanceLog = ({
                 </div>
               )}
 
-              {/* EMPTY LOG OR FUTURE DAY FOOTER */}
               {(isEmpty || isFutureDay) && (
                 <div className="mt-6 pt-6 border-t border-slate-100 flex justify-center">
                   {isFutureDay ? (
