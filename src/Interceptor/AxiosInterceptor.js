@@ -65,19 +65,21 @@ export const setupResponseInterceptor = (navigate, dispatch) => {
   axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
-      if (error?.response?.status === 401) {
-        console.warn("🔐 Unauthorized - Session expired");
+     if (error?.response?.status === 401) {
+  const isAuthCall =
+    error.config?.url?.includes("/auth") ||
+    error.config?.url?.includes("/profiles");
 
-        // Clear Redux
-        dispatch(removeUser());
-        dispatch(removeJwt());
+  // 🚫 DON'T LOGOUT DURING LOGIN FLOW
+  if (!isAuthCall) {
+    dispatch(removeUser());
+    dispatch(removeJwt());
+    localStorage.clear();
+    navigate("/login");
+  }
+}
 
-        // Clear Storage
-        localStorage.removeItem("token");
 
-        // Redirect
-        navigate("/login");
-      }
       return Promise.reject(error);
     }
   );
