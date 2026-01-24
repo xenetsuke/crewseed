@@ -10,7 +10,7 @@ import {
   Menu,
   Plus,
   LayoutDashboard,
-  Loader2,
+  Pencil,
 } from "lucide-react";
 import CustomJobManager from "./CustomJobManager";
 import WorkerRow from "./components/WorkerRow";
@@ -19,13 +19,11 @@ import ManageWorkersDrawer from "./components/ManageWorkersDrawer";
 import { cn } from "utils/cn";
 import EmployerSidebar from "components/navigation/EmployerSidebar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getJobsPostedBy,getJob } from "../../Services/JobService"; // Ensure getJobById is imported
+import { getJobsPostedBy, getJob } from "../../Services/JobService";
 import { getAttendanceByJob } from "../../Services/AttendanceService";
 import { getAssignmentsByJob } from "../../Services/AssignmentService";
 import { getProfile } from "../../Services/ProfileService";
 import { useSelector } from "react-redux";
-// import { updateHrPayroll } from "../../Services/AttendanceService";
-
 
 const WorkerAttendanceHR = () => {
   const [expandedJobId, setExpandedJobId] = useState(null);
@@ -36,18 +34,16 @@ const WorkerAttendanceHR = () => {
   const [frontendUpdateFlag, setFrontendUpdateFlag] = useState(0);
 
   const queryClient = useQueryClient();
-useEffect(() => {
-  if (expandedJobId) {
-    queryClient.invalidateQueries(["attendance", expandedJobId]);
-    queryClient.invalidateQueries(["assignments", expandedJobId]);
-  }
-}, [frontendUpdateFlag, expandedJobId]);
 
-  // EDIT JOB STATES
+  useEffect(() => {
+    if (expandedJobId) {
+      queryClient.invalidateQueries(["attendance", expandedJobId]);
+      queryClient.invalidateQueries(["assignments", expandedJobId]);
+    }
+  }, [frontendUpdateFlag, expandedJobId]);
+
   const [editJobOpen, setEditJobOpen] = useState(false);
   const [selectedJobForEdit, setSelectedJobForEdit] = useState(null);
-
-  // DRAWER STATES
   const [manageWorkersOpen, setManageWorkersOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -78,11 +74,6 @@ useEffect(() => {
     queryFn: () => getAttendanceByJob(expandedJobId),
     enabled: !!expandedJobId,
   });
-
-  useEffect(() => {
-    console.log("🟡 expandedJobId:", expandedJobId);
-    console.log("🟢 RAW attendanceResponse:", attendanceResponse);
-  }, [attendanceResponse, expandedJobId]);
 
   const attendanceByJob = useMemo(() => {
     if (!attendanceResponse) return [];
@@ -160,7 +151,7 @@ useEffect(() => {
       jobTitle: job.jobTitle,
       fullWorkAddress: job.fullWorkAddress || "",
       managerName: job.managerName,
-      City:job.city || "Site",
+      City: job.city || "Site",
       workers:
         Number(expandedJobId) === Number(job.id)
           ? buildWorkers(assignmentsByJob, attendanceByJob)
@@ -168,16 +159,20 @@ useEffect(() => {
     }));
   }, [jobsFromApi, assignmentsByJob, attendanceByJob, expandedJobId, profilesMap]);
 
-  if (isJobsLoading) {
-    return (
-      <div className="min-h-screen bg-[#F1F5F9] flex flex-col items-center justify-center">
-        <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
+  const JobCardSkeleton = () => (
+    <div className="bg-white rounded-[2rem] border border-slate-100 p-6 lg:p-8 animate-pulse">
+      <div className="flex flex-col md:flex-row gap-5">
+        <div className="w-14 h-14 bg-slate-100 rounded-2xl" />
+        <div className="flex-1 space-y-2">
+          <div className="h-5 w-48 bg-slate-100 rounded-md" />
+          <div className="h-3 w-32 bg-slate-50 rounded-md" />
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9]">
+    <div className="min-h-screen bg-[#F8FAFC]">
       <div className={cn("fixed inset-y-0 left-0 z-[100] transition-all duration-300", mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0")}>
         <EmployerSidebar isCollapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
@@ -187,180 +182,168 @@ useEffect(() => {
       )}
 
       <main className={cn("transition-all duration-300 min-h-screen flex flex-col", sidebarCollapsed ? "lg:ml-20" : "lg:ml-64")}>
-        <header className="sticky top-0 z-30 bg-white/70 backdrop-blur-xl border-b border-slate-200/60 px-4 lg:px-8 py-4">
+        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200/50 px-4 lg:px-8 py-4">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <button onClick={() => setMobileMenuOpen(true)} className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl">
-                <Menu className="w-6 h-6" />
+                <Menu className="w-5 h-5" />
               </button>
-              <h1 className="text-lg lg:text-xl font-black text-slate-900 flex items-center gap-2">
-                <LayoutDashboard className="w-5 h-5 text-teal-600" />
-                <span className="hidden sm:inline">Workforce Control</span>
+              <h1 className="text-base lg:text-xl font-black text-slate-900 flex items-center gap-2">
+                <LayoutDashboard className="w-5 h-5 text-teal-600 hidden xs:block" />
+                <span>Workforce Control</span>
               </h1>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="relative group hidden md:block">
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="relative group hidden sm:block">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search workers..."
-                  className="pl-10 pr-4 py-2 bg-slate-100 rounded-xl text-sm w-48 lg:w-72 outline-none"
+                  placeholder="Search..."
+                  className="pl-10 pr-4 py-2 bg-slate-100/50 rounded-xl text-sm w-32 lg:w-72 outline-none transition-all"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <button className="p-2.5 rounded-xl border bg-white relative">
+              <button className="p-2 lg:p-2.5 rounded-xl border border-slate-200 bg-white relative">
                 <Bell className="w-5 h-5 text-slate-600" />
+                <span className="absolute top-2 right-2.5 w-2 h-2 bg-teal-500 rounded-full border-2 border-white"></span>
               </button>
             </div>
           </div>
         </header>
 
-        <div className="max-w-7xl mx-auto w-full px-4 lg:px-8 py-8 flex-1">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
+        <div className="max-w-7xl mx-auto w-full px-4 lg:px-8 py-6 lg:py-8 flex-1">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6 mb-8 lg:mb-10">
             <div>
-              <h2 className="text-teal-600 text-xs font-black uppercase tracking-widest">Operational Overview</h2>
-              <h3 className="text-3xl font-black text-slate-900">Active Sites</h3>
+              <h2 className="text-teal-600 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Operational Overview</h2>
+              <h3 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">Active Sites</h3>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-1 bg-white p-1.5 rounded-2xl border">
-                <button onClick={() => changeMonth(-1)} className="p-2"><ChevronLeft className="w-5 h-5" /></button>
-                <span className="font-bold text-xs px-2">{months[currentMonth]} {currentYear}</span>
-                <button onClick={() => changeMonth(1)} className="p-2"><ChevronRight className="w-5 h-5" /></button>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="flex items-center justify-between bg-white p-1.5 rounded-2xl border shadow-sm">
+                <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-slate-50 rounded-lg"><ChevronLeft className="w-5 h-5" /></button>
+                <span className="font-bold text-xs px-2 text-center">{months[currentMonth]} {currentYear}</span>
+                <button onClick={() => changeMonth(1)} className="p-2 hover:bg-slate-50 rounded-lg"><ChevronRight className="w-5 h-5" /></button>
               </div>
               <button
                 onClick={() => setShowCustomJob(true)}
-                className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase hover:bg-teal-600 transition-all"
+                className="flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-3.5 rounded-2xl font-bold text-[10px] uppercase hover:bg-teal-600 transition-all shadow-lg"
               >
                 <Plus className="w-4 h-4" /> Create Custom Job
               </button>
             </div>
           </div>
 
-          <div className="space-y-6 pb-24">
-            {jobs.map((job) => (
-              <div key={job.jobId} className="bg-white rounded-[2rem] border overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div
-                  className="p-6 lg:p-8 flex flex-col md:flex-row md:items-center justify-between cursor-pointer"
-                  onClick={() => setExpandedJobId(Number(expandedJobId) === Number(job.backendJobId) ? null : Number(job.backendJobId))}
-                >
-                  <div className="flex items-center gap-5">
-                    <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-colors", Number(expandedJobId) === Number(job.backendJobId) ? "bg-teal-600 text-white" : "bg-slate-50 text-slate-400")}>
-                      <MapPin className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-black text-slate-900">{job.jobTitle}</h3>
-<p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-  {job.fullWorkAddress || job.City || "Site"} • {job.managerName}
-</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 mt-4 md:mt-0">
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          const fullJob = await getJob(job.backendJobId);
-                          setSelectedJobForEdit(fullJob);
-                          setEditJobOpen(true);
-                        } catch (error) {
-                          console.error("Failed to fetch job details", error);
-                        }
-                      }}
-                      className="text-xs font-black text-slate-600 hover:text-teal-600 uppercase tracking-wider bg-slate-100 px-4 py-2 rounded-xl transition-colors"
-                    >
-                      ✏️ Edit Job
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedJobId(job.backendJobId);
-                        setManageWorkersOpen(true);
-                      }}
-                      className="flex items-center gap-2 text-xs font-black text-indigo-600 hover:text-indigo-700 uppercase tracking-wider bg-indigo-50 px-4 py-2 rounded-xl transition-colors"
-                    >
-                      <Users className="w-4 h-4" /> Manage Workers
-                    </button>
-                    <ChevronDown className={cn("w-6 h-6 text-slate-400 transition-transform duration-300", Number(expandedJobId) === Number(job.backendJobId) && "rotate-180 text-teal-600")} />
-                  </div>
-                </div>
-
-                {Number(expandedJobId) === Number(job.backendJobId) && (
-                  <div className="px-6 lg:px-8 pb-8 pt-2 bg-slate-50/50">
-                    <div className="bg-white rounded-3xl border p-4">
-                      {job.workers.length === 0 ? (
-                        <div className="py-10 text-center text-slate-400 text-xs font-bold uppercase">No Workers Assigned</div>
-                      ) : (
-                        <div className="grid grid-cols-1 gap-4">
-                          {job.workers.filter((w) => w.name.toLowerCase().includes(searchQuery.toLowerCase())).map((worker) => (
-<WorkerRow
-  key={worker.workerId}
-  worker={worker}
-  viewMonth={currentMonth}
-  viewYear={currentYear}
-  onEditAssignment={(assignment) => {
-    setSelectedAssignment(assignment);
-    setEditOpen(true);
-  }}
-  onAttendanceUpdated={() => {
-    setFrontendUpdateFlag((prev) => prev + 1);
-  }}
-/>
-                          ))}
+          <div className="space-y-4 lg:space-y-6 pb-24">
+            {isJobsLoading ? (
+              <><JobCardSkeleton /><JobCardSkeleton /><JobCardSkeleton /></>
+            ) : (
+              jobs.map((job) => (
+                <div key={job.jobId} className="bg-white rounded-[1.5rem] lg:rounded-[2rem] border border-slate-200/60 overflow-hidden shadow-sm hover:shadow-md transition-all">
+                  <div
+                    className="p-5 lg:p-8 cursor-pointer group"
+                    onClick={() => setExpandedJobId(Number(expandedJobId) === Number(job.backendJobId) ? null : Number(job.backendJobId))}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 lg:gap-5">
+                        <div className={cn("w-12 h-12 lg:w-14 lg:h-14 rounded-2xl flex items-center justify-center transition-all", Number(expandedJobId) === Number(job.backendJobId) ? "bg-teal-600 text-white shadow-lg shadow-teal-100" : "bg-slate-50 text-slate-400")}>
+                          <MapPin className="w-5 h-5 lg:w-6 lg:h-6" />
                         </div>
-                      )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg lg:text-xl font-black text-slate-900 truncate">{job.jobTitle}</h3>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">
+                            {job.City} • {job.managerName}
+                          </p>
+                        </div>
+                        <ChevronDown className={cn("w-5 h-5 text-slate-300 transition-transform sm:hidden", Number(expandedJobId) === Number(job.backendJobId) && "rotate-180")} />
+                      </div>
+
+                      <div className="flex flex-row items-center gap-2 lg:gap-3 ml-0 sm:ml-auto">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              const fullJob = await getJob(job.backendJobId);
+                              setSelectedJobForEdit(fullJob);
+                              setEditJobOpen(true);
+                            } catch (error) { console.error(error); }
+                          }}
+                          className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-wider bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-100"
+                        >
+                          <Pencil className="w-3 h-3" /> <span className="hidden xs:inline">Edit</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedJobId(job.backendJobId);
+                            setManageWorkersOpen(true);
+                          }}
+                          className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-[10px] font-black text-indigo-600 uppercase tracking-wider bg-indigo-50 px-4 py-2.5 rounded-xl transition-all"
+                        >
+                          <Users className="w-4 h-4" /> <span>Manage</span>
+                        </button>
+                        <ChevronDown className={cn("hidden sm:block w-6 h-6 text-slate-300 transition-transform", Number(expandedJobId) === Number(job.backendJobId) && "rotate-180 text-teal-600")} />
+                      </div>
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {Number(expandedJobId) === Number(job.backendJobId) && (
+                    <div className="px-3 lg:px-8 pb-5 lg:pb-8 pt-2 bg-slate-50/30 border-t border-slate-100">
+                      <div className="bg-white rounded-2xl border border-slate-200/60 p-2 lg:p-4 shadow-inner">
+                        {job.workers.length === 0 ? (
+                          <div className="py-10 text-center">
+                            <Users className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">No Workers Assigned</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 gap-2 lg:gap-4">
+                            {job.workers.filter((w) => w.name.toLowerCase().includes(searchQuery.toLowerCase())).map((worker) => (
+                              <WorkerRow
+                                key={worker.workerId}
+                                worker={worker}
+                                viewMonth={currentMonth}
+                                viewYear={currentYear}
+                                onEditAssignment={(assignment) => { setSelectedAssignment(assignment); setEditOpen(true); }}
+                                onAttendanceUpdated={() => setFrontendUpdateFlag((prev) => prev + 1)}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
 
         <EditAssignmentDrawer open={editOpen} assignment={selectedAssignment} onClose={() => setEditOpen(false)} onSaved={() => { queryClient.invalidateQueries(["assignments", expandedJobId]); queryClient.invalidateQueries(["attendance", expandedJobId]); setEditOpen(false); }} />
-        
-        {/* <ManageWorkersDrawer open={manageWorkersOpen} jobId={selectedJobId} employerId={employerId} onClose={() => setManageWorkersOpen(false)} /> */}
+        <ManageWorkersDrawer open={manageWorkersOpen} jobId={selectedJobId} employerId={employerId} onClose={() => setManageWorkersOpen(false)} />
 
-        {/* CREATE DRAWER */}
-      {showCustomJob && (
-  <div className="fixed inset-0 z-[120] flex justify-end">
-    <div
-      className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-      onClick={() => setShowCustomJob(false)}
-    />
-    <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl p-8 overflow-y-auto">
-      <CustomJobManager
-        mode="CREATE"                      // ✅ FIXED
-        onClose={() => setShowCustomJob(false)}   // ✅ FIXED
-        onSuccess={() => {
-          setShowCustomJob(false);
-          queryClient.invalidateQueries(["employerJobs"]);
-        }}
-      />
-    </div>
-  </div>
-)}
+        {/* MODAL WRAPPERS: Simplified for better mobile drawer feel */}
+        {showCustomJob && (
+          <div className="fixed inset-0 z-[120] flex justify-end">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCustomJob(false)} />
+            <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300">
+              <CustomJobManager mode="CREATE" onClose={() => setShowCustomJob(false)} onSuccess={() => { setShowCustomJob(false); queryClient.invalidateQueries(["employerJobs"]); }} />
+            </div>
+          </div>
+        )}
 
-        {/* ✅ STEP 5: EDIT DRAWER */}
         {editJobOpen && (
           <div className="fixed inset-0 z-[120] flex justify-end">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setEditJobOpen(false)} />
-            <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl p-8 overflow-y-auto">
+            <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300">
               <CustomJobManager
                 mode="EDIT"
                 jobId={selectedJobForEdit?.id}
                 initialData={selectedJobForEdit}
-            onSuccess={() => {
-  setEditJobOpen(false);
-
-  queryClient.invalidateQueries(["employerJobs"]);
-  queryClient.invalidateQueries(["attendance", expandedJobId]);
-  queryClient.invalidateQueries(["assignments", expandedJobId]);
-
-  setFrontendUpdateFlag((v) => v + 1);
-}}
-
+                onClose={() => setEditJobOpen(false)}
+                onSuccess={() => {
+                  setEditJobOpen(false);
+                  queryClient.invalidateQueries(["employerJobs"]);
+                  setFrontendUpdateFlag((v) => v + 1);
+                }}
               />
             </div>
           </div>

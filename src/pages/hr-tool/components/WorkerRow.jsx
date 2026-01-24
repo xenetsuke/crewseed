@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Info, User, ExternalLink } from "lucide-react";
+import { Info, User, ExternalLink, Download, ClipboardList } from "lucide-react";
 import AttendanceLog from "./AttendanceLog";
 import AssignmentStatsOverview from "./AssignmentStatsOverview";
 import { cn } from "utils/cn";
@@ -11,35 +11,42 @@ const WorkerRow = ({
   onEditAssignment,
   viewMonth,
   viewYear,
-  onAttendanceUpdated, // ✅ ADD THIS
+  onAttendanceUpdated,
+  isLoading = false, // Added loading prop for modern transition
 }) => {
-
-
-  if (!worker) return null;
-  const assignmentId = worker.assignment?.id;
-
-  // const [attendanceRecords, setAttendanceRecords] = useState(
-  //   worker.attendance || []
-  // );
   const [showLogs, setShowLogs] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [hoveredDay, setHoveredDay] = useState(null);
-const [isDirty, setIsDirty] = useState(false);
 
   const currentMonth = viewMonth;
   const currentYear = viewYear;
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  
-// useEffect(() => {
-//   if (!isDirty) {
-//     setAttendanceRecords(worker.attendance || []);
-//   }
-// }, [worker.attendance, isDirty]);
 
-  // useEffect(() => {
-  //   setAttendanceRecords(worker.attendance || []);
-  // }, [worker.attendance]);
-const attendanceRecords = worker.attendance || [];
+  const attendanceRecords = worker?.attendance || [];
+
+  // Skeleton Loading State
+  if (isLoading || !worker) {
+    return (
+      <div className="bg-white border border-slate-100 rounded-2xl p-6 mb-4 animate-pulse">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-slate-100" />
+            <div className="space-y-2">
+              <div className="h-4 w-32 bg-slate-100 rounded" />
+              <div className="h-3 w-20 bg-slate-50 rounded" />
+            </div>
+          </div>
+          <div className="h-8 w-28 bg-slate-50 rounded-lg" />
+        </div>
+        <div className="h-20 w-full bg-slate-50/50 rounded-xl mb-6" />
+        <div className="flex gap-1.5 overflow-hidden">
+          {Array.from({ length: 15 }).map((_, i) => (
+            <div key={i} className="w-9 h-11 bg-slate-100 rounded-lg flex-shrink-0" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // ✅ SINGLE PAYROLL SOURCE (HR SNAPSHOT)
   const effectivePayroll = useMemo(() => {
@@ -53,11 +60,7 @@ const attendanceRecords = worker.attendance || [];
 
     attendanceRecords.forEach((a) => {
       if (!a.payroll) return;
-
-      if (!basePay && a.payroll.basePay) {
-        basePay = Number(a.payroll.basePay);
-      }
-
+      if (!basePay && a.payroll.basePay) basePay = Number(a.payroll.basePay);
       dailyPay += Number(a.payroll.dailyPay || 0);
       otPay += Number(a.payroll.overtimePay || 0);
       bata += Number(a.payroll.bata || 0);
@@ -84,7 +87,7 @@ const attendanceRecords = worker.attendance || [];
     };
   }, [attendanceRecords, viewMonth, viewYear]);
 
-const downloadPayrollChit = () => {
+  const downloadPayrollChit = () => {
     const monthYear = new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' }).format(new Date(viewYear, viewMonth));
     const slipHtml = `
       <html>
@@ -100,19 +103,15 @@ const downloadPayrollChit = () => {
             .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; background: #f8fafc; padding: 15px; border-radius: 6px; }
             .meta-item p { margin: 4px 0; font-size: 13px; }
             .meta-item span { color: #64748b; font-weight: 500; }
-            
             .payroll-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
             .payroll-table th { text-align: left; background: #0f172a; color: #fff; padding: 10px 15px; font-size: 12px; text-transform: uppercase; }
             .payroll-table td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
             .section-split { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid #f1f5f9; }
-            .earnings { border-right: 1px solid #f1f5f9; }
-            
             .amount { text-align: right; font-family: monospace; font-weight: 600; }
             .total-row { background: #f8fafc; font-weight: 700; }
             .net-payable-box { margin-top: 20px; padding: 20px; background: #0f172a; color: #fff; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
             .net-label { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
             .net-amount { font-size: 24px; font-weight: 800; }
-            
             .footer { margin-top: 60px; display: flex; justify-content: space-between; }
             .signature { border-top: 1px solid #cbd5e1; width: 200px; text-align: center; padding-top: 10px; font-size: 12px; color: #64748b; }
             @media print { body { padding: 0; } .container { border: none; } }
@@ -127,7 +126,6 @@ const downloadPayrollChit = () => {
               </div>
               <div class="slip-title">Private & Confidential</div>
             </div>
-
             <div class="meta-grid">
               <div class="meta-item">
                 <p><span>Employee Name:</span> ${worker.name}</p>
@@ -138,7 +136,6 @@ const downloadPayrollChit = () => {
                 <p><span>Status:</span> Generated Online</p>
               </div>
             </div>
-
             <div class="section-split">
               <div class="earnings">
                 <table class="payroll-table">
@@ -163,12 +160,10 @@ const downloadPayrollChit = () => {
                 </table>
               </div>
             </div>
-
             <div class="net-payable-box">
               <span class="net-label">Net Payable Amount</span>
               <span class="net-amount">₹${effectivePayroll.netPayable.toLocaleString('en-IN')}</span>
             </div>
-
             <div class="footer">
               <div class="signature">Employer Signature</div>
               <div class="signature">Employee Signature</div>
@@ -184,11 +179,7 @@ const downloadPayrollChit = () => {
   };
 
   const handleAttendanceStatusChange = (attendanceId, newStatus) => {
-    // setAttendanceRecords((prev) =>
-    //   prev.map((a) =>
-    //     a.attendanceId === attendanceId ? { ...a, status: newStatus } : a
-    //   )
-    // );
+    // Handled via onRefresh prop to parent
   };
 
   const getDayInfo = (day) => {
@@ -199,11 +190,7 @@ const downloadPayrollChit = () => {
 
     const record = attendanceRecords.find((a) => {
       const d = new Date(a.date);
-      return (
-        d.getDate() === day &&
-        d.getMonth() === currentMonth &&
-        d.getFullYear() === currentYear
-      );
+      return d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
 
     if (!record) return { status: "EMPTY", label: "No Record" };
@@ -244,123 +231,133 @@ const downloadPayrollChit = () => {
   }, [attendanceRecords, currentMonth, currentYear, daysInMonth]);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm mb-4 overflow-hidden transition-all hover:border-slate-300">
-      <div className="p-4 lg:p-6">
+    <div className="bg-white border border-slate-200/60 rounded-3xl shadow-sm mb-5 overflow-hidden transition-all duration-300 hover:shadow-md hover:border-slate-300/80">
+      <div className="p-5 lg:p-7">
         {/* WORKER HEADER */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-              <User className="w-5 h-5" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 shadow-inner">
+              <User className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">{worker.name}</h3>
-              <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">
-                {worker.role}
-              </p>
+              <h3 className="font-black text-slate-900 text-base tracking-tight">{worker.name}</h3>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] font-black text-teal-600 uppercase tracking-widest bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100">
+                  {worker.role}
+                </span>
+              </div>
             </div>
           </div>
 
           <button
             onClick={() => onEditAssignment(worker.assignment)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100"
+            className="flex items-center justify-center gap-2 px-4 py-2 text-[11px] font-black text-indigo-600 hover:text-white bg-indigo-50 hover:bg-indigo-600 rounded-xl transition-all duration-300 border border-indigo-100 uppercase tracking-wider"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-              {/* worker={worker}   // 👈 add this */}
-
             Edit Assignment
           </button>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-8">
           <AssignmentStatsOverview payroll={effectivePayroll} />
         </div>
 
         {/* HEATMAP GRID */}
-        <div className="flex gap-1.5 overflow-x-auto pb-3 scrollbar-hide">
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1;
-            const { status, label } = getDayInfo(day);
-            const isSelected = selectedDay === day;
-            return (
-              <div
-                key={day}
-                className="relative flex flex-col items-center flex-shrink-0"
-                onMouseEnter={() => setHoveredDay(day)}
-                onMouseLeave={() => setHoveredDay(null)}
-              >
-                <button
-                  onClick={() => {
-                    setSelectedDay(isSelected ? null : day);
-                    setShowLogs(true);
-                  }}
-                  className={cn(
-                    "w-9 h-11 rounded-lg border text-[11px] font-black transition-all flex items-center justify-center",
-                    status === "APPROVED" && "bg-emerald-500 text-white border-emerald-600 shadow-sm shadow-emerald-200",
-                    status === "REJECTED" && "bg-rose-500 text-white border-rose-600 shadow-sm shadow-rose-200",
-                    status === "PENDING" && "bg-amber-400 text-white border-amber-500 shadow-sm shadow-amber-100",
-                    status === "NOT_STARTED" && "bg-blue-500 text-white border-blue-600 shadow-sm shadow-blue-100",
-                    status === "FUTURE" && "bg-white text-slate-300 border-slate-100",
-                    status === "EMPTY" && "bg-slate-50 text-slate-400 border-slate-200",
-                    isSelected && "ring-2 ring-slate-900 ring-offset-2 scale-105 z-10"
-                  )}
+        <div className="group/heatmap">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Monthly Attendance Tracker</h4>
+            <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide px-1">
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const { status, label } = getDayInfo(day);
+                const isSelected = selectedDay === day;
+                return (
+                <div
+                    key={day}
+                    className="relative flex flex-col items-center flex-shrink-0"
+                    onMouseEnter={() => setHoveredDay(day)}
+                    onMouseLeave={() => setHoveredDay(null)}
                 >
-                  {day}
-                </button>
-                {(hoveredDay === day || isSelected) && (
-                  <div className="absolute -top-9 z-20 bg-slate-900 text-white text-[10px] px-2.5 py-1.5 rounded-lg shadow-xl flex items-center gap-1.5 whitespace-nowrap animate-in fade-in zoom-in-95">
-                    <Info className="w-3 h-3 text-teal-400" /> {label}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                    <button
+                    onClick={() => {
+                        setSelectedDay(isSelected ? null : day);
+                        setShowLogs(true);
+                    }}
+                    className={cn(
+                        "w-10 h-12 rounded-xl border-2 text-[11px] font-black transition-all duration-300 flex items-center justify-center",
+                        status === "APPROVED" && "bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-100 hover:scale-110",
+                        status === "REJECTED" && "bg-rose-500 text-white border-rose-400 shadow-lg shadow-rose-100 hover:scale-110",
+                        status === "PENDING" && "bg-amber-400 text-white border-amber-300 shadow-lg shadow-amber-50 hover:scale-110",
+                        status === "NOT_STARTED" && "bg-blue-500 text-white border-blue-400 shadow-lg shadow-blue-50 hover:scale-110",
+                        status === "FUTURE" && "bg-white text-slate-200 border-slate-50",
+                        status === "EMPTY" && "bg-slate-50 text-slate-300 border-slate-100 hover:border-slate-300",
+                        isSelected && "ring-4 ring-slate-900/10 border-slate-900 scale-110 z-10"
+                    )}
+                    >
+                    {day}
+                    </button>
+                    {(hoveredDay === day || isSelected) && (
+                    <div className="absolute -top-10 z-30 bg-slate-900 text-white text-[10px] px-3 py-2 rounded-xl shadow-2xl flex items-center gap-2 whitespace-nowrap animate-in fade-in slide-in-from-bottom-2">
+                        <div className={cn("w-2 h-2 rounded-full", 
+                            status === "APPROVED" ? "bg-emerald-400" : 
+                            status === "REJECTED" ? "bg-rose-400" : "bg-amber-400"
+                        )} />
+                        {label}
+                    </div>
+                    )}
+                </div>
+                );
+            })}
+            </div>
         </div>
 
         {/* FOOTER ACTIONS */}
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
+        <div className="mt-6 pt-6 border-t border-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
             {[
               { color: "bg-emerald-500", text: "Present" },
               { color: "bg-rose-500", text: "Absent" },
               { color: "bg-amber-400", text: "Pending" },
               { color: "bg-blue-500", text: "No Photo" },
             ].map((item) => (
-              <div key={item.text} className="flex items-center gap-1.5">
-                <span className={cn("w-2.5 h-2.5 rounded-full", item.color)} />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+              <div key={item.text} className="flex items-center gap-2">
+                <span className={cn("w-2.5 h-2.5 rounded-full ring-2 ring-offset-1", item.color, "ring-"+item.color.split('-')[1]+"-100")} />
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
                   {item.text}
                 </span>
               </div>
             ))}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               onClick={() => setShowLogs(!showLogs)}
-              className="px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-[11px] font-black text-slate-600 uppercase tracking-widest transition-colors"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl text-[11px] font-black text-slate-700 uppercase tracking-widest transition-all shadow-sm"
             >
-              {showLogs ? "Hide Logs" : "View Logs"}
+              <ClipboardList className="w-4 h-4 text-slate-400" />
+              {showLogs ? "Hide Logs" : "View Detailed Logs"}
             </button>
 
             <button
               onClick={downloadPayrollChit}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-colors shadow-sm shadow-emerald-200"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-200/50"
             >
-              Download PaySlip
+              <Download className="w-4 h-4" />
+              Download Slip
             </button>
           </div>
         </div>
       </div>
 
       {showLogs && (
-        <div className="border-t border-slate-100 bg-slate-50/30 animate-in slide-in-from-top-2 duration-300">
-      <AttendanceLog
-  logs={fullMonthLogs}
-  highlightedDay={selectedDay}
-  onStatusUpdate={handleAttendanceStatusChange}
-  onRefresh={onAttendanceUpdated}
-/>
-
+        <div className="border-t border-slate-100 bg-slate-50/40 animate-in slide-in-from-top-4 duration-500 ease-out">
+          <div className="p-2">
+            <AttendanceLog
+              logs={fullMonthLogs}
+              highlightedDay={selectedDay}
+              onStatusUpdate={handleAttendanceStatusChange}
+              onRefresh={onAttendanceUpdated}
+            />
+          </div>
         </div>
       )}
     </div>

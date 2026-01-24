@@ -11,37 +11,45 @@ import {
 const ShiftPayrollForm = ({ data, setData, attendanceLocked = false }) => {
   const stripSeconds = (t) => (t ? t.slice(0, 5) : "");
 
-const normalizeTime = (t) => {
-  if (!t) return null;
-  return t.length === 5 ? `${t}:00` : t;
-};
+  const normalizeTime = (t) => {
+    if (!t) return null;
+    return t.length === 5 ? `${t}:00` : t;
+  };
 
   /**
-   * ✅ FORMATTER: Converts "09:30" -> "9:30 AM"
-   * Business Rule: Data remains "HH:mm", UI shows "12h"
+   * ✅ FIXED FORMATTER: Prevents "Invalid Date"
+   * Business Rule: Safely parses HH:mm or HH:mm:ss and converts to 12h UI
    */
   const format12h = (time) => {
     if (!time) return "--:--";
     try {
-      return new Date(`1970-01-01T${time}:00`)
-        .toLocaleTimeString("en-IN", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-          timeZone: "Asia/Kolkata",
-        });
+      // Split to get hours and minutes, ignore existing seconds or malformed segments
+      const [h, m] = time.split(":");
+      const hours = h.padStart(2, "0");
+      const minutes = m.padStart(2, "0");
+      
+      // Use a standard ISO format T HH:mm:ss
+      const date = new Date(`1970-01-01T${hours}:${minutes}:00`);
+      
+      if (isNaN(date.getTime())) return time;
+
+      return date.toLocaleTimeString("en-IN", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      });
     } catch (e) {
       return time;
     }
   };
 
-const updateShift = (field, value) => {
-  setData((d) => ({
-    ...d,
-    [field]: value ? `${value}:00` : null,
-  }));
-};
-
+  const updateShift = (field, value) => {
+    setData((d) => ({
+      ...d,
+      [field]: value ? `${value}:00` : null,
+    }));
+  };
 
   const updatePayroll = (field, value) => {
     setData((d) => ({
@@ -59,7 +67,7 @@ const updateShift = (field, value) => {
             <Clock size={24} />
           </div>
           <div>
-            <h2 className="text-xl font-black text-slate-900">Shift Schedule(Any update be will reflected from next shifts)</h2>
+            <h2 className="text-xl font-black text-slate-900">Shift Schedule (Any update will be reflected from next shifts)</h2>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">IST Business Hours</p>
           </div>
         </div>
@@ -88,7 +96,7 @@ const updateShift = (field, value) => {
               <input
                 type="time"
                 disabled={attendanceLocked}
-value={data.shiftStartTime?.substring(0, 5) || ""}
+                value={data.shiftStartTime?.substring(0, 5) || ""}
                 onChange={(e) => updateShift("shiftStartTime", e.target.value)}
                 className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-lg font-bold text-slate-800 focus:bg-white focus:border-indigo-500 outline-none transition-all disabled:opacity-50"
               />
@@ -105,7 +113,7 @@ value={data.shiftStartTime?.substring(0, 5) || ""}
               <input
                 type="time"
                 disabled={attendanceLocked}
-value={data.shiftEndTime?.substring(0, 5) || ""}
+                value={data.shiftEndTime?.substring(0, 5) || ""}
                 onChange={(e) => updateShift("shiftEndTime", e.target.value)}
                 className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-lg font-bold text-slate-800 focus:bg-white focus:border-indigo-500 outline-none transition-all disabled:opacity-50"
               />
@@ -115,41 +123,6 @@ value={data.shiftEndTime?.substring(0, 5) || ""}
         </section>
 
         <hr className="border-slate-100" />
-
-        {/* PAYROLL SECTION */}
-        {/* <section className="space-y-6">
-          <div className="flex items-center gap-2">
-            <CircleDollarSign size={18} className="text-slate-400" />
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Rate Card (Daily)</h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <PayrollInput 
-              label="Basic" 
-              icon={<CircleDollarSign size={14}/>} 
-              color="emerald"
-              value={data.payroll?.basePay}
-              onChange={(val) => updatePayroll("basePay", val)}
-              disabled={attendanceLocked}
-            />
-            <PayrollInput 
-              label="OT / Hour" 
-              icon={<Zap size={14}/>} 
-              color="blue"
-              value={data.payroll?.otPay}
-              onChange={(val) => updatePayroll("otPay", val)}
-              disabled={attendanceLocked}
-            />
-            <PayrollInput 
-              label="Daily Bata" 
-              icon={<Coffee size={14}/>} 
-              color="orange"
-              value={data.payroll?.bata}
-              onChange={(val) => updatePayroll("bata", val)}
-              disabled={attendanceLocked}
-            />
-          </div>
-        </section> */}
       </div>
     </div>
   );

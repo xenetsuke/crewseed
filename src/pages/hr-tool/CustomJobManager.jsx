@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, X, Check, Plus } from "lucide-react"; // Added Icons
 import JobBasicForm from "./components/JobBasicForm";
 import ShiftPayrollForm from "./components/ShiftPayrollForm";
-// import { getJobsPostedBy, getJobById, getJob } from "../../Services/JobService"; // Ensure getJobById is imported
-
 import WorkerAssignmentPicker from "./components/WorkerAssignmentPicker";
 import AssignedWorkersTable from "./components/AssignedWorkersTable";
 import {
@@ -16,8 +14,7 @@ const CustomJobManager = ({
   jobId,
   initialData,
   onSuccess,
-    onClose,          // ✅ ADD THIS
-
+  onClose,
 }) => {
   // ✅ STEP 3: GUARD RENDER
   if (mode === "EDIT" && !initialData) {
@@ -27,95 +24,81 @@ const CustomJobManager = ({
       </div>
     );
   }
+
   useEffect(() => {
-  if (mode === "EDIT" && initialData) {
-    setJobData({
-      jobTitle: initialData.jobTitle || "",
-      companyName: initialData.companyName || "",
-      managerName: initialData.managerName || "",
-
-      city: initialData.city || "",
-      state: initialData.state || "",
-      pincode: initialData.pincode || "",
-
-      startDate: initialData.startDate || "",
-      endDate: initialData.endDate || "",
-
-      shiftStartTime: initialData.shiftStartTime || "",
-      shiftEndTime: initialData.shiftEndTime || "",
-
-      paymentFrequency: initialData.paymentFrequency || "DAILY",
-      baseWageAmount: initialData.baseWageAmount || "",
-
-      // 🔥 IMPORTANT: payroll may NOT exist on Job
-      payroll: initialData.payroll ?? {
-        basePay: initialData.baseWageAmount || 0,
-        dailyPay: 0,
-        overtimePay: 0,
-        bata: 0,
-        pfDeduction: 0,
-        esiDeduction: 0,
-        advanceDeduction: 0,
-      },
-
-      workerIds: initialData.workerIds || [],
-    });
-  }
-}, [mode, initialData]);
-
+    if (mode === "EDIT" && initialData) {
+      setJobData({
+        jobTitle: initialData.jobTitle || "",
+        companyName: initialData.companyName || "",
+        managerName: initialData.managerName || "",
+        city: initialData.city || "",
+        state: initialData.state || "",
+        pincode: initialData.pincode || "",
+        startDate: initialData.startDate || "",
+        endDate: initialData.endDate || "",
+        shiftStartTime: initialData.shiftStartTime || "",
+        shiftEndTime: initialData.shiftEndTime || "",
+        paymentFrequency: initialData.paymentFrequency || "DAILY",
+        baseWageAmount: initialData.baseWageAmount || "",
+        payroll: initialData.payroll ?? {
+          basePay: initialData.baseWageAmount || 0,
+          dailyPay: 0,
+          overtimePay: 0,
+          bata: 0,
+          pfDeduction: 0,
+          esiDeduction: 0,
+          advanceDeduction: 0,
+        },
+        workerIds: initialData.workerIds || [],
+      });
+    }
+  }, [mode, initialData]);
 
   // ✅ STEP 4: INITIALIZE FORM STATE SAFELY
-const [jobData, setJobData] = useState(() => ({
-  jobTitle: "",
-  companyName: "",
-  managerName: "",
+  const [jobData, setJobData] = useState(() => ({
+    jobTitle: "",
+    companyName: "",
+    managerName: "",
+    city: "",
+    state: "",
+    pincode: "",
+    startDate: "",
+    endDate: "",
+    shiftStartTime: "",
+    shiftEndTime: "",
+    paymentFrequency: "DAILY",
+    baseWageAmount: "",
+    payroll: {
+      basePay: "",
+      dailyPay: "",
+      overtimePay: "",
+      bata: "",
+      pfDeduction: "",
+      esiDeduction: "",
+      advanceDeduction: "",
+    },
+    workerIds: [],
+  }));
 
-  city: "",
-  state: "",
-  pincode: "",
+  const handleClose = () => {
+    // Basic check for unsaved changes
+    const hasChanges = JSON.stringify(jobData) !== JSON.stringify(initialData ?? {
+      jobTitle: "", companyName: "", managerName: "", city: "", state: "", pincode: "",
+      startDate: "", endDate: "", shiftStartTime: "", shiftEndTime: "",
+      paymentFrequency: "DAILY", baseWageAmount: "", workerIds: [],
+      payroll: { basePay: "", dailyPay: "", overtimePay: "", bata: "", pfDeduction: "", esiDeduction: "", advanceDeduction: "" }
+    });
 
-  startDate: "",
-  endDate: "",
-  shiftStartTime: "",
-  shiftEndTime: "",
+    if (hasChanges) {
+      const ok = window.confirm("Discard unsaved changes?");
+      if (!ok) return;
+    }
+    onClose?.();
+  };
 
-  paymentFrequency: "DAILY", // ⭐ REQUIRED
-  baseWageAmount: "",        // ⭐ JOB TEMPLATE
-
-  payroll: {                 // ⭐ ASSIGNMENT PAY
-    basePay: "",
-    dailyPay: "",
-    overtimePay: "",
-    bata: "",
-    pfDeduction: "",
-    esiDeduction: "",
-    advanceDeduction: "",
-  },
-
-  workerIds: [],
-}));
-
-
-  /* 🔍 LOG EVERY STATE CHANGE */
-  useEffect(() => {
-    console.group("📦 Job Data Updated");
-    console.table(jobData);
-    console.groupEnd();
-  }, [jobData]);
-const handleClose = () => {
-  if (JSON.stringify(jobData) !== JSON.stringify(initialData ?? {})) {
-    const ok = window.confirm("Discard unsaved changes?");
-    if (!ok) return;
-  }
-  onClose?.();
-};
-
-  /* ===============================
-     CREATE
-  =============================== */
   const normalizeTime = (t) => {
     if (!t) return null;
-    return t.length === 5 ? `${t}:00` : t; // HH:mm → HH:mm:00
+    return t.length === 5 ? `${t}:00` : t; 
   };
 
   const handleCreate = async () => {
@@ -124,11 +107,6 @@ const handleClose = () => {
       shiftStartTime: normalizeTime(jobData.shiftStartTime),
       shiftEndTime: normalizeTime(jobData.shiftEndTime),
     };
-
-    console.group("🚀 CREATE JOB");
-    console.log("Payload sent to backend:", payload);
-    console.groupEnd();
-
     try {
       await createCustomJob(payload);
       alert("Custom job created & attendance scheduled");
@@ -138,96 +116,78 @@ const handleClose = () => {
     }
   };
 
-  /* ===============================
-     EDIT
-  =============================== */
-const handleEdit = async (editPayload) => {
-  const payload = {
-    ...editPayload,
-    shiftStartTime: normalizeTime(editPayload.shiftStartTime),
-    shiftEndTime: normalizeTime(editPayload.shiftEndTime),
+  const handleEdit = async (editPayload) => {
+    const payload = {
+      ...editPayload,
+      shiftStartTime: normalizeTime(editPayload.shiftStartTime),
+      shiftEndTime: normalizeTime(editPayload.shiftEndTime),
+    };
+    try {
+      const employerId = JSON.parse(localStorage.getItem("user"))?.id;
+      await editCustomJob(employerId, jobId, payload);
+      alert("Job updated safely");
+      onSuccess?.();
+    } catch (err) {
+      console.error("❌ Edit job failed", err);
+    }
   };
 
-  console.group("✏️ EDIT JOB (NORMALIZED)");
-  console.log(payload);
-  console.groupEnd();
-
-  try {
-const employerId = JSON.parse(localStorage.getItem("user"))?.id;
-
-await editCustomJob(employerId, jobId, payload);
-    alert("Job updated safely");
-    onSuccess?.();
-  } catch (err) {
-    console.error("❌ Edit job failed", err);
-  }
-};
-
-
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-<div className="flex items-center justify-between">
-  <h1 className="text-3xl font-black">
-    {mode === "CREATE" ? "Create Custom Job" : "Edit Job"}
-  </h1>
+    <div className="max-w-6xl mx-auto p-6 space-y-8 bg-slate-50/30 rounded-[3rem]">
+      {/* HEADER */}
+      <div className="flex items-center justify-between pb-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+            {mode === "CREATE" ? "Create Custom Job" : "Edit Job"}
+          </h1>
+          <p className="text-slate-500 font-medium">Configure project details and work hours</p>
+        </div>
 
-<button
-  onClick={handleClose}
-  className="rounded-xl p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 transition"
-  aria-label="Close"
->
-  ✕
-</button>
+        <button
+          onClick={handleClose}
+          className="group flex items-center gap-2 px-4 py-2 rounded-2xl bg-white border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-100 hover:bg-rose-50 transition-all duration-300 shadow-sm"
+          aria-label="Close"
+        >
+          <span className="text-xs font-bold uppercase tracking-widest">Close</span>
+          <X size={20} className="transition-transform group-hover:rotate-90" />
+        </button>
+      </div>
 
-</div>
-
-      {/* 🔍 CHILD PROPS LOG */}
-      {console.log("➡️ Passing jobData to JobBasicForm", jobData)}
       <JobBasicForm
         data={jobData}
         setData={setJobData}
         disabled={mode === "EDIT"}
       />
 
-      {console.log("➡️ Passing jobData to ShiftPayrollForm", jobData)}
       <ShiftPayrollForm data={jobData} setData={setJobData} />
 
-      {console.log("➡️ Passing jobData to WorkerAssignmentPicker", jobData)}
-      <WorkerAssignmentPicker data={jobData} setData={setJobData} />
-
-      <AssignedWorkersTable
-        workers={jobData.workerIds}
-        mode={mode}
-        onRemove={(id) => {
-          console.group("🗑️ REMOVE WORKER");
-          console.log("Removing worker ID:", id);
-          setJobData((d) => {
-            const updated = {
-              ...d,
-              workerIds: d.workerIds.filter((w) => w !== id),
-            };
-            console.log("Updated workerIds:", updated.workerIds);
-            return updated;
-          });
-          console.groupEnd();
-        }}
-      />
-
-      {mode === "CREATE" ? (
+      {/* FOOTER ACTIONS */}
+      <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-200">
         <button
-          onClick={handleCreate}
-          className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold"
+          onClick={handleClose}
+          className="px-8 py-4 rounded-2xl text-slate-600 font-bold hover:bg-slate-100 transition-colors"
         >
-          Create Job & Assign Workers
+          Cancel
         </button>
-      ) : (
-        <button
-          onClick={() => handleEdit({ ...jobData })}
-          className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold"
-        >
-          Save Changes
-        </button>
-      )}
+
+        {mode === "CREATE" ? (
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-indigo-200 transition-all active:scale-95"
+          >
+            <Plus size={20} />
+            Create Job & Assign
+          </button>
+        ) : (
+          <button
+            onClick={() => handleEdit({ ...jobData })}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-emerald-200 transition-all active:scale-95"
+          >
+            <Check size={20} />
+            Save Changes
+          </button>
+        )}
+      </div>
     </div>
   );
 };
