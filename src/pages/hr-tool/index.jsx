@@ -11,6 +11,7 @@ import {
   Plus,
   LayoutDashboard,
   Pencil,
+  Loader2,
 } from "lucide-react";
 import CustomJobManager from "./CustomJobManager";
 import WorkerRow from "./components/WorkerRow";
@@ -24,7 +25,6 @@ import { getAttendanceByJob } from "../../Services/AttendanceService";
 import { getAssignmentsByJob } from "../../Services/AssignmentService";
 import { getProfile } from "../../Services/ProfileService";
 import { useSelector } from "react-redux";
-
 const WorkerAttendanceHR = () => {
   const [expandedJobId, setExpandedJobId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -34,14 +34,15 @@ const WorkerAttendanceHR = () => {
   const [frontendUpdateFlag, setFrontendUpdateFlag] = useState(0);
 
   const queryClient = useQueryClient();
-
+  const [isNavigating, setIsNavigating] = useState(false);
+  
   useEffect(() => {
     if (expandedJobId) {
       queryClient.invalidateQueries(["attendance", expandedJobId]);
       queryClient.invalidateQueries(["assignments", expandedJobId]);
     }
   }, [frontendUpdateFlag, expandedJobId]);
-
+  
   const [editJobOpen, setEditJobOpen] = useState(false);
   const [selectedJobForEdit, setSelectedJobForEdit] = useState(null);
   const [manageWorkersOpen, setManageWorkersOpen] = useState(false);
@@ -173,6 +174,19 @@ const WorkerAttendanceHR = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      {/* --- MODERN LOADING OVERLAY START --- */}
+      {isNavigating && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/70 backdrop-blur-md transition-all duration-300">
+          <div className="relative flex items-center justify-center">
+            <div className="w-20 h-20 border-4 border-teal-50 border-t-teal-600 rounded-full animate-spin"></div>
+            <Loader2 className="absolute w-8 h-8 text-teal-600 animate-pulse" />
+          </div>
+          <h3 className="mt-6 text-sm font-black text-slate-900 uppercase tracking-[0.3em] animate-pulse">
+            Loading Assets
+          </h3>
+        </div>
+      )}
+      {/* --- MODERN LOADING OVERLAY END --- */}
       <div className={cn("fixed inset-y-0 left-0 z-[100] transition-all duration-300", mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0")}>
         <EmployerSidebar isCollapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
       </div>
@@ -261,25 +275,32 @@ const WorkerAttendanceHR = () => {
                         <button
                           onClick={async (e) => {
                             e.stopPropagation();
+                            setIsNavigating(true);
                             try {
                               const fullJob = await getJob(job.backendJobId);
                               setSelectedJobForEdit(fullJob);
                               setEditJobOpen(true);
-                            } catch (error) { console.error(error); }
+                              
+                            } catch (error) { console.error(error); }finally {
+                              // Small delay to ensure the modal starts rendering
+                              setTimeout(() => setIsNavigating(false), 500);
+                            }
                           }}
                           className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-wider bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-100"
                         >
-                          <Pencil className="w-3 h-3" /> <span className="hidden xs:inline">Edit</span>
+                          <Pencil className="w-3 h-3" /> <span className=" xs:inline">Edit Job</span>
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            setIsNavigating(true);
                             setSelectedJobId(job.backendJobId);
+                            setTimeout(() => setIsNavigating(false), 600);
                             setManageWorkersOpen(true);
                           }}
                           className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-[10px] font-black text-indigo-600 uppercase tracking-wider bg-indigo-50 px-4 py-2.5 rounded-xl transition-all"
                         >
-                          <Users className="w-4 h-4" /> <span>Manage</span>
+                          <Users className="w-4 h-4" /> <span>Manage Workers</span>
                         </button>
                         <ChevronDown className={cn("hidden sm:block w-6 h-6 text-slate-300 transition-transform", Number(expandedJobId) === Number(job.backendJobId) && "rotate-180 text-teal-600")} />
                       </div>

@@ -54,6 +54,9 @@ const PostJobRequirement = () => {
     positions: "1",
     description: "",
     paymentFrequency: "",
+    city:"",
+    state:"",
+    pincode:"",
     minPay: "",
     maxPay: "",
     benefits: [],
@@ -149,7 +152,9 @@ useEffect(() => {
           paymentFrequency: res.paymentFrequency ?? "",
           minPay: res.baseWageAmount ?? "",
           maxPay: res.wageRange?.max ?? "",
-          
+            city:res.city??"",
+    state:res.state??"",
+    pincode:res.pincode??"",
           // Schedule & Availability
           startDate: res.startDate ?? "",
           endDate: res.endDate ?? "",
@@ -225,7 +230,9 @@ const buildJobDtoPayload = (status) => {
       jobRole: formData.jobRole || "",
                     companyName:formData.companyName ?? "",
                     managerName:formData.managerName ?? "",
-
+          city:formData.city??"",
+    state:formData.state??"",
+    pincode:formData.pincode??"",
       jobDescription: formData.description || "",
       industryCategory: VALID_CATEGORIES.includes(formData.category?.toUpperCase())
         ? formData.category.toUpperCase()
