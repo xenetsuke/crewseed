@@ -17,7 +17,6 @@ import WorkerSidebar from "../../components/navigation/WorkerSidebar";
 
 import { useQueryClient } from "@tanstack/react-query";
 
-
 const MobileJobDetails = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,7 +32,6 @@ const MobileJobDetails = () => {
   const [rawJobData, setRawJobData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
-  // const [hasApplied, setHasApplied] = useState(false);
 
   const searchParams = new URLSearchParams(location.search);
   const jobIdFromQuery = searchParams.get("id");
@@ -42,17 +40,26 @@ const MobileJobDetails = () => {
 
   const isBookmarked = profile?.savedJobs?.includes(jobId);
 
+  // Musical Loading Component
+  const MusicalLoader = () => (
+    <div className="flex items-center justify-center gap-1 h-12">
+      {[1, 2, 3, 4, 5].map((bar) => (
+        <div
+          key={bar}
+          className="w-1.5 bg-[#23acf6] rounded-full animate-musical-bar"
+          style={{
+            animationDelay: `${bar * 0.1}s`,
+            height: '100%'
+          }}
+        />
+      ))}
+    </div>
+  );
+
   const jobData = useMemo(() => {
     if (!rawJobData) return null;
-
     const res = rawJobData;
-    const userApp = res.applicants?.find(
-      (app) => String(app.applicantId) === String(user?.id)
-    );
-    // setHasApplied(!!(userApp || res.hasAppliedByUser || res.appliedStatus === "APPLIED"));
-
-
-
+    
     const employer = res.employer ? {
       id: res.employer.id,
       nameEn: res.employer.companyName || t("assignments.company"),
@@ -119,13 +126,11 @@ const MobileJobDetails = () => {
   }, [rawJobData, i18n.language, t, user?.id]);
 
   const hasApplied = useMemo(() => {
-  if (!rawJobData || !user?.id) return false;
-
-  return rawJobData.applicants?.some(
-    (app) => String(app.applicantId) === String(user.id)
-  );
-}, [rawJobData, user?.id]);
-
+    if (!rawJobData || !user?.id) return false;
+    return rawJobData.applicants?.some(
+      (app) => String(app.applicantId) === String(user.id)
+    );
+  }, [rawJobData, user?.id]);
 
   const handleSaveJob = async () => {
     if (!profile?.id || !jobId) return;
@@ -134,7 +139,6 @@ const MobileJobDetails = () => {
       savedJobs = savedJobs.includes(jobId)
         ? savedJobs.filter((id) => id !== jobId)
         : [...savedJobs, jobId];
-
       const updatedProfile = { ...profile, savedJobs };
       await updateProfile(updatedProfile);
       dispatch(changeProfile(updatedProfile));
@@ -164,7 +168,6 @@ const MobileJobDetails = () => {
         setLoading(true);
         const res = await getJob(jobId);
         setRawJobData(res);
-
         if (user?.id && (!profile || Object.keys(profile).length === 0)) {
           const profileRes = await getProfile(user.id);
           dispatch(setProfile(profileRes));
@@ -194,9 +197,23 @@ const MobileJobDetails = () => {
   }, [rawJobData?.id]);
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-3">
-      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      <p className="font-medium text-muted-foreground">{t("common.loading")}</p>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-white">
+      <style>
+        {`
+          @keyframes musical-bar {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+          }
+          .animate-musical-bar {
+            animation: musical-bar 0.8s ease-in-out infinite;
+            transform-origin: bottom;
+          }
+        `}
+      </style>
+      <MusicalLoader />
+      <p className="font-black text-[10px] uppercase tracking-[0.2em] text-[#23acf6] animate-pulse">
+        {t("common.loading")}
+      </p>
     </div>
   );
 
@@ -208,13 +225,6 @@ const MobileJobDetails = () => {
       </div>
     </div>
   );
-
-const handleApplySuccess = () => {
-  queryClient.invalidateQueries(["allJobs"]); // 🔥 THIS IS THE KEY
-  setShowApplicationModal(false);
-};
-
-
 
   const workerProfile = {
     name: profile?.fullName || t("profile.fullName"),
@@ -239,21 +249,8 @@ const handleApplySuccess = () => {
           sidebarCollapsed ? "sidebar-collapsed" : ""
         }`}
       >
-        {/* Transparent Floating Header */}
-        {/* <div className="sticky top-0 z-50 p-4 pointer-events-none">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <button 
-              onClick={() => navigate(-1)} 
-              className="p-2 bg-white/90 backdrop-blur-md shadow-lg border border-slate-100 rounded-full transition-colors pointer-events-auto active:scale-95"
-            >
-              <ChevronLeft className="text-slate-800" />
-            </button>
-          </div>
-        </div> */}
-
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                 <div className="flex flex-col md:flex-row gap-6">
@@ -272,7 +269,7 @@ const handleApplySuccess = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-slate-500">
-                      <MapPin size={18} className="text-primary" />
+                      <MapPin size={18} className="text-[#23acf6]" />
                       <span className="text-sm md:text-base">{jobData.locationEn}</span>
                     </div>
                   </div>
@@ -283,7 +280,7 @@ const handleApplySuccess = () => {
                     <p className="text-[10px] text-emerald-600 font-bold tracking-wider uppercase mb-1">{t("wage.monthly")}</p>
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-black text-emerald-700">₹{jobData.wage.amount}</span>
-                      <span className="text-emerald-600 font-bold text-xs uppercase">{jobData.wage.typeEn}</span>
+                      {/* <span className="text-emerald-600 font-bold text-xs uppercase">{jobData.wage.typeEn}</span> */}
                     </div>
                   </div>
 
@@ -327,9 +324,9 @@ const handleApplySuccess = () => {
                 <Section title="Benefits & Perks" icon={TrendingUp}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {jobData.benefits.map((benefit, i) => (
-                      <div key={i} className="p-4 rounded-2xl border border-slate-100 bg-white flex items-center gap-3 shadow-sm hover:border-primary/30 transition-colors">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <benefit.icon size={20} className="text-primary" />
+                      <div key={i} className="p-4 rounded-2xl border border-slate-100 bg-white flex items-center gap-3 shadow-sm hover:border-[#23acf6]/30 transition-colors">
+                        <div className="p-2 bg-[#23acf6]/10 rounded-lg">
+                          <benefit.icon size={20} className="text-[#23acf6]" />
                         </div>
                         <span className="text-sm font-bold text-slate-700">{benefit.labelEn}</span>
                       </div>
@@ -393,11 +390,11 @@ const handleApplySuccess = () => {
               <button 
                 onClick={handleSaveJob} 
                 className={`p-3 rounded-2xl transition-all active:scale-90 ${
-                  isBookmarked ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-700"
+                  isBookmarked ? "bg-[#23acf6]/10 text-[#23acf6]" : "bg-slate-100 text-slate-700"
                 }`}
                 aria-label="Save Job"
               >
-                <Bookmark size={24} className={isBookmarked ? "fill-primary" : ""} />
+                <Bookmark size={24} className={isBookmarked ? "fill-[#23acf6]" : ""} />
               </button>
             </div>
             <div className="flex-1">
@@ -407,38 +404,32 @@ const handleApplySuccess = () => {
         </div>
       </main>
 
-<JobApplicationModal
-  isOpen={showApplicationModal}
-  onClose={() => setShowApplicationModal(false)}
-  jobData={jobData}
-  workerProfile={workerProfile}
-  onSubmit={() => {
-    // 🔥 OPTIMISTIC UPDATE
-    queryClient.setQueryData(["allJobs"], (oldJobs = []) =>
-      oldJobs.map((job) =>
-        job.id === jobId
-          ? {
-              ...job,
-              applicants: [
-                ...(job.applicants || []),
-                {
-                  applicantId: user.id,
-                  applicationStatus: "APPLIED",
-                },
-              ],
-            }
-          : job
-      )
-    );
-
-    // 🔄 Background refetch (safety)
-    queryClient.invalidateQueries(["allJobs"]);
-
-    setShowApplicationModal(false);
-  }}
-/>
-
-
+      <JobApplicationModal
+        isOpen={showApplicationModal}
+        onClose={() => setShowApplicationModal(false)}
+        jobData={jobData}
+        workerProfile={workerProfile}
+        onSubmit={() => {
+          queryClient.setQueryData(["allJobs"], (oldJobs = []) =>
+            oldJobs.map((job) =>
+              job.id === jobId
+                ? {
+                    ...job,
+                    applicants: [
+                      ...(job.applicants || []),
+                      {
+                        applicantId: user.id,
+                        applicationStatus: "APPLIED",
+                      },
+                    ],
+                  }
+                : job
+            )
+          );
+          queryClient.invalidateQueries(["allJobs"]);
+          setShowApplicationModal(false);
+        }}
+      />
     </div>
   );
 };
@@ -448,7 +439,7 @@ const Section = ({ title, icon: IconComponent, children }) => (
   <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
     <h2 className="text-lg font-black flex items-center gap-3 mb-6 text-slate-800">
       <div className="p-2 bg-slate-100 rounded-xl">
-        <IconComponent size={20} className="text-primary" />
+        <IconComponent size={20} className="text-[#23acf6]" />
       </div>
       {title}
     </h2>
@@ -470,13 +461,13 @@ const RelatedJobCard = ({ job, onClick }) => {
 
   return (
     <div 
-      className="p-4 border border-slate-100 rounded-2xl bg-white hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group"
+      className="p-4 border border-slate-100 rounded-2xl bg-white hover:border-[#23acf6]/50 hover:shadow-md transition-all cursor-pointer group"
       onClick={() => onClick(job.id)}
     >
       <div className="flex gap-4">
         <img src={logo} alt="logo" className="w-12 h-12 rounded-xl object-cover border border-slate-50" />
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-slate-800 truncate group-hover:text-primary transition-colors">{job.jobTitle}</h3>
+          <h3 className="font-bold text-slate-800 truncate group-hover:text-[#23acf6] transition-colors">{job.jobTitle}</h3>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-sm font-black text-emerald-600">₹{job.baseWageAmount}</span>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">• {job.jobType || "Full-time"}</span>

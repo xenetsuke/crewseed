@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react"; // Switched useCallback to useMemo
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useQuery } from "@tanstack/react-query";
@@ -25,7 +25,6 @@ function WorkerJobList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  // REMOVED: setFilteredJobs state (this was causing the loop)
   const [activeFilters, setActiveFilters] = useState({
     quickFilters: [],
     industry: [],
@@ -55,7 +54,7 @@ function WorkerJobList() {
   });
 
   /* =========================================================
-      DERIVED STATE: FILTERING (Fix: No more loop)
+      DERIVED STATE: FILTERING
   ========================================================= */
   const filteredJobs = useMemo(() => {
     let updated = [...jobs];
@@ -81,7 +80,7 @@ function WorkerJobList() {
     }
 
     return updated;
-  }, [jobs, activeFilters, searchQuery]); // Automatically recalculates when these change
+  }, [jobs, activeFilters, searchQuery]);
 
   useEffect(() => {
     if (searchExpanded && searchInputRef?.current) {
@@ -106,23 +105,6 @@ function WorkerJobList() {
     if (diffInHours < 24) return `${diffInHours}h ago`;
     return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   };
-
-  /* =========================================================
-      FETCH PROFILE (Watch IDs only)
-  ========================================================= */
-  // useEffect(() => {
-  //   const fetchProfileData = async () => {
-  //     try {
-  //       if (user?.id) {
-  //         const userProfile = await getProfile(user.id);
-  //         dispatch(setProfile(userProfile));
-  //       }
-  //     } catch (err) {
-  //       console.error("Failed to fetch profile:", err);
-  //     }
-  //   };
-  //   if (user?.id && !profile?.id) fetchProfileData();
-  // }, [user?.id, profile?.id, dispatch]);
 
   /* =========================================================
       EVENT HANDLERS
@@ -161,6 +143,39 @@ function WorkerJobList() {
     navigate("/mobile-job-details", { state: { assignmentId: jobId } });
   };
 
+  // Musical Loader Sub-component
+  const MusicalLoader = () => (
+    <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
+      <style>
+        {`
+          @keyframes musical-bar {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+          }
+          .animate-musical-bar {
+            animation: musical-bar 0.8s ease-in-out infinite;
+            transform-origin: bottom;
+          }
+        `}
+      </style>
+      <div className="flex items-center justify-center gap-1.5 h-12">
+        {[1, 2, 3, 4, 5].map((bar) => (
+          <div
+            key={bar}
+            className="w-2 bg-[#23acf6] rounded-full animate-musical-bar"
+            style={{
+              animationDelay: `${bar * 0.1}s`,
+              height: '100%'
+            }}
+          />
+        ))}
+      </div>
+      <p className="font-black text-[10px] uppercase tracking-[0.2em] text-[#23acf6] animate-pulse">
+        Fetching Jobs
+      </p>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <WorkerSidebar
@@ -168,14 +183,14 @@ function WorkerJobList() {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      <main className={`main-content ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+      <main className={`main-content transition-all duration-300 ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
         <div className="sticky top-0 z-10 bg-background border-b border-border">
           <div className="p-4">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h1 className="text-2xl font-bold">Available Jobs</h1>
                 <p className="text-sm text-muted-foreground">
-                  {filteredJobs.length} jobs found
+                  {!loading && `${filteredJobs.length} jobs found`}
                 </p>
               </div>
 
@@ -263,7 +278,7 @@ function WorkerJobList() {
 
         <div className="p-4">
           {loading && jobs.length === 0 ? (
-            <div className="text-center py-10">Loading jobs...</div>
+            <MusicalLoader />
           ) : filteredJobs.length === 0 ? (
             <div className="text-center py-12">
               <Icon name="Briefcase" size={48} className="mx-auto text-muted-foreground mb-4" />
@@ -300,7 +315,7 @@ function WorkerJobList() {
                           <button
                             onClick={(e) => { e.stopPropagation(); handleSaveJob(job.id); }}
                             className={`p-2 rounded-full transition-colors ${
-                              isSaved ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted"
+                              isSaved ? "text-[#23acf6] bg-[#23acf6]/10" : "text-muted-foreground hover:bg-muted"
                             }`}
                           >
                             <Icon name="Bookmark" size={18} fill={isSaved ? "currentColor" : "none"} />
@@ -319,7 +334,7 @@ function WorkerJobList() {
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">
                                 {job.paymentFrequency || 'WAGE'}
                             </p>
-                            <p className="text-lg font-black text-primary">₹{job.baseWageAmount}</p>
+                            <p className="text-lg font-black text-[#23acf6]">₹{job.baseWageAmount}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">EXPERIENCE</p>
@@ -330,7 +345,7 @@ function WorkerJobList() {
                         <div className="flex items-center justify-between mt-4">
                           <div className="flex flex-wrap gap-3">
                             <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                              <Icon name="Clock" size={14} className="text-primary" />
+                              <Icon name="Clock" size={14} className="text-[#23acf6]" />
                               <span>{getRelativeTime(job?.postedDate || job?.createdAt)}</span>
                             </div>
                             <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
@@ -350,24 +365,24 @@ function WorkerJobList() {
                           <Button variant="outline" fullWidth className="h-10 text-xs font-bold" onClick={(e) => { e.stopPropagation(); handleViewJobDetails(job.id); }}>
                             Details
                           </Button>
-                         <Button
-  variant="default"
-  fullWidth
-  className={`h-10 text-xs font-bold ${
-    isApplied
-      ? appStatus === "REJECTED"
-        ? "bg-red-600 hover:bg-red-700 text-white" 
-        : "bg-green-600 hover:bg-green-700 text-white"
-      : ""
-  }`}
-  disabled={isApplied}
->
-  {isApplied
-    ? appStatus === "APPLIED"
-      ? "Applied"
-      : appStatus.replace("_", " ")
-    : "Apply Now"}
-</Button>
+                          <Button
+                            variant="default"
+                            fullWidth
+                            className={`h-10 text-xs font-bold ${
+                              isApplied
+                                ? appStatus === "REJECTED"
+                                  ? "bg-red-600 hover:bg-red-700 text-white" 
+                                  : "bg-green-600 hover:bg-green-700 text-white"
+                                : ""
+                            }`}
+                            disabled={isApplied}
+                          >
+                            {isApplied
+                              ? appStatus === "APPLIED"
+                                ? "Applied"
+                                : appStatus.replace("_", " ")
+                              : "Apply Now"}
+                          </Button>
                         </div>
                       </div>
                     </div>

@@ -13,16 +13,12 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [jwtUser, setJwtUser] = useState(null);
 
-  // 🔔 Pending attendance / assignment actions (later from API)
   const pendingAssignmentsCount = 1;
 
   const user = useSelector((state) => state.user);
   const workerProfile = useSelector((state) => state?.profile);
   const token = useSelector((state) => state?.jwt);
 
-  /* =========================
-      Decode JWT
-  ========================= */
   useEffect(() => {
     const storedToken = token || localStorage.getItem("token");
     if (storedToken) {
@@ -34,52 +30,27 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
     }
   }, [token]);
 
-  /* =========================
-      Helpers
-  ========================= */
-  const maskPhoneNumber = (val) => {
-    if (!val) return "";
-    const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
-    if (typeof val === "string" && phoneRegex.test(val)) {
-      const clean = val.replace(/\s/g, "");
-      return `**${clean.slice(2)}`;
-    }
-    return val;
-  };
+const maskPhoneNumber = (val) => {
+  if (!val) return "";
 
-  /* =========================
-      Navigation Items
-  ========================= */
+  const phoneRegex =
+    /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
+
+  if (typeof val === "string" && phoneRegex.test(val)) {
+    const clean = val.replace(/\s/g, "").replace(/^\+/, "");
+    return `+${clean.slice(0, -3)}***`;
+  }
+
+  return val;
+};
+
+
   const navigationItems = [
-    {
-      label: t("sidebar.dashboard"),
-      path: "/worker-dashboard",
-      icon: "LayoutDashboard",
-    },
-    {
-      label: t("sidebar.jobList"),
-      path: "/worker-job-list",
-      icon: "Briefcase",
-    },
-    {
-      label: t("sidebar.assignments"),
-      path: "/worker-assignments",
-      icon: "ClipboardList",
-    },
-
-    // ✅ NEW — Assignment Details
-    {
-      label: t("sidebar.assignmentDetails"),
-      path: "/assignment-details",
-      icon: "ClipboardCheck",
-      badge: pendingAssignmentsCount,
-    },
-
-    {
-      label: t("sidebar.profile"),
-      path: "/worker-profile",
-      icon: "User",
-    },
+    { label: t("sidebar.dashboard"), path: "/worker-dashboard", icon: "LayoutDashboard" },
+    { label: t("sidebar.jobList"), path: "/worker-job-list", icon: "Briefcase" },
+    { label: t("sidebar.assignments"), path: "/worker-assignments", icon: "ClipboardList" },
+    { label: t("sidebar.assignmentDetails"), path: "/assignment-details", icon: "ClipboardCheck", badge: pendingAssignmentsCount },
+    { label: t("sidebar.profile"), path: "/worker-profile", icon: "User" },
   ];
 
   const handleNavigation = (path) => {
@@ -87,48 +58,52 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
     setIsMobileOpen(false);
   };
 
-  /* =========================
-      Display Info
-  ========================= */
-  const displayName =
-    workerProfile?.fullName ||
-    user?.name ||
-    jwtUser?.name ||
-    t("sidebar.worker");
-
-  const rawSubtitle =
-    workerProfile?.email ||
-    user?.phoneNumber ||
-    jwtUser?.sub ||
-    t("sidebar.viewProfile");
-
+  const displayName = workerProfile?.fullName || user?.name || jwtUser?.name || t("sidebar.worker");
+  const rawSubtitle = workerProfile?.email || user?.phoneNumber || jwtUser?.sub || t("sidebar.viewProfile");
   const displaySubtitle = maskPhoneNumber(rawSubtitle);
+
+  const shinyTextStyle = "bg-[linear-gradient(110deg,#475569,48%,#94a3b8,52%,#475569)] bg-[length:250%_100%] animate-[shine_5s_linear_infinite] bg-clip-text text-transparent";
 
   return (
     <>
-      {/* Mobile Toggle */}
+      <style>
+        {`
+          @keyframes shine {
+            to { background-position: 250% center; }
+          }
+        `}
+      </style>
+
+      {/* Mobile Toggle - Kept the gradient for consistency with the logo branding */}
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="mobile-menu-button"
+        className="mobile-menu-button bg-gradient-to-br from-[#d1ec44] to-[#23acf6] text-slate-800 shadow-md rounded-xl hover:opacity-40 transition-all duration-200"
       >
-        <Icon name={isMobileOpen ? "X" : "Menu"} size={24} />
+        <Icon name={isMobileOpen ? "X" : "Menu"} size={15} />
       </button>
+
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/20 backdrop-blur-[2px] z-40 lg:hidden animate-fade-in"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
 
       <aside
         className={`sidebar ${isCollapsed ? "collapsed" : ""} ${
-          isMobileOpen ? "animate-slide-in" : "max-lg:hidden"
-        }`}
+          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        } bg-white border-r border-slate-100 shadow-xl transition-all duration-500 ease-in-out`}
       >
-        {/* Logo */}
-        <div className="sidebar-header">
+        {/* Logo Section - Kept exactly as you had it */}
+        <div className="sidebar-header border-b border-slate-50/50">
           <div className="sidebar-logo flex items-center gap-2">
             <img
               src="/Crewlogo.svg"
               alt="Company Logo"
-              className="w-8 h-8 object-contain"
+              className="w-7 h-7 object-contain"
             />
             {!isCollapsed && (
-              <span className="sidebar-logo-text font-bold">
+              <span className="text-xl font-extrabold tracking-tighter bg-gradient-to-r from-[#23acf6] via-[#d1ec44] to-[#23acf6] bg-[length:200%_auto] animate-[shine:6s_linear_infinite] bg-clip-text text-transparent opacity-90">
                 CrewSeed
               </span>
             )}
@@ -138,50 +113,80 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
         {/* Profile Card */}
         {!isCollapsed && (
           <div
-            className="px-4 py-3 mb-2 border-b border-gray-200 cursor-pointer hover:bg-gray-50"
+            className="px-5 py-4 mb-2 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition-all group relative overflow-hidden"
             onClick={() => handleNavigation("/worker-profile")}
           >
+            {/* Hover Accent changed to #23acf6 */}
+            <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#23acf6] scale-y-0 group-hover:scale-y-100 transition-transform duration-300" />
+            
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Icon name="User" size={20} />
+              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-[#23acf6]/10 group-hover:text-[#23acf6] transition-all duration-300">
+                <Icon name="User" size={18} />
               </div>
+
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">
+                <p className={`text-[14px] font-bold truncate tracking-tight ${shinyTextStyle}`}>
                   {displayName}
                 </p>
-                <p className="text-xs text-gray-500 truncate">
+                <p className="text-[10px] font-semibold text-slate-400 truncate tracking-widest uppercase">
                   {displaySubtitle}
                 </p>
               </div>
-              <Icon name="ChevronRight" size={16} />
+
+              <Icon name="ChevronRight" size={14} className="text-slate-300 group-hover:translate-x-1 transition-all" />
             </div>
           </div>
         )}
 
         {/* Navigation */}
-        <nav className="sidebar-nav">
-          {navigationItems.map((item) => (
-            <div
-              key={item.path}
-              onClick={() => handleNavigation(item.path)}
-              className={`sidebar-nav-item ${
-                location.pathname === item.path ? "active" : ""
-              }`}
-            >
-              <Icon name={item.icon} size={20} />
-              <span className="sidebar-nav-item-text">
-                {item.label}
-              </span>
+        <nav className="sidebar-nav px-3 pt-3 space-y-1">
+          {navigationItems.map((item) => {
+            const active = location.pathname === item.path;
+            return (
+              <div
+                key={item.path}
+                onClick={() => handleNavigation(item.path)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 group relative ${
+                  active
+                    ? "bg-slate-900 text-white shadow-lg shadow-slate-200"
+                    : "text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                {!active && (
+                   <div className="absolute left-0 top-1/4 bottom-1/4 w-[2px] bg-[#23acf6] opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
 
-              {/* 🔔 Badge */}
-              {!isCollapsed && item.badge > 0 && (
-                <span className="ml-auto bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  {item.badge}
-                </span>
-              )}
-            </div>
-          ))}
+                <Icon
+                  name={item.icon}
+                  size={19}
+                  className={`${active ? "text-[#23acf6]" : "text-slate-400 group-hover:text-[#23acf6]"} transition-colors`}
+                />
+
+                {!isCollapsed && (
+                  <span className={`text-[13px] font-bold tracking-wide flex-1 ${active ? "text-white" : "text-slate-500 group-hover:text-slate-700"}`}>
+                    {item.label}
+                  </span>
+                )}
+
+                {/* {!isCollapsed && item.badge > 0 && (
+                  <span className="bg-[#23acf6] text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-sm">
+                    {item.badge}
+                  </span>
+                )} */}
+              </div>
+            );
+          })}
         </nav>
+
+        {/* Collapse Toggle */}
+        {onToggleCollapse && (
+          <button
+            onClick={onToggleCollapse}
+            className="hidden lg:flex absolute bottom-8 right-[-12px] w-6 h-6 items-center justify-center rounded-full bg-white border border-slate-100 shadow-sm text-slate-300 hover:text-[#23acf6] hover:shadow-md transition-all"
+          >
+            <Icon name={isCollapsed ? "ChevronRight" : "ChevronLeft"} size={12} />
+          </button>
+        )}
       </aside>
     </>
   );

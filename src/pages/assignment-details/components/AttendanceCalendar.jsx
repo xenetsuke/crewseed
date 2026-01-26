@@ -52,9 +52,9 @@ const AttendanceCalendar = ({ attendance = [] }) => {
           Monthly Attendance
         </p>
         {/* ✅ Updated Header Label */}
-        <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+        {/* <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
           Showing Net Pay
-        </span>
+        </span> */}
       </div>
 
       {/* 🔥 SLIDABLE CONTAINER */}
@@ -79,7 +79,7 @@ const AttendanceCalendar = ({ attendance = [] }) => {
               <span>{day}</span>
               
               {/* ✅ NEW: Dynamic Badge for Net Pay (Positive/Negative) */}
-              {netPay !== 0 && (
+              {/* {netPay !== 0 && (
                 <span
                   className={cn(
                     "text-[9px] mt-0.5 font-bold px-1 rounded",
@@ -90,7 +90,7 @@ const AttendanceCalendar = ({ attendance = [] }) => {
                 >
                   ₹{netPay}
                 </span>
-              )}
+              )} */}
             </div>
           );
         })}

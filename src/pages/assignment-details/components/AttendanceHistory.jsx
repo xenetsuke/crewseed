@@ -163,13 +163,13 @@ const AttendanceHistory = ({ attendance = [] }) => {
                     isExpanded ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
                     )}>
                     <div className="px-4 pb-4">
-                        <div className="pt-3 border-t border-slate-200/60 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <div className="pt-3 border-t border-slate-200/60 grid grid-cols-3 sm:grid-cols-3 gap-2">
                         <Tile label="Base Pay" value={payroll.basePay} />
-                        <Tile label="Daily Pay" value={payroll.dailyPay} />
+                        {/* <Tile label="Daily Pay" value={payroll.dailyPay} /> */}
                         <Tile label="OT Pay" value={payroll.overtimePay} />
                         <Tile label="Advance" value={payroll.advanceDeduction} danger />
-                        <Tile label="Deductions" value={payroll.totalDeductions} danger />
-                        <Tile label="Total Net" value={payroll.netPayable} highlight />
+                        {/* <Tile label="Deductions" value={payroll.totalDeductions} danger /> */}
+                        {/* <Tile label="Total Net" value={payroll.netPayable} highlight /> */}
                         </div>
                     </div>
                     </div>
