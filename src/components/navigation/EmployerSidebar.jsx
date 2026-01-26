@@ -9,6 +9,7 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   const location = useLocation();
   const dispatch = useDispatch();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [jwtUser, setJwtUser] = useState(null);
 
   /* =========================
       Redux State
@@ -16,11 +17,6 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   const user = useSelector((state) => state?.user);
   const profile = useSelector((state) => state?.profile);
   const token = useSelector((state) => state?.jwt);
-
-  /* =========================
-      JWT Decoded User (Fallback)
-  ========================= */
-  const [jwtUser, setJwtUser] = useState(null);
 
   useEffect(() => {
     const storedToken = token || localStorage.getItem("token");
@@ -34,31 +30,25 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
     }
   }, [token]);
 
-  /* =========================
-      Formatting Helpers
-  ========================= */
-  const maskPhoneNumber = (val) => {
-    if (!val) return "";
-    const phoneRegex =
-      /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
-    if (typeof val === "string" && phoneRegex.test(val)) {
-      const clean = val.replace(/\s/g, "");
-      return `**${clean.slice(2)}`;
-    }
-    return val;
-  };
+const maskPhoneNumber = (val) => {
+  if (!val) return "";
 
-  /* =========================
-      Navigation Items
-  ========================= */
+  const phoneRegex =
+    /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
+
+  if (typeof val === "string" && phoneRegex.test(val)) {
+    const clean = val.replace(/\s/g, "").replace(/^\+/, "");
+    return `+${clean.slice(0, -3)}***`;
+  }
+
+  return val;
+};
+
+
   const navigationItems = [
     { label: "Dashboard", path: "/employer-dashboard", icon: "LayoutDashboard" },
     { label: "Post Job", path: "/post-job-requirement/0", icon: "PlusCircle" },
-    {
-      label: "My Requirements",
-      path: "/employer-requirements",
-      icon: "ClipboardList",
-    },
+    { label: "My Requirements", path: "/employer-requirements", icon: "ClipboardList" },
     { label: "Find Workers", path: "/find-workers", icon: "Users" },
     { label: "HR Tool", path: "/hr-tool", icon: "Wrench" },
     { label: "My Profile", path: "/employer-profile", icon: "UserCircle" },
@@ -69,67 +59,58 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
     setIsMobileOpen(false);
   };
 
-  const handleMobileToggle = () => {
-    setIsMobileOpen(!isMobileOpen);
-  };
-
-  /* =========================
-      Prevent background scroll
-  ========================= */
   useEffect(() => {
     document.body.style.overflow = isMobileOpen ? "hidden" : "unset";
     return () => (document.body.style.overflow = "unset");
   }, [isMobileOpen]);
 
-  /* =========================
-      Profile Data
-  ========================= */
-  const displayName =
-    profile?.companyName || user?.name || jwtUser?.name || "Employer";
-
-  const rawSubtitle =
-    profile?.phoneNumber ||
-    user?.phoneNumber ||
-    profile?.officialEmail ||
-    user?.email ||
-    jwtUser?.sub ||
-    "View Profile";
-
+  const displayName = profile?.companyName || user?.name || jwtUser?.name || "Employer";
+  const rawSubtitle = profile?.phoneNumber || user?.phoneNumber || profile?.officialEmail || user?.email || jwtUser?.sub || "View Profile";
   const displaySubtitle = maskPhoneNumber(rawSubtitle);
+
+  // Subtle Metallic Shiny Style
+  const shinyTextStyle = "bg-[linear-gradient(110deg,#475569,48%,#94a3b8,52%,#475569)] bg-[length:250%_100%] animate-[shine_5s_linear_infinite] bg-clip-text text-transparent";
 
   return (
     <>
+      <style>
+        {`
+          @keyframes shine {
+            to { background-position: 250% center; }
+          }
+        `}
+      </style>
+
       {/* Mobile Menu Button */}
       <button
-        onClick={handleMobileToggle}
-        className="mobile-menu-button bg-gradient-to-br from-teal-300 to-sky-300 text-white shadow-lg rounded-xl"
-        aria-label="Toggle mobile menu"
+        onClick={() => setIsMobileOpen(!isMobileOpen)}
+        className="mobile-menu-button bg-gradient-to-br from-[#d1ec44] to-[#38b6ff] text-slate-800 shadow-md rounded-xl hover:opacity-90 transition-all duration-200"
       >
-        <Icon name={isMobileOpen ? "X" : "Menu"} size={24} />
+        <Icon name={isMobileOpen ? "X" : "Menu"} size={22} />
       </button>
 
       {isMobileOpen && (
         <div
-          className="sidebar-overlay bg-sky-900/30 backdrop-blur-sm animate-fade-in"
+          className="sidebar-overlay bg-slate-900/20 backdrop-blur-[2px] z-40 lg:hidden animate-fade-in"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
       <aside
         className={`sidebar ${isCollapsed ? "collapsed" : ""} ${
-          isMobileOpen ? "animate-slide-in" : "max-lg:hidden"
-        } bg-gradient-to-b from-sky-10 to-teal-10 border-r border-sky-100 shadow-xl`}
+          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        } bg-white border-r border-slate-100 shadow-xl transition-all duration-500 ease-in-out`}
       >
         {/* Logo Section */}
-        <div className="sidebar-header border-b border-sky-200">
+        <div className="sidebar-header border-b border-slate-50/50">
           <div className="sidebar-logo flex items-center gap-2">
             <img
               src="/Crewlogo.svg"
               alt="Company Logo"
-              className="w-8 h-8 object-contain"
+              className="w-7 h-7 object-contain"
             />
             {!isCollapsed && (
-              <span className="sidebar-logo-text font-bold bg-gradient-to-r from-sky-600 to-teal-600 bg-clip-text text-transparent">
+              <span className="text-xl font-extrabold tracking-tighter bg-gradient-to-r from-[#38b6ff] via-[#d1ec44] to-[#38b6ff] bg-[length:200%_auto] animate-[shine_6s_linear_infinite] bg-clip-text text-transparent opacity-95">
                 CrewSeed
               </span>
             )}
@@ -139,48 +120,60 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
         {/* Employer Profile */}
         {!isCollapsed && (
           <div
-            className="px-4 py-3 mb-2 border-b border-sky-100 cursor-pointer hover:bg-sky-50/60 transition-colors"
+            className="px-5 py-4 mb-2 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition-all group relative overflow-hidden"
             onClick={() => handleNavigation("/employer-profile")}
           >
+            {/* Subtle Hover Accent */}
+            <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#d1ec44] scale-y-0 group-hover:scale-y-100 transition-transform duration-300" />
+            
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-500 to-teal-500 flex items-center justify-center flex-shrink-0 text-white shadow">
-                <Icon name="Building2" size={20} />
+              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 text-slate-400 group-hover:bg-gradient-to-tr from-[#38b6ff]/20 to-[#d1ec44]/20 group-hover:text-slate-600 transition-all duration-300 shadow-sm">
+                <Icon name="Building2" size={18} />
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">
+                <p className={`text-[14px] font-bold truncate tracking-tight ${shinyTextStyle}`}>
                   {displayName}
                 </p>
-                <p className="text-xs text-gray-500 truncate">
+                <p className="text-[10px] font-semibold text-slate-400 truncate tracking-widest uppercase opacity-80 group-hover:text-slate-500 transition-colors">
                   {displaySubtitle}
                 </p>
               </div>
 
-              <Icon name="ChevronRight" size={16} className="text-gray-400" />
+              <Icon name="ChevronRight" size={14} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
         )}
 
         {/* Navigation */}
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav px-3 pt-3 space-y-1">
           {navigationItems.map((item) => {
             const active = location.pathname === item.path;
             return (
               <div
                 key={item.path}
                 onClick={() => handleNavigation(item.path)}
-                className={`sidebar-nav-item transition-all ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 group relative ${
                   active
-                    ? "bg-gradient-to-r from-sky-500 to-teal-500 text-white shadow-md"
-                    : "hover:bg-sky-100"
+                    ? "bg-slate-900 text-white shadow-lg shadow-slate-200"
+                    : "text-slate-500 hover:bg-slate-50"
                 }`}
               >
+                {/* Subtle Sidebar Accent for hover */}
+                {!active && (
+                   <div className="absolute left-0 top-1/4 bottom-1/4 w-[2px] bg-[#d1ec44] opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+
                 <Icon
                   name={item.icon}
-                  size={20}
-                  color={active ? "#fff" : undefined}
+                  size={19}
+                  className={`${active ? "text-[#d1ec44]" : "text-slate-400 group-hover:text-slate-600"} transition-colors`}
                 />
-                <span className="sidebar-nav-item-text">{item.label}</span>
+                {!isCollapsed && (
+                  <span className={`text-[13px] font-bold tracking-wide flex-1 transition-colors ${active ? "text-white" : "text-slate-500 group-hover:text-slate-700"}`}>
+                    {item.label}
+                  </span>
+                )}
               </div>
             );
           })}
@@ -190,12 +183,11 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
         {onToggleCollapse && (
           <button
             onClick={onToggleCollapse}
-            className="hidden lg:flex absolute bottom-4 right-4 p-2 rounded-lg bg-white border border-sky-200 shadow hover:bg-sky-50 transition-colors"
-            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="hidden lg:flex absolute bottom-8 right-[-12px] w-6 h-6 items-center justify-center rounded-full bg-white border border-slate-100 shadow-sm text-slate-300 hover:text-slate-600 hover:shadow-md transition-all"
           >
             <Icon
               name={isCollapsed ? "ChevronRight" : "ChevronLeft"}
-              size={20}
+              size={12}
             />
           </button>
         )}

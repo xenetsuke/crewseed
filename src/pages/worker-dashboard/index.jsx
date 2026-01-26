@@ -18,8 +18,6 @@ const WorkerDashboard = () => {
   const user = useSelector((state) => state.user);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  
-  // 📌 Updated: Synchronized with backend field 'Workeravailability'
   const [isAvailable, setIsAvailable] = useState(profile?.Workeravailability ?? true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -31,6 +29,22 @@ const WorkerDashboard = () => {
   const calculatedTotal = assignments.reduce((sum, job) => sum + (Number(job.wage) || 0), 0);
   const recentCompany = assignments.length > 0 ? assignments[0].company : t("dashboard.financial.noRecentWork");
   // --- END FINANCIAL LOGIC ---
+
+  // Musical Loading Component
+  const MusicalLoader = () => (
+    <div className="flex items-center justify-center gap-1 h-12">
+      {[1, 2, 3, 4, 5].map((bar) => (
+        <div
+          key={bar}
+          className="w-1.5 bg-[#23acf6] rounded-full animate-musical-bar"
+          style={{
+            animationDelay: `${bar * 0.1}s`,
+            height: '100%'
+          }}
+        />
+      ))}
+    </div>
+  );
 
   const getDynamicActivities = () => {
     const activities = [];
@@ -78,25 +92,17 @@ const WorkerDashboard = () => {
     return activities.slice(0, 5);
   };
 
-  // 📌 Updated: Sync internal state with 'Workeravailability' from Redux
   useEffect(() => {
     if (profile && profile.Workeravailability !== undefined) {
       setIsAvailable(profile.Workeravailability);
     }
   }, [profile]);
 
-  // 📌 Updated: Handle toggle specifically for 'Workeravailability'
   const handleAvailabilityToggle = async () => {
     const newStatus = !isAvailable;
     setIsAvailable(newStatus);
-    
     try {
-      const updatedProfile = { 
-        ...profile, 
-        id: user.id || profile.id, 
-        Workeravailability: newStatus 
-      };
-      
+      const updatedProfile = { ...profile, id: user.id || profile.id, Workeravailability: newStatus };
       const savedProfile = await updateProfile(updatedProfile);
       dispatch(setProfile(savedProfile));
     } catch (err) {
@@ -163,7 +169,7 @@ const WorkerDashboard = () => {
   };
 
   const quickActions = [
-    { id: "profile", icon: "User", label: t("dashboard.actions.profile"), subtitle: `${workerData.profileCompletion}%`, color: "var(--color-primary)", bgColor: "bg-primary/10", route: "/worker-profile" },
+    { id: "profile", icon: "User", label: t("dashboard.actions.profile"), subtitle: `${workerData.profileCompletion}%`, color: "#23acf6", bgColor: "bg-[#23acf6]/10", route: "/worker-profile" },
     { id: "applications", icon: "Send", label: t("dashboard.actions.applications"), subtitle: t("dashboard.actions.manage"), color: "var(--color-success)", bgColor: "bg-success/10", route: "/worker-assignments" },
     { id: "documents", icon: "FileText", label: t("dashboard.actions.documents"), subtitle: t("dashboard.actions.verify"), color: "var(--color-warning)", bgColor: "bg-warning/10", route: "/worker-profile" },
     { id: "history", icon: "Clock", label: t("dashboard.actions.history"), subtitle: t("dashboard.actions.past"), color: "var(--color-accent)", bgColor: "bg-accent/10", route: "/worker-assignments" },
@@ -176,167 +182,211 @@ const WorkerDashboard = () => {
       const jobsList = Array.isArray(data) ? data : data?.jobs || [];
       setRecommendedJobs(filterJobs(jobsList));
     } catch (e) { console.error("❌ Refresh Error:", e); }
-    finally { setIsRefreshing(false); }
+    finally { setTimeout(() => setIsRefreshing(false), 800); } // Small delay to enjoy the animation
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900">
+      <style>
+        {`
+          @keyframes musical-bar {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+          }
+          .animate-musical-bar {
+            animation: musical-bar 0.8s ease-in-out infinite;
+            transform-origin: bottom;
+          }
+          .scrollbar-hide::-webkit-scrollbar { display: none; }
+          .card { border-radius: 24px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+          .card:hover { transform: translateY(-4px); }
+        `}
+      </style>
+
       <WorkerSidebar isCollapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
-      <main className={`main-content ${sidebarCollapsed ? "sidebar-collapsed" : ""} p-4 lg:p-8`}>
+      
+      <main className={`main-content ${sidebarCollapsed ? "sidebar-collapsed" : ""} p-4 lg:p-8 transition-all duration-500`}>
         <div className="max-w-7xl mx-auto">
           
+          {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight">
-                {getGreeting()}, {workerData.name.split(' ')[0]}!
+              <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
+                {getGreeting()}, <span className="text-[#23acf6]">{workerData.name.split(' ')[0]}</span>
               </h1>
-              <p className="text-muted-foreground mt-1 flex items-center gap-2">
+              <p className="text-slate-500 font-medium mt-1 flex items-center gap-2">
                 <Icon name="Calendar" size={16} />
-                {currentTime.toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                {currentTime.toLocaleDateString("en-IN", { weekday: "long", month: "long", day: "numeric" })}
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <button onClick={handleRefresh} disabled={isRefreshing} className="p-2.5 rounded-xl border bg-card hover:bg-muted transition-all active:scale-95">
-                <Icon name="RefreshCw" size={20} className={isRefreshing ? "animate-spin text-primary" : "text-muted-foreground"} />
+              <button 
+                onClick={handleRefresh} 
+                disabled={isRefreshing} 
+                className="p-3 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all active:scale-95 group"
+              >
+                <Icon name="RefreshCw" size={20} className={`${isRefreshing ? "animate-spin text-[#23acf6]" : "text-slate-400 group-hover:text-[#23acf6]"}`} />
               </button>
-              <button onClick={() => navigate("/worker-profile")} className="flex items-center gap-2 pl-2 pr-4 py-2 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all">
-                <div className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold">
+              <button onClick={() => navigate("/worker-profile")} className="flex items-center gap-3 px-4 py-2 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#23acf6] to-[#1a8bc7] text-white flex items-center justify-center font-bold shadow-inner">
                   {workerData.name[0]}
                 </div>
-                <span className="font-semibold text-sm hidden sm:block">{t("dashboard.actions.settings")}</span>
+                <span className="font-bold text-sm hidden sm:block">{t("dashboard.actions.settings")}</span>
               </button>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div className="lg:col-span-2 card p-6 flex items-center justify-between bg-card border-none shadow-sm overflow-hidden relative">
+            {/* Availability Hero */}
+            <div className="lg:col-span-2 card p-8 flex items-center justify-between bg-white border border-slate-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden relative group">
               <div className="relative z-10">
-                <h3 className="font-bold text-xl mb-1">{t("dashboard.status.label")}: {isAvailable ? t("dashboard.status.active") : t("dashboard.status.away")}</h3>
-                <p className="text-sm text-muted-foreground max-w-[250px]">
+                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 ${isAvailable ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
+                   <div className={`w-1.5 h-1.5 rounded-full ${isAvailable ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`} />
+                   {isAvailable ? t("dashboard.status.online") : t("dashboard.status.offline")}
+                </div>
+                <h3 className="font-black text-2xl mb-1 text-slate-800">{isAvailable ? t("dashboard.status.active") : t("dashboard.status.away")}</h3>
+                <p className="text-sm text-slate-500 font-medium max-w-[280px]">
                   {isAvailable ? t("dashboard.status.visible") : t("dashboard.status.hidden")}
                 </p>
               </div>
               <div className="flex flex-col items-center gap-2 z-10">
                 <button 
                   onClick={handleAvailabilityToggle} 
-                  className={`relative w-16 h-8 rounded-full transition-all duration-300 ${isAvailable ? "bg-success shadow-[0_0_15px_-3px_rgba(34,197,94,0.4)]" : "bg-muted"}`}
+                  className={`relative w-20 h-10 rounded-full transition-all duration-500 ${isAvailable ? "bg-[#23acf6] shadow-lg shadow-[#23acf6]/30" : "bg-slate-200"}`}
                 >
-                  <span className={`absolute top-1 left-1 w-6 h-6 rounded-full bg-white shadow-sm transition-transform duration-300 ${isAvailable ? "translate-x-8" : ""}`} />
+                  <span className={`absolute top-1.5 left-1.5 w-7 h-7 rounded-full bg-white shadow-md transition-transform duration-500 cubic-bezier(0.175, 0.885, 0.32, 1.275) ${isAvailable ? "translate-x-10" : ""}`} />
                 </button>
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${isAvailable ? "text-success" : "text-muted-foreground"}`}>
-                  {isAvailable ? t("dashboard.status.online") : t("dashboard.status.offline")}
-                </span>
               </div>
-              <Icon name="Zap" size={120} className="absolute -right-8 -bottom-8 opacity-[0.03] rotate-12" />
+              <Icon name="Zap" size={140} className="absolute -right-8 -bottom-10 text-[#23acf6] opacity-[0.05] group-hover:rotate-12 transition-transform duration-700" />
             </div>
 
-            <div className="card p-6 bg-card border-none shadow-sm flex flex-col items-center justify-center text-center">
-              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4">{t("dashboard.rating.label")}</h3>
-              <div className="relative mb-4">
-                <div className="w-24 h-24 rounded-full border-[6px] border-primary/10 flex items-center justify-center">
-                  <span className="text-4xl font-black text-foreground">{workerData.rating}</span>
-                </div>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-warning text-warning-foreground px-2 py-0.5 rounded text-[10px] font-black flex items-center gap-1">
-                  <Icon name="Star" size={10} className="fill-current" /> {t("dashboard.rating.topRated")}
+            {/* Rating Card */}
+            <div className="card p-8 bg-white border border-slate-50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center justify-center text-center">
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">{t("dashboard.rating.label")}</h3>
+              <div className="relative mb-6">
+                <div className="w-24 h-24 rounded-full border-[6px] border-slate-50 flex items-center justify-center relative">
+                  <span className="text-4xl font-black text-slate-800">{workerData.rating}</span>
+                  <svg className="absolute inset-0 w-full h-full -rotate-90">
+                    <circle cx="48" cy="48" r="44" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-[#23acf6]" strokeDasharray={276} strokeDashoffset={276 - (276 * workerData.rating) / 5} strokeLinecap="round" />
+                  </svg>
                 </div>
               </div>
-              <div className="flex gap-1 mb-2">
-                {[...Array(5)].map((_, i) => (
-                  <Icon key={i} name="Star" size={16} className={i < Math.floor(workerData.rating) ? "text-warning fill-warning" : "text-muted-foreground"} />
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground italic">{t("dashboard.rating.basedOn", { count: workerData.totalJobs })}</p>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">{t("dashboard.rating.basedOn", { count: workerData.totalJobs })}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
+              {/* Recommended Jobs */}
               <section>
-                <div className="flex items-center justify-between mb-4 px-1">
-                  <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Icon name="Briefcase" size={20} className="text-primary" />
+                <div className="flex items-center justify-between mb-6 px-1">
+                  <h3 className="font-black text-xl flex items-center gap-3 text-slate-800">
+                    <div className="p-2 rounded-xl bg-[#23acf6]/10 text-[#23acf6]">
+                      <Icon name="Briefcase" size={20} />
+                    </div>
                     {t("dashboard.jobs.matchedTitle")}
                   </h3>
-                  <button onClick={() => navigate("/worker-job-list")} className="text-xs font-bold text-primary hover:opacity-80">{t("common.seeAll")}</button>
+                  <button onClick={() => navigate("/worker-job-list")} className="text-xs font-black uppercase tracking-widest text-[#23acf6] hover:translate-x-1 transition-transform">{t("common.seeAll")}</button>
                 </div>
+                
                 <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-2 px-2">
-                  {recommendedJobs.length > 0 ? recommendedJobs.map((job) => (
-                    <div key={job.id} className="card p-5 min-w-[280px] bg-card hover:border-primary/50 transition-all cursor-pointer shadow-sm group" onClick={() => navigate("/assignment-detail", { state: { jobId: job.id } })}>
-                      <h4 className="font-bold text-base truncate group-hover:text-primary transition-colors">{job.jobTitle || job.title}</h4>
-                      <p className="text-xs text-muted-foreground mb-4">{job.employer?.companyName || t("dashboard.jobs.verifiedRecruiter")}</p>
-                      <div className="items-center justify-between mt-auto flex">
-                        <div className="text-sm font-black text-primary bg-primary/10 px-3 py-1 rounded-lg">
-                          ₹{job.baseWageAmount || job.wage}/{t("common.day")}
+                  {isLoadingJobs || isRefreshing ? (
+                    <div className="w-full flex justify-center py-10 bg-white rounded-3xl border border-slate-50">
+                      <MusicalLoader />
+                    </div>
+                  ) : recommendedJobs.length > 0 ? recommendedJobs.map((job) => (
+                    <div key={job.id} className="card p-6 min-w-[300px] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:border-[#23acf6]/30 cursor-pointer group" onClick={() => navigate("/assignment-detail", { state: { jobId: job.id } })}>
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="p-2.5 rounded-2xl bg-slate-50 text-slate-400 group-hover:bg-[#23acf6] group-hover:text-white transition-all">
+                          <Icon name="Briefcase" size={18} />
                         </div>
-                        <Icon name="ArrowUpRight" size={18} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-all" />
+                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-2 py-1 rounded-lg">Verified</span>
+                      </div>
+                      <h4 className="font-black text-lg text-slate-800 truncate mb-1">{job.jobTitle || job.title}</h4>
+                      <p className="text-xs text-slate-500 font-bold mb-6">{job.employer?.companyName || t("dashboard.jobs.verifiedRecruiter")}</p>
+                      <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                        <div className="text-lg font-black text-[#23acf6]">
+                          ₹{job.baseWageAmount || job.wage}<span className="text-[10px] text-slate-400 font-bold uppercase ml-1">/{t("common.day")}</span>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#23acf6] group-hover:text-white transition-all">
+                          <Icon name="ArrowUpRight" size={16} />
+                        </div>
                       </div>
                     </div>
                   )) : (
-                    <div className="w-full py-12 text-center text-muted-foreground border-2 border-dashed rounded-2xl bg-muted/20">
-                      <Icon name="Search" size={32} className="mx-auto mb-2 opacity-20" />
-                      <p className="text-sm font-medium">{t("dashboard.jobs.looking")}</p>
+                    <div className="w-full py-16 text-center bg-white rounded-[32px] border border-slate-100">
+                      <Icon name="Search" size={40} className="mx-auto mb-4 text-slate-200" />
+                      <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">{t("dashboard.jobs.looking")}</p>
                     </div>
                   )}
                 </div>
               </section>
 
-              <section>
+              {/* Activity Feed */}
+              <section className="bg-white rounded-[32px] p-8 border border-slate-50 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
                 <ActivityFeed activities={getDynamicActivities()} />
               </section>
             </div>
 
+            {/* Right Column */}
             <div className="space-y-6">
+              {/* Quick Actions */}
               <section>
-                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4 px-1">{t("dashboard.shortcuts.label")}</h3>
-                <div className="grid grid-cols-2 gap-3">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 px-1">{t("dashboard.shortcuts.label")}</h3>
+                <div className="grid grid-cols-2 gap-4">
                   {quickActions.map((action) => (
-                    <div key={action.id} onClick={() => navigate(action.route)} className="card p-4 bg-card border-none hover:bg-muted/50 transition-all cursor-pointer shadow-sm group">
-                      <div className={`w-10 h-10 rounded-xl ${action.bgColor} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                        <Icon name={action.icon} size={20} style={{ color: action.color }} />
+                    <div key={action.id} onClick={() => navigate(action.route)} className="card p-5 bg-white border border-slate-100 shadow-sm hover:shadow-lg cursor-pointer group">
+                      <div className={`w-12 h-12 rounded-2xl ${action.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                        <Icon name={action.icon} size={22} style={{ color: action.color }} />
                       </div>
-                      <h4 className="font-bold text-xs">{action.label}</h4>
-                      <p className="text-[10px] text-muted-foreground font-medium">{action.subtitle}</p>
+                      <h4 className="font-black text-xs text-slate-800">{action.label}</h4>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{action.subtitle}</p>
                     </div>
                   ))}
                 </div>
               </section>
 
-              <section className="card p-6 bg-card border-none shadow-sm relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                    <Icon name="TrendingUp" size={40} className="text-success" />
+              {/* Financial Section */}
+              <section className="card p-8 bg-slate-900 text-white border-none shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-6 opacity-20 group-hover:rotate-12 transition-transform duration-700">
+                    <Icon name="TrendingUp" size={80} className="text-[#23acf6]" />
                 </div>
-                <h3 className="font-bold text-base mb-6 flex items-center gap-2">
+                <h3 className="font-black text-lg mb-8 flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-white/10">
+                    <Icon name="DollarSign" size={18} className="text-[#23acf6]" />
+                  </div>
                   {t("dashboard.financial.title")}
                 </h3>
-                <div className="space-y-6 relative z-10">
+                
+                <div className="space-y-8 relative z-10">
                   <div>
-                    <div className="flex justify-between items-end mb-2">
-                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{t("dashboard.financial.calculated")}</span>
-                      <span className="text-2xl font-black text-success">
+                    <div className="flex justify-between items-end mb-3">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("dashboard.financial.calculated")}</span>
+                      <span className="text-3xl font-black text-white">
                         ₹{calculatedTotal.toLocaleString('en-IN')}
                       </span>
                     </div>
-                    <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-success rounded-full shadow-[0_0_10px_rgba(34,197,94,0.3)]" style={{ width: "100%" }} />
+                    <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#23acf6] rounded-full shadow-[0_0_15px_rgba(35,172,246,0.5)] animate-pulse" style={{ width: "100%" }} />
                     </div>
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                      <p className="text-[10px] text-muted-foreground font-bold truncate">{t("dashboard.financial.latest")}: {recentCompany}</p>
+                    <div className="flex items-center gap-2 mt-4 text-[#23acf6]">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#23acf6] animate-pulse shadow-[0_0_8px_#23acf6]" />
+                      <p className="text-[10px] font-black uppercase tracking-widest truncate">{t("dashboard.financial.latest")}: {recentCompany}</p>
                     </div>
                   </div>
 
-                  <div>
-                    <div className="flex justify-between items-end mb-2">
-                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{t("dashboard.financial.profileStrength")}</span>
-                      <span className="text-sm font-black text-primary">{workerData.profileCompletion}%</span>
+                  <div className="pt-6 border-t border-white/5">
+                    <div className="flex justify-between items-end mb-3">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("dashboard.financial.profileStrength")}</span>
+                      <span className="text-sm font-black text-[#23acf6]">{workerData.profileCompletion}%</span>
                     </div>
-                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full" style={{ width: `${workerData.profileCompletion}%` }} />
+                    <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-[#23acf6] to-emerald-400 rounded-full" style={{ width: `${workerData.profileCompletion}%` }} />
                     </div>
                   </div>
                 </div>
                 
-                <button onClick={() => navigate("/worker-assignments")} className="w-full mt-8 py-3 rounded-xl border-2 border-primary/20 text-primary font-bold text-[10px] hover:bg-primary hover:text-white transition-all uppercase tracking-widest shadow-sm">
+                <button onClick={() => navigate("/worker-assignments")} className="w-full mt-10 py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-black text-[10px] hover:bg-[#23acf6] hover:border-[#23acf6] transition-all uppercase tracking-widest">
                   {t("dashboard.financial.viewHistory")}
                 </button>
               </section>

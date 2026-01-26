@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Users, Bookmark, Loader2, Search } from "lucide-react";
+import { Users, Bookmark, Loader2, Search, Activity } from "lucide-react";
 import { useQuery } from "@tanstack/react-query"; // ✅ Added for caching
 
 import EmployerSidebar from "../../components/navigation/EmployerSidebar";
@@ -42,7 +42,7 @@ const FindWorkers = () => {
       return (res || []).filter((p) => p.accountType === "APPLICANT");
     },
     staleTime: 1000 * 60 * 5, // ✅ Cache data for 5 minutes
-    enabled: !!user?.id,      // Only fetch if user exists
+    enabled: !!user?.id, // Only fetch if user exists
   });
 
   /* =========================================================
@@ -109,7 +109,8 @@ const FindWorkers = () => {
           skills: prof.skills || [],
           certifications: prof.certifications || [],
           recentAssignments: prof.recentAssignments || [],
-          Workeravailability: prof.availability ?? ["Available"],
+          availability: prof.availability ?? ["Unavailable"],
+          Workeravailability: prof.Workeravailability,
           about: prof.about || prof.bio || "",
           primaryJobRole: prof.primaryJobRole || worker.primaryJobRole,
           totalExperience: prof.totalExperience || worker.totalExperience || 0,
@@ -150,12 +151,25 @@ const FindWorkers = () => {
           </div>
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-              <div className="relative flex items-center justify-center">
-                <Loader2 className="w-12 h-12 text-primary animate-spin" />
-              </div>
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-slate-800">Searching Profiles</h3>
+            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+               <div className="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col items-center relative overflow-hidden">
+                {/* Shimmer Effect */}
+                <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-slate-50/60 to-transparent" />
+                
+                {/* Musical Equalizer Bars */}
+                <div className="flex items-end justify-center gap-1.5 h-12 mb-6">
+                  <div className="w-1.5 bg-blue-400 rounded-full animate-bounce [animation-duration:0.8s]" style={{ height: '60%' }}></div>
+                  <div className="w-1.5 bg-blue-600 rounded-full animate-bounce [animation-duration:1.1s]" style={{ height: '100%' }}></div>
+                  <div className="w-1.5 bg-indigo-500 rounded-full animate-bounce [animation-duration:0.9s]" style={{ height: '80%' }}></div>
+                  <div className="w-1.5 bg-blue-500 rounded-full animate-bounce [animation-duration:1.2s]" style={{ height: '50%' }}></div>
+                </div>
+
+                <div className="text-center relative z-10">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">
+                    Analyzing Network
+                  </h3>
+                  <p className="text-sm font-bold text-slate-900">Searching Profiles...</p>
+                </div>
               </div>
             </div>
           ) : (
@@ -212,7 +226,9 @@ const FindWorkers = () => {
                   <div className="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Search className="text-slate-400 w-8 h-8" />
                   </div>
-                  <h3 className="text-lg font-medium text-slate-900">No workers found</h3>
+                  <h3 className="text-lg font-medium text-slate-900">
+                    No workers found
+                  </h3>
                 </div>
               )}
             </>
@@ -222,7 +238,9 @@ const FindWorkers = () => {
 
       <ComparisonPanel
         workers={compareList}
-        onRemove={(id) => setCompareList((prev) => prev.filter((w) => w.id !== id))}
+        onRemove={(id) =>
+          setCompareList((prev) => prev.filter((w) => w.id !== id))
+        }
         onClear={() => setCompareList([])}
       />
 
