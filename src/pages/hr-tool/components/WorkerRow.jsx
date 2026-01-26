@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Info, User, ExternalLink, Download, ClipboardList } from "lucide-react";
+import { Info, User, ExternalLink, Download, ClipboardList,  Loader2 } from "lucide-react";
 import AttendanceLog from "./AttendanceLog";
 import AssignmentStatsOverview from "./AssignmentStatsOverview";
 import { cn } from "utils/cn";
@@ -17,13 +17,24 @@ const WorkerRow = ({
   const [showLogs, setShowLogs] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [hoveredDay, setHoveredDay] = useState(null);
-
+const [isNavigating, setIsNavigating] = useState(false);
   const currentMonth = viewMonth;
   const currentYear = viewYear;
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
   const attendanceRecords = worker?.attendance || [];
+const handleEditClick = async () => {
+    setIsNavigating(true);
+    
+    // We give it a small delay so the user sees the professional loader 
+    // before the drawer slides in from the parent.
+    setTimeout(() => {
+      onEditAssignment(worker.assignment);
+      setIsNavigating(false);
+    }, 600);
+  };
 
+  
   // Skeleton Loading State
   if (isLoading || !worker) {
     return (
@@ -60,9 +71,10 @@ const WorkerRow = ({
 
     attendanceRecords.forEach((a) => {
       if (!a.payroll) return;
-      if (!basePay && a.payroll.basePay) basePay = Number(a.payroll.basePay);
+      if ( a.payroll.basePay ) basePay = Number(a.payroll.basePay);
       dailyPay += Number(a.payroll.dailyPay || 0);
       otPay += Number(a.payroll.overtimePay || 0);
+    
       bata += Number(a.payroll.bata || 0);
       pf += Number(a.payroll.pfDeduction || 0);
       esi += Number(a.payroll.esiDeduction || 0);
@@ -231,8 +243,21 @@ const WorkerRow = ({
   }, [attendanceRecords, currentMonth, currentYear, daysInMonth]);
 
   return (
+    
     <div className="bg-white border border-slate-200/60 rounded-3xl shadow-sm mb-5 overflow-hidden transition-all duration-300 hover:shadow-md hover:border-slate-300/80">
+    {isNavigating && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/60 backdrop-blur-md transition-all duration-300">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+            <Loader2 className="w-6 h-6 text-indigo-600 animate-pulse absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+          </div>
+          <p className="mt-4 text-xs font-black text-indigo-600 uppercase tracking-[0.3em] animate-pulse">
+            Fetching Assignment
+          </p>
+        </div>
+      )}
       <div className="p-5 lg:p-7">
+        
         {/* WORKER HEADER */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
@@ -249,8 +274,8 @@ const WorkerRow = ({
             </div>
           </div>
 
-          <button
-            onClick={() => onEditAssignment(worker.assignment)}
+        <button
+            onClick={handleEditClick} // Updated to use the handler
             className="flex items-center justify-center gap-2 px-4 py-2 text-[11px] font-black text-indigo-600 hover:text-white bg-indigo-50 hover:bg-indigo-600 rounded-xl transition-all duration-300 border border-indigo-100 uppercase tracking-wider"
           >
             <ExternalLink className="w-3.5 h-3.5" />

@@ -58,7 +58,37 @@ const ScheduleAvailability = ({ formData, onChange, errors }) => {
 
     onChange("workingDays", updated);
   };
+  const format12h = (time) => {
+    if (!time) return "--:--";
+    try {
+      // Split to get hours and minutes, ignore existing seconds or malformed segments
+      const [h, m] = time.split(":");
+      const hours = h.padStart(2, "0");
+      const minutes = m.padStart(2, "0");
+      
+      // Use a standard ISO format T HH:mm:ss
+      const date = new Date(`1970-01-01T${hours}:${minutes}:00`);
+      
+      if (isNaN(date.getTime())) return time;
 
+      return date.toLocaleTimeString("en-IN", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      });
+    } catch (e) {
+      return time;
+    }
+  };
+
+
+  const updateShift = (field, value) => {
+    setData((d) => ({
+      ...d,
+      [field]: value ? `${value}:00` : null,
+    }));
+  };
   return (
     <div className="card p-6 space-y-6">
 
@@ -115,30 +145,56 @@ const ScheduleAvailability = ({ formData, onChange, errors }) => {
         onChange={(v) => onChange("shiftType", v)}
       />
 
-      {/* Shift Times */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Input
-          label="Shift Start Time"
-          type="time"
-          required
-          value={formData?.shiftStartTime?.substring(0, 5) || ""}
-          error={errors?.shiftStartTime}
-          onChange={(e) =>
-            onChange("shiftStartTime", `${e.target.value}:00`)
-          }
-        />
+    {/* Shift Times */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  {/* Start Time */}
+  <div className="space-y-3">
+    <div className="flex justify-between items-center">
+      <label className="text-xs font-black text-slate-500 uppercase tracking-tighter">
+        Shift Starts
+      </label>
+      <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-md border border-indigo-100">
+        {format12h(formData?.shiftStartTime)}
+      </span>
+    </div>
+    <input
+      type="time"
+      required
+      value={formData?.shiftStartTime?.substring(0, 5) || ""}
+      onChange={(e) => onChange("shiftStartTime", `${e.target.value}:00`)}
+      className={`w-full bg-slate-50 border-2 rounded-2xl px-5 py-4 text-lg font-bold text-slate-800 focus:bg-white focus:border-indigo-500 outline-none transition-all ${
+        errors?.shiftStartTime ? "border-rose-500" : "border-slate-100"
+      }`}
+    />
+    {errors?.shiftStartTime && (
+      <p className="text-rose-500 text-[10px] font-bold uppercase ml-1">{errors.shiftStartTime}</p>
+    )}
+  </div>
 
-        <Input
-          label="Shift End Time"
-          type="time"
-          required
-          value={formData?.shiftEndTime?.substring(0, 5) || ""}
-          error={errors?.shiftEndTime}
-          onChange={(e) =>
-            onChange("shiftEndTime", `${e.target.value}:00`)
-          }
-        />
-      </div>
+  {/* End Time */}
+  <div className="space-y-3">
+    <div className="flex justify-between items-center">
+      <label className="text-xs font-black text-slate-500 uppercase tracking-tighter">
+        Shift Ends
+      </label>
+      <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-md border border-indigo-100">
+        {format12h(formData?.shiftEndTime)}
+      </span>
+    </div>
+    <input
+      type="time"
+      required
+      value={formData?.shiftEndTime?.substring(0, 5) || ""}
+      onChange={(e) => onChange("shiftEndTime", `${e.target.value}:00`)}
+      className={`w-full bg-slate-50 border-2 rounded-2xl px-5 py-4 text-lg font-bold text-slate-800 focus:bg-white focus:border-indigo-500 outline-none transition-all ${
+        errors?.shiftEndTime ? "border-rose-500" : "border-slate-100"
+      }`}
+    />
+    {errors?.shiftEndTime && (
+      <p className="text-rose-500 text-[10px] font-bold uppercase ml-1">{errors.shiftEndTime}</p>
+    )}
+  </div>
+</div>
 
       {/* Working Days */}
       <div>

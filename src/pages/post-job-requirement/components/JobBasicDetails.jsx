@@ -120,32 +120,34 @@ const JobBasicDetails = ({ formData, onChange, errors }) => {
             description="Be specific and clear about the position"
           />
         </div>
-      {/* Company Name */}
-<div className="md:col-span-2">
-  <Input
-    label="Company Name"
-    type="text"
-    placeholder="Write Your Company Name"
-    value={formData?.companyName}
-    onChange={(e) => onChange("companyName", e?.target?.value)}
-    error={errors?.companyName}
-    required
-    description="Enter the legal name of your business or organization"
-  />
-</div>
-<div className="md:col-span-2">
-<Input
-  label="Manager Name"
-  type="text"
-  placeholder="Write Manager Name"
-  value={formData?.managerName}
-  onChange={(e) => onChange("managerName", e?.target?.value)}
-  error={errors?.managerName}
-  required
-  description="Enter the full name of the manager responsible for this Job"
- />
 
-</div>
+        {/* Company Name */}
+        <div className="md:col-span-2">
+          <Input
+            label="Company Name"
+            type="text"
+            placeholder="Write Your Company Name"
+            value={formData?.companyName}
+            onChange={(e) => onChange("companyName", e?.target?.value)}
+            error={errors?.companyName}
+            required
+            description="Enter the legal name of your business or organization"
+          />
+        </div>
+
+        {/* Manager Name */}
+        <div className="md:col-span-2">
+          <Input
+            label="Manager Name"
+            type="text"
+            placeholder="Write Manager Name"
+            value={formData?.managerName}
+            onChange={(e) => onChange("managerName", e?.target?.value)}
+            error={errors?.managerName}
+            required
+            description="Enter the full name of the manager responsible for this Job"
+          />
+        </div>
 
         {/* Job Role */}
         <Select
@@ -180,18 +182,6 @@ const JobBasicDetails = ({ formData, onChange, errors }) => {
           placeholder="Select employment type"
         />
 
-        {/* Location */}
-        <Input
-          label="Location"
-          type="text"
-          placeholder="City, State or complete work address"
-          value={formData?.location}
-          onChange={(e) => onChange("location", e?.target?.value)}
-          error={errors?.location}
-          required
-          description="Where will the work be performed?"
-        />
-
         {/* Experience Level */}
         <Select
           label="Experience Level"
@@ -202,6 +192,55 @@ const JobBasicDetails = ({ formData, onChange, errors }) => {
           required
           placeholder="Select experience level"
         />
+
+        {/* Location / Full Address */}
+        <div className="md:col-span-2">
+          <Input
+            label="Full Address"
+            type="text"
+            placeholder="Work address or specific site location"
+            value={formData?.location}
+            onChange={(e) => onChange("location", e?.target?.value)}
+            error={errors?.location}
+            required
+            description="Detailed address where the work will be performed"
+          />
+        </div>
+
+        {/* City */}
+        <Input
+          label="City"
+          type="text"
+          placeholder="e.g., Mumbai"
+          value={formData?.city ?? ""}
+          onChange={(e) => onChange("city", e?.target?.value)}
+          error={errors?.city}
+          required
+        />
+
+        {/* State */}
+        <Input
+          label="State"
+          type="text"
+          placeholder="e.g., Maharashtra"
+          value={formData?.state ?? ""}
+          onChange={(e) => onChange("state", e?.target?.value)}
+          error={errors?.state}
+          required
+        />
+
+        {/* Pincode */}
+        <div className="md:col-span-2">
+          <Input
+            label="Pincode"
+            type="text"
+            placeholder="e.g., 400001"
+            value={formData?.pincode ?? ""}
+            onChange={(e) => onChange("pincode", e?.target?.value)}
+            error={errors?.pincode}
+            required
+          />
+        </div>
 
         {/* Number of Positions */}
         <div className="md:col-span-2">
