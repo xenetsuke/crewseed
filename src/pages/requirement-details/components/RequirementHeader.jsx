@@ -47,6 +47,16 @@ const RequirementHeader = ({ requirement, onEdit, onClose, onDelete }) => {
   const formatEnum = (val) => 
     val ? val.replace(/_/g, " ").toLowerCase().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "Not Specified";
 
+  // Helper to format HH:mm:ss or HH:mm to 12h AM/PM
+  const formatTime12h = (timeString) => {
+    if (!timeString) return "";
+    const [hour, minute] = timeString.split(":");
+    const h = parseInt(hour, 10);
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 || 12;
+    return `${h12}:${minute} ${ampm}`;
+  };
+
   const postDate = getRelativeTime(requirement?.postedDate || requirement?.createdAt);
 
   return (
@@ -63,7 +73,11 @@ const RequirementHeader = ({ requirement, onEdit, onClose, onDelete }) => {
             <div className="flex items-center gap-2"><Icon name="Calendar" size={16} /><span>Posted: {postDate}</span></div>
             <div className="flex items-center gap-2">
               <Icon name="Clock" size={16} />
-              <span>{requirement?.shiftStartTime && requirement?.shiftEndTime ? `${requirement.shiftStartTime.substring(0, 5)} - ${requirement.shiftEndTime.substring(0, 5)}` : "Hours Not Set"}</span>
+              <span>
+                {requirement?.shiftStartTime && requirement?.shiftEndTime 
+                  ? `${formatTime12h(requirement.shiftStartTime)} - ${formatTime12h(requirement.shiftEndTime)}` 
+                  : "Hours Not Set"}
+              </span>
             </div>
           </div>
         </div>
@@ -73,7 +87,6 @@ const RequirementHeader = ({ requirement, onEdit, onClose, onDelete }) => {
           {(rawStatus === "ACTIVE" || rawStatus === "OPEN") && (
             <Button variant="destructive" size="sm" iconName="XCircle" iconPosition="left" onClick={onClose}>Close</Button>
           )}
-          {/* 🔹 ADDED DELETE BUTTON */}
           <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50" iconName="Trash2" iconPosition="left" onClick={onDelete}>Delete</Button>
         </div>
       </div>

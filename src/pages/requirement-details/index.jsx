@@ -45,8 +45,6 @@ const RequirementDetailsPage = () => {
     },
   });
 
-  
-
   // 🧩 HELPERS (Maintain original logic)
   const formatEnum = (val) =>
     val ? val.replace(/_/g, " ").toLowerCase().split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "Not Specified";
@@ -174,9 +172,34 @@ const RequirementDetailsPage = () => {
       <main className={`main-content ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
         <div className="container mx-auto px-4 py-6 max-w-7xl">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-muted-foreground">Fetching requirement details...</p>
+            <div className="flex flex-col items-center justify-center min-h-[70vh]">
+              {/* Premium Music Loader Container */}
+              <div className="relative group">
+                {/* Animated Background Glow */}
+                <div className="absolute -inset-8 bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-violet-500/20 rounded-full blur-3xl animate-pulse" />
+                
+                <div className="relative bg-white/70 backdrop-blur-2xl p-12 rounded-[3rem] border border-white/50 shadow-[0_32px_64px_-15px_rgba(0,0,0,0.1)] flex flex-col items-center">
+                  
+                  {/* Equalizer Spectrum */}
+                  <div className="flex items-end justify-center gap-2 h-16 mb-8">
+                    <div className="w-2 bg-blue-400 rounded-full animate-[bounce_1s_infinite] [animation-delay:0.1s]" style={{ height: '40%' }}></div>
+                    <div className="w-2 bg-teal-500 rounded-full animate-[bounce_1s_infinite] [animation-delay:0.3s]" style={{ height: '100%' }}></div>
+                    <div className="w-2 bg-blue-600 rounded-full animate-[bounce_1s_infinite] [animation-delay:0.5s]" style={{ height: '70%' }}></div>
+                    <div className="w-2 bg-teal-400 rounded-full animate-[bounce_1s_infinite] [animation-delay:0.2s]" style={{ height: '90%' }}></div>
+                    <div className="w-2 bg-blue-500 rounded-full animate-[bounce_1s_infinite] [animation-delay:0.4s]" style={{ height: '50%' }}></div>
+                  </div>
+
+                  {/* Text Content */}
+                  <div className="text-center">
+                    {/* <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full mb-3"> */}
+                  
+                 
+                    <p className="text-slate-500 text-sm font-medium animate-pulse">
+                      Retrieving requirement details...
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : !job ? (
             <div className="text-center py-20">
@@ -195,8 +218,6 @@ const RequirementDetailsPage = () => {
                 <div className="lg:col-span-2 space-y-6">
                   <RequirementDetails requirement={requirement} />
                   <ApplicationsList applications={applications}
-                  
-                  
                   onApprove={handleApprove} onReject={handleReject} onSelect={handleSelect} onChangeStatus={handleChangeStatus} onScheduleInterview={handleScheduleInterview} onViewProfile={handleViewProfile} />
                   <CandidateComparison applications={applications} />
                 </div>
