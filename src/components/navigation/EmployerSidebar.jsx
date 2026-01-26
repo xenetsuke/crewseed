@@ -39,11 +39,10 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   ========================= */
   const maskPhoneNumber = (val) => {
     if (!val) return "";
-    // Regex to check if value looks like a phone number
-    const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
+    const phoneRegex =
+      /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
     if (typeof val === "string" && phoneRegex.test(val)) {
       const clean = val.replace(/\s/g, "");
-      // Mask first two or handle as country code (e.g., +91******7890 or **88997766)
       return `**${clean.slice(2)}`;
     }
     return val;
@@ -53,11 +52,7 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
       Navigation Items
   ========================= */
   const navigationItems = [
-    {
-      label: "Dashboard",
-      path: "/employer-dashboard",
-      icon: "LayoutDashboard",
-    },
+    { label: "Dashboard", path: "/employer-dashboard", icon: "LayoutDashboard" },
     { label: "Post Job", path: "/post-job-requirement/0", icon: "PlusCircle" },
     {
       label: "My Requirements",
@@ -87,12 +82,11 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   }, [isMobileOpen]);
 
   /* =========================
-      Profile Data Source Priority
+      Profile Data
   ========================= */
   const displayName =
     profile?.companyName || user?.name || jwtUser?.name || "Employer";
 
-  // Raw subtitle data
   const rawSubtitle =
     profile?.phoneNumber ||
     user?.phoneNumber ||
@@ -101,7 +95,6 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
     jwtUser?.sub ||
     "View Profile";
 
-  // Apply masking if it's a phone number
   const displaySubtitle = maskPhoneNumber(rawSubtitle);
 
   return (
@@ -109,7 +102,7 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
       {/* Mobile Menu Button */}
       <button
         onClick={handleMobileToggle}
-        className="mobile-menu-button"
+        className="mobile-menu-button bg-gradient-to-br from-teal-300 to-sky-300 text-white shadow-lg rounded-xl"
         aria-label="Toggle mobile menu"
       >
         <Icon name={isMobileOpen ? "X" : "Menu"} size={24} />
@@ -117,7 +110,7 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
 
       {isMobileOpen && (
         <div
-          className="sidebar-overlay animate-fade-in"
+          className="sidebar-overlay bg-sky-900/30 backdrop-blur-sm animate-fade-in"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
@@ -125,33 +118,33 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
       <aside
         className={`sidebar ${isCollapsed ? "collapsed" : ""} ${
           isMobileOpen ? "animate-slide-in" : "max-lg:hidden"
-        }`}
+        } bg-gradient-to-b from-sky-10 to-teal-10 border-r border-sky-100 shadow-xl`}
       >
         {/* Logo Section */}
-        <div className="sidebar-header">
+        <div className="sidebar-header border-b border-sky-200">
           <div className="sidebar-logo flex items-center gap-2">
-            <img 
-              src="/Crewlogo.svg" 
-              alt="Company Logo" 
+            <img
+              src="/Crewlogo.svg"
+              alt="Company Logo"
               className="w-8 h-8 object-contain"
             />
             {!isCollapsed && (
-              <span className="sidebar-logo-text font-bold">CrewSeed</span>
+              <span className="sidebar-logo-text font-bold bg-gradient-to-r from-sky-600 to-teal-600 bg-clip-text text-transparent">
+                CrewSeed
+              </span>
             )}
           </div>
         </div>
 
-        {/* =========================
-            Employer Profile Section
-        ========================= */}
+        {/* Employer Profile */}
         {!isCollapsed && (
           <div
-            className="px-4 py-3 mb-2 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+            className="px-4 py-3 mb-2 border-b border-sky-100 cursor-pointer hover:bg-sky-50/60 transition-colors"
             onClick={() => handleNavigation("/employer-profile")}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Icon name="Building2" size={20} color="var(--color-primary)" />
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-500 to-teal-500 flex items-center justify-center flex-shrink-0 text-white shadow">
+                <Icon name="Building2" size={20} />
               </div>
 
               <div className="flex-1 min-w-0">
@@ -168,29 +161,36 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
           </div>
         )}
 
-        {/* =========================
-            Navigation
-        ========================= */}
+        {/* Navigation */}
         <nav className="sidebar-nav">
-          {navigationItems.map((item) => (
-            <div
-              key={item.path}
-              onClick={() => handleNavigation(item.path)}
-              className={`sidebar-nav-item ${
-                location.pathname === item.path ? "active" : ""
-              }`}
-            >
-              <Icon name={item.icon} size={20} />
-              <span className="sidebar-nav-item-text">{item.label}</span>
-            </div>
-          ))}
+          {navigationItems.map((item) => {
+            const active = location.pathname === item.path;
+            return (
+              <div
+                key={item.path}
+                onClick={() => handleNavigation(item.path)}
+                className={`sidebar-nav-item transition-all ${
+                  active
+                    ? "bg-gradient-to-r from-sky-500 to-teal-500 text-white shadow-md"
+                    : "hover:bg-sky-100"
+                }`}
+              >
+                <Icon
+                  name={item.icon}
+                  size={20}
+                  color={active ? "#fff" : undefined}
+                />
+                <span className="sidebar-nav-item-text">{item.label}</span>
+              </div>
+            );
+          })}
         </nav>
 
         {/* Collapse Toggle */}
         {onToggleCollapse && (
           <button
             onClick={onToggleCollapse}
-            className="hidden lg:flex absolute bottom-4 right-4 p-2 rounded-lg hover:bg-muted transition-colors"
+            className="hidden lg:flex absolute bottom-4 right-4 p-2 rounded-lg bg-white border border-sky-200 shadow hover:bg-sky-50 transition-colors"
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <Icon

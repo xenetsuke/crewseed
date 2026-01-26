@@ -141,6 +141,19 @@ const EmployerDashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Reusable Section Loader (Musical/Equalizer Style)
+  const SectionLoader = ({ message = "Syncing..." }) => (
+    <div className="flex flex-col items-center justify-center py-12 px-4 space-y-4">
+      <div className="flex items-end gap-1 h-8">
+        <div className="w-1 bg-primary/30 rounded-full animate-[bounce_0.8s_infinite] [animation-delay:0.1s]" style={{ height: '40%' }} />
+        <div className="w-1 bg-primary/60 rounded-full animate-[bounce_0.8s_infinite] [animation-delay:0.3s]" style={{ height: '100%' }} />
+        <div className="w-1 bg-primary rounded-full animate-[bounce_0.8s_infinite] [animation-delay:0.2s]" style={{ height: '70%' }} />
+        <div className="w-1 bg-primary/40 rounded-full animate-[bounce_0.8s_infinite] [animation-delay:0.4s]" style={{ height: '50%' }} />
+      </div>
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">{message}</p>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <EmployerSidebar
@@ -149,9 +162,9 @@ const EmployerDashboard = () => {
       />
 
       <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''} p-4 lg:p-8 relative`}>
-        {isFetching && (
+        {isFetching && !loading && (
           <div className="absolute top-0 left-0 right-0 h-1 bg-muted overflow-hidden z-50">
-            <div className="h-full bg-primary animate-pulse w-full origin-left" />
+            <div className="h-full bg-primary animate-[shimmer_1.5s_infinite] w-full origin-left" />
           </div>
         )}
 
@@ -201,7 +214,13 @@ const EmployerDashboard = () => {
                 <div>
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{m.label}</p>
                   <p className="text-2xl font-black">
-                    {loading ? <span className="animate-pulse">...</span> : m.value}
+                    {loading ? (
+                       <span className="flex gap-0.5 items-end h-5">
+                         <span className="w-1 h-3 bg-slate-200 animate-pulse" />
+                         <span className="w-1 h-5 bg-slate-200 animate-pulse" />
+                         <span className="w-1 h-4 bg-slate-200 animate-pulse" />
+                       </span>
+                    ) : m.value}
                   </p>
                 </div>
               </div>
@@ -225,7 +244,11 @@ const EmployerDashboard = () => {
                    </div>
                 </div>
                 <div className={`${requirementsOpen ? 'block' : 'hidden'}`}>
-                  <RequirementsTable requirements={requirements} />
+                  {loading ? (
+                    <SectionLoader message="Fetching Requirements" />
+                  ) : (
+                    <RequirementsTable requirements={requirements} />
+                  )}
                 </div>
               </section>
 
@@ -241,23 +264,27 @@ const EmployerDashboard = () => {
                   </h3>
                 </div>
                 <div className={`${workersOpen ? 'block' : 'hidden'}`}>
-                  <WorkerManagementPanel
-                    workers={pipelineWorkers}
-                    onViewProfile={handleViewWorkerProfile}
-                    onRemoveWorker={async (workerId) => {
-                      if (!profile?.id) return;
-                      try {
-                        let savedWorkers = profile.savedWorkers || [];
-                        savedWorkers = savedWorkers.filter(id => id !== workerId);
-                        const updatedProfile = { ...profile, savedWorkers };
-                        await updateProfile(updatedProfile);
-                        dispatch(changeProfile(updatedProfile));
-                        refetch(); 
-                      } catch (err) {
-                        console.error("❌ Failed to remove worker", err);
-                      }
-                    }}
-                  />
+                  {loading ? (
+                    <SectionLoader message="Assembling Worker List" />
+                  ) : (
+                    <WorkerManagementPanel
+                      workers={pipelineWorkers}
+                      onViewProfile={handleViewWorkerProfile}
+                      onRemoveWorker={async (workerId) => {
+                        if (!profile?.id) return;
+                        try {
+                          let savedWorkers = profile.savedWorkers || [];
+                          savedWorkers = savedWorkers.filter(id => id !== workerId);
+                          const updatedProfile = { ...profile, savedWorkers };
+                          await updateProfile(updatedProfile);
+                          dispatch(changeProfile(updatedProfile));
+                          refetch(); 
+                        } catch (err) {
+                          console.error("❌ Failed to remove worker", err);
+                        }
+                      }}
+                    />
+                  )}
                 </div>
               </section>
             </div>
@@ -269,24 +296,33 @@ const EmployerDashboard = () => {
                 </div>
                 <h3 className="font-black text-sm text-muted-foreground uppercase tracking-widest mb-6">Recruitment Health</h3>
                 <div className="space-y-6 relative z-10">
-                  <div>
-                    <div className="flex justify-between items-end mb-2">
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Fulfillment Rate</span>
-                      <span className="text-xl font-black text-success">{jobStats.fulfillmentRate}%</span>
+                  {loading ? (
+                    <div className="space-y-8 py-2">
+                      <div className="h-10 bg-slate-50 animate-pulse rounded-lg" />
+                      <div className="h-10 bg-slate-50 animate-pulse rounded-lg" />
                     </div>
-                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-success rounded-full" style={{ width: `${jobStats.fulfillmentRate}%` }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between items-end mb-2">
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase">App Volume</span>
-                      <span className="text-xl font-black text-primary">{jobStats.totalApplicants}</span>
-                    </div>
-                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full" style={{ width: "85%" }} />
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div>
+                        <div className="flex justify-between items-end mb-2">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">Fulfillment Rate</span>
+                          <span className="text-xl font-black text-success">{jobStats.fulfillmentRate}%</span>
+                        </div>
+                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-success rounded-full" style={{ width: `${jobStats.fulfillmentRate}%` }} />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-end mb-2">
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">App Volume</span>
+                          <span className="text-xl font-black text-primary">{jobStats.totalApplicants}</span>
+                        </div>
+                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full" style={{ width: "85%" }} />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="mt-8 pt-6 border-t border-muted flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-warning/10 text-warning flex items-center justify-center">
@@ -302,7 +338,11 @@ const EmployerDashboard = () => {
                 <div className="p-4 border-b border-muted/50 bg-muted/20">
                   <h3 className="text-xs font-black uppercase tracking-widest">Live Activity</h3>
                 </div>
-                <ActivityFeed activities={[]} />
+                {loading ? (
+                  <div className="p-8"><SectionLoader message="Updating Feed" /></div>
+                ) : (
+                  <ActivityFeed activities={[]} />
+                )}
               </section>
             </div>
           </div>
