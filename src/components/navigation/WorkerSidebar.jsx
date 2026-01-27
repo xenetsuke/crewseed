@@ -30,6 +30,8 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
     }
   }, [token]);
 
+  
+
 const maskPhoneNumber = (val) => {
   if (!val) return "";
 
@@ -75,12 +77,13 @@ const maskPhoneNumber = (val) => {
       </style>
 
       {/* Mobile Toggle - Kept the gradient for consistency with the logo branding */}
-      <button
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="mobile-menu-button bg-gradient-to-br from-[#d1ec44] to-[#23acf6] text-slate-800 shadow-md rounded-xl hover:opacity-40 transition-all duration-200"
-      >
-        <Icon name={isMobileOpen ? "X" : "Menu"} size={15} />
-      </button>
+     {/* --- MOBILE SIDE-MIDDLE TOGGLE --- */}
+<button
+  onClick={() => setIsMobileOpen(!isMobileOpen)}
+  className="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-[60] flex items-center justify-center w-6 h-16 bg-slate-900 text-[#d1ec44] rounded-r-2xl shadow-xl border border-l-0 border-white/10 transition-transform active:scale-90"
+>
+  <Icon name={isMobileOpen ? "ChevronLeft" : "ChevronRight"} size={18} />
+</button>
 
       {isMobileOpen && (
         <div
@@ -89,27 +92,26 @@ const maskPhoneNumber = (val) => {
         />
       )}
 
-      <aside
+       <aside
         className={`sidebar ${isCollapsed ? "collapsed" : ""} ${
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         } bg-white border-r border-slate-100 shadow-xl transition-all duration-500 ease-in-out`}
       >
-        {/* Logo Section - Kept exactly as you had it */}
+        {/* Logo Section */}
         <div className="sidebar-header border-b border-slate-50/50">
           <div className="sidebar-logo flex items-center gap-2">
             <img
               src="/Crewlogo.svg"
               alt="Company Logo"
-              className="w-7 h-7 object-contain"
+              className="w-12 h-12 object-contain"
             />
             {!isCollapsed && (
-              <span className="text-xl font-extrabold tracking-tighter bg-gradient-to-r from-[#23acf6] via-[#d1ec44] to-[#23acf6] bg-[length:200%_auto] animate-[shine:6s_linear_infinite] bg-clip-text text-transparent opacity-90">
+              <span className="text-xl font-extrabold tracking-tighter bg-gradient-to-r from-[#38b6ff] via-[#d1ec44] to-[#38b6ff] bg-[length:200%_auto] animate-[shine_6s_linear_infinite] bg-clip-text text-transparent opacity-95">
                 CrewSeed
               </span>
             )}
           </div>
         </div>
-
         {/* Profile Card */}
         {!isCollapsed && (
           <div

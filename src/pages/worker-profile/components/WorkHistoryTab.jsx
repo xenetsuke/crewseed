@@ -25,9 +25,15 @@ const WorkHistoryTab = ({ data, onSave }) => {
   /* Init assignments */
   useEffect(() => {
     if (!data?.recentAssignments) return;
+
     setAssignments(
       data.recentAssignments.map((a) => ({
         ...a,
+        // ✅ Change 1: Mapping companyName from backend correctly
+        company: a.companyName || a.company || "", 
+        baseMonthlyPay: a.baseMonthlyPay ?? 0,
+        // ✅ Change 2: Ensuring wagetype is MONTHLY
+        wagetype: "MONTHLY",
         isEditing: false,
         startDate: a.startDate ? a.startDate.slice(0, 10) : "",
         endDate: a.endDate ? a.endDate.slice(0, 10) : "",
@@ -36,13 +42,13 @@ const WorkHistoryTab = ({ data, onSave }) => {
   }, [data]);
 
   /* ============================
-     📊 AUTO CALCULATED STATS
+      📊 AUTO CALCULATED STATS
   ============================ */
   const calculatedStats = useMemo(() => {
     const jobsCompleted = assignments.length;
 
     const totalEarnings = assignments.reduce(
-      (sum, a) => sum + (Number(a.wage) || 0),
+      (sum, a) => sum + (Number(a.baseMonthlyPay) || 0),
       0
     );
 
@@ -65,7 +71,7 @@ const WorkHistoryTab = ({ data, onSave }) => {
   const stats = data?.statistics ?? calculatedStats;
 
   /* ============================
-     CRUD HANDLERS
+      CRUD HANDLERS
   ============================ */
   const updateField = (i, field, value) => {
     setAssignments((prev) =>
@@ -88,6 +94,8 @@ const WorkHistoryTab = ({ data, onSave }) => {
       ...data,
       recentAssignments: assignments.map((a) => {
         const x = { ...a };
+        // Ensure backend receives the correct field name
+        x.companyName = x.company;
         delete x.isEditing;
         x.startDate = x.startDate ? `${x.startDate}T00:00:00` : null;
         x.endDate = x.endDate ? `${x.endDate}T00:00:00` : null;
@@ -107,6 +115,7 @@ const WorkHistoryTab = ({ data, onSave }) => {
       ...data,
       recentAssignments: updated.map((a) => {
         const x = { ...a };
+        x.companyName = x.company;
         delete x.isEditing;
         x.startDate = x.startDate ? `${x.startDate}T00:00:00` : null;
         x.endDate = x.endDate ? `${x.endDate}T00:00:00` : null;
@@ -125,8 +134,8 @@ const WorkHistoryTab = ({ data, onSave }) => {
       location: "",
       startDate: "",
       endDate: "",
-      wage: 0,
-      wagetype: "DAILY",
+      baseMonthlyPay: 0,
+      wagetype: "MONTHLY", // ✅ Locked to MONTHLY
       rating: null,
       isEditing: true,
     };
@@ -139,6 +148,7 @@ const WorkHistoryTab = ({ data, onSave }) => {
       ...data,
       recentAssignments: updated.map((a) => {
         const x = { ...a };
+        x.companyName = x.company;
         delete x.isEditing;
         x.startDate = x.startDate ? `${x.startDate}T00:00:00` : null;
         x.endDate = x.endDate ? `${x.endDate}T00:00:00` : null;
@@ -191,7 +201,11 @@ const WorkHistoryTab = ({ data, onSave }) => {
           </h3>
 
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setViewAll(!viewAll)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setViewAll(!viewAll)}
+            >
               {viewAll ? t("common.showLess") : t("common.viewAll")}
             </Button>
             <Button size="sm" onClick={addAssignment}>
@@ -216,11 +230,16 @@ const WorkHistoryTab = ({ data, onSave }) => {
                     {formatDate(a.startDate)} → {formatDate(a.endDate)}
                   </p>
                   <p className="font-bold text-primary">
-                    ₹{a.wage} / {t(`wage.${a.wagetype.toLowerCase()}`)}
+                    ₹{a.baseMonthlyPay} /{" "}
+                    {t(`wage.${a.wagetype?.toLowerCase?.() ?? "monthly"}`)}
                   </p>
                 </div>
 
-                <Button size="sm" variant="ghost" onClick={() => toggleEdit(index)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => toggleEdit(index)}
+                >
                   ✏ {t("common.edit")}
                 </Button>
               </div>
@@ -230,33 +249,57 @@ const WorkHistoryTab = ({ data, onSave }) => {
                   className={inputClasses}
                   placeholder={t("workHistory.fields.jobTitle")}
                   value={a.jobTitle}
-                  onChange={(e) => updateField(index, "jobTitle", e.target.value)}
+                  onChange={(e) =>
+                    updateField(index, "jobTitle", e.target.value)
+                  }
                 />
                 <input
                   className={inputClasses}
                   placeholder={t("workHistory.fields.company")}
                   value={a.company}
-                  onChange={(e) => updateField(index, "company", e.target.value)}
+                  onChange={(e) =>
+                    updateField(index, "company", e.target.value)
+                  }
                 />
-                <input
+                {/* <input
                   className={inputClasses}
                   placeholder={t("workHistory.fields.location")}
                   value={a.location}
-                  onChange={(e) => updateField(index, "location", e.target.value)}
-                />
+                  onChange={(e) =>
+                    updateField(index, "location", e.target.value)
+                  }
+                /> */}
+                <select 
+                  className={inputClasses} 
+                  value="MONTHLY" 
+                  
+                >
+                  <option value="MONTHLY">Monthly Pay </option>
+                </select>
                 <input
                   type="number"
                   className={inputClasses}
                   placeholder={t("workHistory.fields.wage")}
-                  value={a.wage}
-                  onChange={(e) => updateField(index, "wage", Number(e.target.value))}
+                  value={a.baseMonthlyPay}
+                  onChange={(e) =>
+                    updateField(
+                      index,
+                      "baseMonthlyPay",
+                      Number(e.target.value)
+                    )
+                  }
                 />
+                {/* Locked Wagetype Field */}
 
                 <div className="flex gap-2">
                   <Button size="sm" onClick={saveAssignment}>
                     💾 {t("common.save")}
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => toggleEdit(index)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => toggleEdit(index)}
+                  >
                     {t("common.cancel")}
                   </Button>
                   <Button
