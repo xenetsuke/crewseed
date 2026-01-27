@@ -30,22 +30,19 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
     }
   }, [token]);
 
-  
+  const maskPhoneNumber = (val) => {
+    if (!val) return "";
 
-const maskPhoneNumber = (val) => {
-  if (!val) return "";
+    const phoneRegex =
+      /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
 
-  const phoneRegex =
-    /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
+    if (typeof val === "string" && phoneRegex.test(val)) {
+      const clean = val.replace(/\s/g, "").replace(/^\+/, "");
+      return `+${clean.slice(0, -3)}***`;
+    }
 
-  if (typeof val === "string" && phoneRegex.test(val)) {
-    const clean = val.replace(/\s/g, "").replace(/^\+/, "");
-    return `+${clean.slice(0, -3)}***`;
-  }
-
-  return val;
-};
-
+    return val;
+  };
 
   const navigationItems = [
     { label: t("sidebar.dashboard"), path: "/worker-dashboard", icon: "LayoutDashboard" },
@@ -55,9 +52,13 @@ const maskPhoneNumber = (val) => {
     { label: t("sidebar.profile"), path: "/worker-profile", icon: "User" },
   ];
 
+  // Modified for smooth closing transition
   const handleNavigation = (path) => {
-    navigate(path);
     setIsMobileOpen(false);
+    // Short delay to let the sidebar closing animation start/finish smoothly before route change
+    setTimeout(() => {
+      navigate(path);
+    }, 150); 
   };
 
   const displayName = workerProfile?.fullName || user?.name || jwtUser?.name || t("sidebar.worker");
@@ -76,23 +77,23 @@ const maskPhoneNumber = (val) => {
         `}
       </style>
 
-      {/* Mobile Toggle - Kept the gradient for consistency with the logo branding */}
-     {/* --- MOBILE SIDE-MIDDLE TOGGLE --- */}
-<button
-  onClick={() => setIsMobileOpen(!isMobileOpen)}
-  className="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-[60] flex items-center justify-center w-6 h-16 bg-slate-900 text-[#d1ec44] rounded-r-2xl shadow-xl border border-l-0 border-white/10 transition-transform active:scale-90"
->
-  <Icon name={isMobileOpen ? "ChevronLeft" : "ChevronRight"} size={18} />
-</button>
+      {/* --- MOBILE SIDE-MIDDLE TOGGLE --- */}
+      <button
+        onClick={() => setIsMobileOpen(!isMobileOpen)}
+        className="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-[60] flex items-center justify-center w-6 h-16 bg-slate-900 text-[#d1ec44] rounded-r-2xl shadow-xl border border-l-0 border-white/10 transition-transform active:scale-90"
+      >
+        <Icon name={isMobileOpen ? "ChevronLeft" : "ChevronRight"} size={18} />
+      </button>
 
-      {isMobileOpen && (
-        <div
-          className="fixed inset-0 bg-slate-900/20 backdrop-blur-[2px] z-40 lg:hidden animate-fade-in"
-          onClick={() => setIsMobileOpen(false)}
-        />
-      )}
+      {/* Updated Smooth Overlay */}
+      <div
+        className={`fixed inset-0 bg-slate-900/20 backdrop-blur-[2px] z-40 lg:hidden transition-all duration-500 ease-in-out ${
+          isMobileOpen ? "opacity-100 visible" : "opacity-0 invisible"
+        }`}
+        onClick={() => setIsMobileOpen(false)}
+      />
 
-       <aside
+      <aside
         className={`sidebar ${isCollapsed ? "collapsed" : ""} ${
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         } bg-white border-r border-slate-100 shadow-xl transition-all duration-500 ease-in-out`}
@@ -112,13 +113,13 @@ const maskPhoneNumber = (val) => {
             )}
           </div>
         </div>
+
         {/* Profile Card */}
         {!isCollapsed && (
           <div
             className="px-5 py-4 mb-2 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition-all group relative overflow-hidden"
             onClick={() => handleNavigation("/worker-profile")}
           >
-            {/* Hover Accent changed to #23acf6 */}
             <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#23acf6] scale-y-0 group-hover:scale-y-100 transition-transform duration-300" />
             
             <div className="flex items-center gap-3">
@@ -169,12 +170,6 @@ const maskPhoneNumber = (val) => {
                     {item.label}
                   </span>
                 )}
-
-                {/* {!isCollapsed && item.badge > 0 && (
-                  <span className="bg-[#23acf6] text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-sm">
-                    {item.badge}
-                  </span>
-                )} */}
               </div>
             );
           })}
