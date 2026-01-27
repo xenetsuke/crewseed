@@ -30,20 +30,19 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
     }
   }, [token]);
 
-const maskPhoneNumber = (val) => {
-  if (!val) return "";
+  const maskPhoneNumber = (val) => {
+    if (!val) return "";
 
-  const phoneRegex =
-    /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
+    const phoneRegex =
+      /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/im;
 
-  if (typeof val === "string" && phoneRegex.test(val)) {
-    const clean = val.replace(/\s/g, "").replace(/^\+/, "");
-    return `+${clean.slice(0, -3)}***`;
-  }
+    if (typeof val === "string" && phoneRegex.test(val)) {
+      const clean = val.replace(/\s/g, "").replace(/^\+/, "");
+      return `+${clean.slice(0, -3)}***`;
+    }
 
-  return val;
-};
-
+    return val;
+  };
 
   const navigationItems = [
     { label: "Dashboard", path: "/employer-dashboard", icon: "LayoutDashboard" },
@@ -55,8 +54,13 @@ const maskPhoneNumber = (val) => {
   ];
 
   const handleNavigation = (path) => {
-    navigate(path);
+    // 1. Close the mobile sidebar first
     setIsMobileOpen(false);
+    
+    // 2. Delay the navigation slightly so the "slide out" animation finishes smoothly
+    setTimeout(() => {
+      navigate(path);
+    }, 300); // 300ms provides a snappy yet smooth transition
   };
 
   useEffect(() => {
@@ -78,23 +82,26 @@ const maskPhoneNumber = (val) => {
           @keyframes shine {
             to { background-position: 250% center; }
           }
+          .fade-enter { opacity: 0; }
+          .fade-exit { opacity: 0; transition: opacity 500ms ease-in-out; }
         `}
       </style>
 
       {/* Mobile Menu Button */}
-         {/* --- MOBILE SIDE-MIDDLE TOGGLE --- */}
-<button
-  onClick={() => setIsMobileOpen(!isMobileOpen)}
-  className="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-[60] flex items-center justify-center w-6 h-16 bg-slate-900 text-[#d1ec44] rounded-r-2xl shadow-xl border border-l-0 border-white/10 transition-transform active:scale-90"
->
-  <Icon name={isMobileOpen ? "ChevronLeft" : "ChevronRight"} size={18} />
-</button>
-      {isMobileOpen && (
-        <div
-          className="sidebar-overlay bg-slate-900/20 backdrop-blur-[2px] z-40 lg:hidden animate-fade-in"
-          onClick={() => setIsMobileOpen(false)}
-        />
-      )}
+      <button
+        onClick={() => setIsMobileOpen(!isMobileOpen)}
+        className="lg:hidden fixed left-0 top-1/2 -translate-y-1/2 z-[60] flex items-center justify-center w-6 h-16 bg-slate-900 text-[#d1ec44] rounded-r-2xl shadow-xl border border-l-0 border-white/10 transition-transform active:scale-90"
+      >
+        <Icon name={isMobileOpen ? "ChevronLeft" : "ChevronRight"} size={18} />
+      </button>
+
+      {/* Smooth Mobile Overlay */}
+      <div
+        className={`fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-40 lg:hidden transition-opacity duration-500 ease-in-out ${
+          isMobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setIsMobileOpen(false)}
+      />
 
       <aside
         className={`sidebar ${isCollapsed ? "collapsed" : ""} ${
