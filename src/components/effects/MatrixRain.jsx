@@ -1,60 +1,46 @@
-import { useEffect, useRef } from "react";
+// gsap/matrixRain.js
+export function initMatrixRain(canvas) {
+  if (!canvas) return;
 
-const MatrixRain = () => {
-  const canvasRef = useRef(null);
+  const ctx = canvas.getContext("2d");
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
+  const resize = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  };
 
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+  resize();
+  window.addEventListener("resize", resize);
 
-    const letters = "01";
-    const fontSize = 14;
-    const columns = Math.floor(width / fontSize);
-    const drops = Array(columns).fill(1);
+  // 🔥 BRAND MATRIX TEXT
+  const chars = "CREWSEED";
+  const size = 20;
 
-    const draw = () => {
-      ctx.fillStyle = "rgba(2,6,23,0.08)";
-      ctx.fillRect(0, 0, width, height);
+  let cols = Math.floor(canvas.width / size);
+  let drops = Array(cols).fill(1);
 
-      ctx.fillStyle = "#38b6ff";
-      ctx.font = `${fontSize}px monospace`;
+  const draw = () => {
+    ctx.fillStyle = "rgba(2, 6, 23, 0.08)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      drops.forEach((y, i) => {
-        const text = letters[Math.floor(Math.random() * letters.length)];
-        ctx.fillText(text, i * fontSize, y * fontSize);
+    ctx.fillStyle = "#38b6ff";
+    ctx.font = `${size}px monospace`;
 
-        if (y * fontSize > height && Math.random() > 0.975) {
-          drops[i] = 0;
-        }
-        drops[i]++;
-      });
-    };
+    drops.forEach((y, i) => {
+      const char = chars[Math.floor(Math.random() * chars.length)];
+      ctx.fillText(char, i * size, y * size);
 
-    const interval = setInterval(draw, 50);
+      if (y * size > canvas.height && Math.random() > 0.98) {
+        drops[i] = 0;
+      }
+      drops[i]++;
+    });
+  };
 
-    const onResize = () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    };
+  const interval = setInterval(draw, 50);
 
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("resize", onResize);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      id="matrixRain"
-      className="absolute inset-0 opacity-[0.03]"
-    />
-  );
-};
-
-export default MatrixRain;
+  return () => {
+    clearInterval(interval);
+    window.removeEventListener("resize", resize);
+  };
+}

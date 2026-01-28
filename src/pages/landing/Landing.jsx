@@ -14,6 +14,7 @@ import ScaleSection from "./ScaleSection";
 import { motion } from "framer-motion";
 // gsap.registerPlugin(ScrollTrigger);
 import Preloader from "components/Preloader";
+import FAQSection from "./FAQSection";
 
 export default function Landing() {
     
@@ -39,13 +40,13 @@ useEffect(() => {
       initCounters(landingRef.current);
       ScrollTrigger.refresh();
 
-      const elapsed = Date.now() - startTimeRef.current;
-      const remaining = Math.max(MIN_LOADER_TIME - elapsed, 0);
+      // const elapsed = Date.now() - startTimeRef.current;
+      // const remaining = Math.max(MIN_LOADER_TIME - elapsed, 0);
 
       // ✅ hide loader ONLY after minimum time
-      setTimeout(() => {
-        setLoading(false);
-      }, remaining);
+      // setTimeout(() => {
+      //   setLoading(false);
+      // }, remaining); 
     });
   });
 
@@ -118,8 +119,9 @@ useEffect(() => {
     // id="hero"
     className="relative w-full min-h-screen flex items-end px-6 md:px-12 pb-20 pt-32 overflow-hidden bg-gradient-to-r from-[#38b6ff] via-[#d1ec44] to-[#38b6ff]"
   >
+    
     {/* Matrix Rain Canvas */}
-    <canvas id="matrixRain" className="absolute inset-0 z-0 opacity-20" />
+    <canvas id="matrixRain" className="absolute inset-0 z-0 opacity-40" />
     {/* Dashboard Background Mockup */}
 <motion.div   initial="hidden"
   whileInView="visible"
@@ -155,6 +157,7 @@ useEffect(() => {
     {/* Content Container */}
     <div className="relative z-20 w-full max-w-screen-2xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
       {/* Left Content */}
+      
   <motion.div 
   initial="hidden"
   whileInView="visible"
@@ -560,6 +563,7 @@ useEffect(() => {
   <section id="scale" className="py-32 bg-white overflow-hidden relative">
    <ScaleSection></ScaleSection>
   </section>
+  <FAQSection></FAQSection>
   {/* Final CTA Section */}
   <section className="py-32 bg-slate-900 text-white overflow-hidden relative">
     <div className="absolute inset-0 bg-gradient-to-br from-[#38b6ff]/10 via-transparent to-[#d1ec44]/10" />
@@ -696,9 +700,11 @@ useEffect(() => {
   <footer className="bg-slate-900 text-white py-20 px-6 md:px-12 border-t border-white/10">
     <div className="max-w-screen-2xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
       <div className="md:col-span-4">
-        <a href="#" className="text-3xl font-black tracking-tighter block mb-6">
-          CrewSeed
-        </a>
+          <img 
+              src="/crewlogo.svg"
+              alt="Company Logo"
+              className="w-24 h-24 pb-4 object-contain"
+            />
         <p className="text-white/60 leading-relaxed mb-6 max-w-xs">
           Blue-collar workforce control platform. Photo-verified attendance.
           Automated payroll. Complete transparency.
