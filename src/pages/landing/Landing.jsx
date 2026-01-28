@@ -732,7 +732,7 @@ export default function Landing() {
           <div className="max-w-screen-2xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
             <div className="md:col-span-4">
               <img
-                src="/public/crewlogo.svg"
+                src="/Crewlogo.svg"
                 alt="Company Logo"
                 className="w-24 h-24 pb-4 object-contain"
               />
