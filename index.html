@@ -1,51 +1,99 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>CrewSeed</title>
+  <head>
+    <meta charset="utf-8" />
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#000000" />
+    <title>CrewSeed</title>
 
-  <link
-    rel="icon"
-    type="image/svg+xml"
-    href="/Cr3.svg"
-  />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
 
-  <link rel="manifest" href="/manifest.json" />
-</head>
+    <!-- App Icon -->
+    <link rel="icon" type="image/svg+xml" href="/Cr3.svg" />
 
-<body>
-<noscript>
-  <div style="padding:24px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, sans-serif; background:#0f172a; color:#ffffff;">
-    <p style="margin-bottom:10px; line-height:1.6;">
-      CrewSeed is a modern workforce management platform for blue-collar hiring,
-      attendance tracking, and automated payroll.
-    </p>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+  </head>
 
-    <p style="margin-bottom:10px; line-height:1.6;">
-      Features like job discovery, bulk hiring, live attendance verification,
-      photo proof, and real-time dashboards require JavaScript to function properly.
-    </p>
+  <body>
+    <!-- =====================================================
+         🚫 NO-JAVASCRIPT FALLBACK (THIS WILL SHOW IN CHROME)
+         ===================================================== -->
+    <noscript>
+      <div
+        style="
+          min-height: 100vh;
+          padding: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: system-ui, -apple-system, BlinkMacSystemFont,
+            'Segoe UI', Roboto, Ubuntu, sans-serif;
+          background: linear-gradient(
+            135deg,
+            #0f172a,
+            #020617
+          );
+          color: #ffffff;
+        "
+      >
+        <div style="max-width: 640px;">
+          <h1
+            style="
+              font-size: 32px;
+              font-weight: 900;
+              letter-spacing: -0.03em;
+              margin-bottom: 16px;
+              color: #38b6ff;
+            "
+          >
+            CrewSeed
+          </h1>
 
-    <p style="margin-bottom:16px; line-height:1.6;">
-      Please enable JavaScript in your browser (recommended: <strong>Google Chrome</strong>)
-      and reload this page to continue.
-    </p>
+          <p style="line-height: 1.7; margin-bottom: 12px;">
+            CrewSeed is a modern workforce management platform built for
+            India’s blue-collar ecosystem.
+          </p>
 
-    <strong style="color:#38b6ff;">
-      Zero fraud. Full control. Built for real-world operations.
-    </strong>
-  </div>
-</noscript>
+          <p style="line-height: 1.7; margin-bottom: 12px;">
+            We enable job discovery, bulk hiring, photo-verified attendance,
+            live workforce tracking, and automated payroll — all in one system.
+          </p>
 
-  <!-- 🔥 REQUIRED FOR FIREBASE PHONE AUTH -->
-  <!-- Invisible reCAPTCHA will mount here -->
-  <div id="recaptcha-container"></div>
+          <p style="line-height: 1.7; margin-bottom: 20px;">
+            These features require <strong>JavaScript</strong> to run properly.
+            Please enable JavaScript in your browser
+            (recommended: <strong>Google Chrome</strong>) and reload this page.
+          </p>
 
-  <div class="dhiwise-code" id="root"></div>
+          <div
+            style="
+              margin-top: 24px;
+              padding-top: 16px;
+              border-top: 1px solid rgba(255,255,255,0.15);
+              font-weight: 700;
+              color: #d1ec44;
+            "
+          >
+            Zero fraud. Full control. Built for real-world operations.
+          </div>
+        </div>
+      </div>
+    </noscript>
 
-  <script type="module" src="/src/index.jsx"></script>
-</body>
+    <!-- =====================================================
+         🔐 REQUIRED FOR FIREBASE PHONE AUTH
+         ===================================================== -->
+    <div id="recaptcha-container"></div>
+
+    <!-- =====================================================
+         ⚛️ REACT ROOT (KEEP THIS EMPTY)
+         ===================================================== -->
+    <div id="root"></div>
+
+    <!-- =====================================================
+         🚀 APP ENTRY
+         ===================================================== -->
+    <script type="module" src="/src/index.jsx"></script>
+  </body>
 </html>
