@@ -55,6 +55,16 @@ const Login = () => {
   const navigate = useNavigate();
   const [showPostLoginLoader, setShowPostLoginLoader] = useState(false);
 
+const LOGIN_TIMEOUT_MS = 8000;
+
+const withTimeout = (promise, timeout = LOGIN_TIMEOUT_MS) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("LOGIN_TIMEOUT")), timeout)
+    ),
+  ]);
+
   const [userRole, setUserRole] = useState("worker");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -117,9 +127,16 @@ const PROFILE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 const handlePostLogin = async (token) => {
   setShowPostLoginLoader(true);
+  setLoading(true);
+
+  const failSafe = setTimeout(() => {
+    setShowPostLoginLoader(false);
+    setLoading(false);
+    toast.error("Network error occurred. Please try again.");
+  }, LOGIN_TIMEOUT_MS);
 
   try {
-    // ⏳ Allow browser to settle (important after idle)
+    // ⏳ allow browser to settle
     await new Promise((r) => requestAnimationFrame(r));
 
     const decoded = jwtDecode(token);
@@ -129,12 +146,14 @@ const handlePostLogin = async (token) => {
     const isApplicantAccount = decoded.accountType === "APPLICANT";
 
     /* ======================================================
-       🔐 ROLE MISMATCH CHECK (CRITICAL)
+       🔐 ROLE MISMATCH CHECK
     ====================================================== */
     if (
       (isWorkerPage && !isApplicantAccount) ||
       (!isWorkerPage && isApplicantAccount)
     ) {
+      clearTimeout(failSafe);
+
       dispatch(removeJwt());
       localStorage.removeItem("token");
       localStorage.removeItem(PROFILE_CACHE_KEY);
@@ -143,7 +162,7 @@ const handlePostLogin = async (token) => {
       setLoading(false);
 
       toast.error(
-        `This account is registered as an ${
+        `This account is registered as a ${
           isApplicantAccount ? "Worker" : "Employer"
         }. Please switch roles.`,
         { icon: <ShieldAlert className="text-red-500" /> }
@@ -159,15 +178,16 @@ const handlePostLogin = async (token) => {
     dispatch(setUser(decoded));
 
     /* ======================================================
-       🚀 FAST PATH — REDUX PERSIST
+       🚀 FAST PATH — REDUX
     ====================================================== */
-    const state = store.getState();
-    const reduxProfile = state.profile;
+    const reduxProfile = store.getState().profile;
 
     if (
       reduxProfile?.id === decoded.profileId &&
       reduxProfile?.completed === true
     ) {
+      clearTimeout(failSafe);
+
       navigate(
         isApplicantAccount ? "/worker-profile" : "/employer-dashboard"
       );
@@ -175,7 +195,7 @@ const handlePostLogin = async (token) => {
     }
 
     /* ======================================================
-       🚀 FAST PATH — LOCALSTORAGE CACHE
+       🚀 FAST PATH — LOCAL CACHE
     ====================================================== */
     const cached = localStorage.getItem(PROFILE_CACHE_KEY);
 
@@ -190,12 +210,13 @@ const handlePostLogin = async (token) => {
         parsed.completed === true
       ) {
         dispatch(setProfile(parsed));
+        clearTimeout(failSafe);
 
         navigate(
           isApplicantAccount ? "/worker-profile" : "/employer-dashboard"
         );
 
-        // 🔄 Background refresh (NON-BLOCKING)
+        // background refresh (NON BLOCKING)
         setTimeout(async () => {
           try {
             const fresh = await getProfile(decoded.profileId);
@@ -204,7 +225,7 @@ const handlePostLogin = async (token) => {
               PROFILE_CACHE_KEY,
               JSON.stringify({ ...fresh, cachedAt: Date.now() })
             );
-          } catch (e) {
+          } catch {
             console.warn("⚠️ Background profile refresh failed");
           }
         }, 1500);
@@ -214,9 +235,11 @@ const handlePostLogin = async (token) => {
     }
 
     /* ======================================================
-       🟡 NO PROFILE YET → ONBOARDING
+       🟡 NO PROFILE → ONBOARDING
     ====================================================== */
     if (!decoded.profileId) {
+      clearTimeout(failSafe);
+
       navigate(
         isApplicantAccount
           ? "/worker-profile-setup"
@@ -226,46 +249,54 @@ const handlePostLogin = async (token) => {
     }
 
     /* ======================================================
-       🐢 API FALLBACK (ONLY WHEN REQUIRED)
+       🚀 IMMEDIATE NAVIGATION (BEST UX)
     ====================================================== */
- // 🚀 NAVIGATE IMMEDIATELY (DO NOT WAIT FOR PROFILE)
-navigate(
-  decoded.accountType === "APPLICANT"
-    ? "/worker-dashboard"
-    : "/employer-dashboard"
-);
+    clearTimeout(failSafe);
 
-// 🧠 FETCH PROFILE IN BACKGROUND (NON-BLOCKING)
-setTimeout(async () => {
-  try {
-    const profile = await getProfile(decoded.profileId);
-
-    dispatch(setProfile(profile));
-    localStorage.setItem(
-      PROFILE_CACHE_KEY,
-      JSON.stringify({ ...profile, cachedAt: Date.now() })
+    navigate(
+      decoded.accountType === "APPLICANT"
+        ? "/worker-dashboard"
+        : "/employer-dashboard"
     );
 
-    // 🔁 redirect only if onboarding needed
-    if (!profile.completed) {
-      navigate(
-        decoded.accountType === "APPLICANT"
-          ? "/worker-profile-setup"
-          : "/company-onboarding",
-        { replace: true }
-      );
-    }
-  } catch (e) {
-    console.warn("⚠️ Profile fetch failed (background)");
-  }
-}, 0);
+    // background fetch (NON BLOCKING)
+    setTimeout(async () => {
+      try {
+        const profile = await getProfile(decoded.profileId);
+        dispatch(setProfile(profile));
+        localStorage.setItem(
+          PROFILE_CACHE_KEY,
+          JSON.stringify({ ...profile, cachedAt: Date.now() })
+        );
+
+        if (!profile.completed) {
+          navigate(
+            decoded.accountType === "APPLICANT"
+              ? "/worker-profile-setup"
+              : "/company-onboarding",
+            { replace: true }
+          );
+        }
+      } catch {
+        console.warn("⚠️ Profile fetch failed (background)");
+      }
+    }, 0);
 
   } catch (err) {
+    clearTimeout(failSafe);
+
     console.error("❌ Post-login failed", err);
     setShowPostLoginLoader(false);
     setLoading(false);
+
+    if (err.message === "LOGIN_TIMEOUT") {
+      toast.error("Network timeout. Please retry.");
+    } else {
+      toast.error("Login failed. Please try again.");
+    }
   }
 };
+
 
 
   const handleGoogleLogin = async () => {
@@ -277,7 +308,7 @@ setTimeout(async () => {
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
       if (res?.data?.jwt) {
-        await handlePostLogin(res.data.jwt);
+await withTimeout(handlePostLogin(res.data.jwt));
       } else {
         setLoading(false);
       }
@@ -336,7 +367,7 @@ setTimeout(async () => {
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
       if (res?.data?.jwt) {
-        await handlePostLogin(res.data.jwt);
+await withTimeout(handlePostLogin(res.data.jwt));
       } else {
         setLoading(false);
       }
@@ -360,7 +391,7 @@ setTimeout(async () => {
         role: userRole.toUpperCase(),
       });
       if (res?.data?.jwt) {
-        await handlePostLogin(res.data.jwt);
+await withTimeout(handlePostLogin(res.data.jwt));
       } else {
         setLoading(false);
       }
