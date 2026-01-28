@@ -102,19 +102,19 @@ const WorkerSection = () => {
 
                       {/* Earnings Card */}
                       <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
-                        <div className="text-[10px] font-bold text-slate-400 mb-1">Today's Earnings</div>
+                        <div className="text-[10px] font-bold text-slate-400 mb-1">Total Earnings</div>
                         <motion.div 
                           initial={{ opacity: 0 }}
                           whileInView={{ opacity: 1 }}
                           className="text-2xl font-black text-slate-900 mb-3"
                         >
-                          ₹1,240
+                          ₹11,240
                         </motion.div>
                         <div className="space-y-1.5 text-[11px]">
-                          <div className="flex justify-between text-slate-500">
-                            <span>Base Pay</span>
+                          {/* <div className="flex justify-between text-slate-500">
+                            <span>Monthly Pay</span>
                             <span className="font-bold text-slate-700">₹1,200</span>
-                          </div>
+                          </div> */}
                           <div className="flex justify-between text-slate-500">
                             <span>Overtime</span>
                             <span className="font-bold text-green-600">+₹40</span>
@@ -184,8 +184,7 @@ const WorkerSection = () => {
           className="text-center mt-20"
         >
           <blockquote className="text-2xl md:text-3xl font-bold text-slate-900 max-w-3xl mx-auto leading-tight italic">
-            "पहले पेमेंट पर झगड़ा होता था। अब रोज़ दिखता है कितना पैसा बन रहा है।"
-          </blockquote>
+"भरोसा कागज़ों पर नहीं, स्क्रीन पर है। ड्यूटी खत्म होते ही ओटी का हिसाब हाज़िर—नो चिक-चिक, नो झंझट।"          </blockquote>
           <div className="mt-8 flex items-center justify-center gap-4">
             <div className="w-14 h-14 rounded-full bg-slate-100 border-2 border-white shadow-md overflow-hidden">
                <div className="w-full h-full bg-gradient-to-tr from-slate-200 to-slate-400" />
