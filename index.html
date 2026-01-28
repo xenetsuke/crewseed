@@ -1,51 +1,103 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>CrewSeed</title>
+  <head>
+    <meta charset="utf-8" />
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#000000" />
+    <!-- 🔹 PRIMARY SEO -->
+    <title>CrewSeed – Blue-Collar Workforce Control Platform</title>
 
-  <link
-    rel="icon"
-    type="image/svg+xml"
-    href="/Cr3.svg"
-  />
+    <meta
+      name="description"
+      content="CrewSeed is a modern blue-collar workforce management platform for hiring, attendance tracking, photo verification, and automated payroll. Built for real-world operations in India."
+    />
 
-  <link rel="manifest" href="/manifest.json" />
-</head>
+    <!-- ✅ GOOGLE SEARCH CONSOLE VERIFICATION (META METHOD) -->
+    <meta
+      name="google-site-verification"
+      content="google151f94605686657f.html"
+    />
 
-<body>
-<noscript>
-  <div style="padding:24px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, sans-serif; background:#0f172a; color:#ffffff;">
-    <p style="margin-bottom:10px; line-height:1.6;">
-      CrewSeed is a modern workforce management platform for blue-collar hiring,
-      attendance tracking, and automated payroll.
-    </p>
-//
-    <p style="margin-bottom:10px; line-height:1.6;">
-      Features like job discovery, bulk hiring, live attendance verification,
-      photo proof, and real-time dashboards require JavaScript to function properly.
-    </p>
+    <!-- 🔹 VIEWPORT & THEME -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
 
-    <p style="margin-bottom:16px; line-height:1.6;">
-      Please enable JavaScript in your browser (recommended: <strong>Google Chrome</strong>)
-      and reload this page to continue.
-    </p>
+    <!-- 🔹 ICONS / PWA -->
+    <link rel="icon" type="image/svg+xml" href="/Cr3.svg" />
+    <link rel="manifest" href="/manifest.json" />
 
-    <strong style="color:#38b6ff;">
-      Zero fraud. Full control. Built for real-world operations.
-    </strong>
-  </div>
-</noscript>
+    <!-- 🔹 CRAWLER CONTROL -->
+    <meta name="googlebot" content="index, follow, max-snippet:-1" />
+    <meta name="robots" content="index, follow" />
 
-  <!-- 🔥 REQUIRED FOR FIREBASE PHONE AUTH -->
-  <!-- Invisible reCAPTCHA will mount here -->
-  <div id="recaptcha-container"></div>
+    <!-- 🔹 SOCIAL PREVIEW (OPTIONAL BUT RECOMMENDED) -->
+    <meta property="og:title" content="CrewSeed – Workforce Control Platform" />
+    <meta
+      property="og:description"
+      content="Hire faster. Track attendance. Verify work with photos. Automate payroll. CrewSeed is built for India’s blue-collar reality."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.crewseed.com" />
+    <meta property="og:image" content="https://www.crewseed.com/og.png" />
+  </head>
 
-  <div class="dhiwise-code" id="root"></div>
+  <body>
+    <!-- 🚫 NO-JS FALLBACK (VISIBLE ONLY IF JS IS DISABLED) -->
+    <noscript>
+      <div
+        style="
+          min-height: 100vh;
+          padding: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: system-ui, -apple-system, BlinkMacSystemFont,
+            'Segoe UI', Roboto, Ubuntu, sans-serif;
+          background: linear-gradient(135deg, #0f172a, #020617);
+          color: #ffffff;
+        "
+      >
+        <div style="max-width: 640px;">
+          <h1
+            style="
+              font-size: 32px;
+              font-weight: 900;
+              letter-spacing: -0.03em;
+              margin-bottom: 16px;
+              color: #38b6ff;
+            "
+          >
+            CrewSeed
+          </h1>
 
-  <script type="module" src="/src/index.jsx"></script>
-</body>
+          <p style="line-height: 1.7; margin-bottom: 12px;">
+            CrewSeed is a modern workforce management platform built for India’s
+            blue-collar ecosystem.
+          </p>
+
+          <p style="line-height: 1.7; margin-bottom: 12px;">
+            It enables bulk hiring, job discovery, photo-verified attendance,
+            automated payroll, and real-time workforce visibility.
+          </p>
+
+          <p style="line-height: 1.7; margin-bottom: 20px;">
+            JavaScript is required to run CrewSeed. Please enable JavaScript
+            (recommended: Google Chrome) and reload this page.
+          </p>
+
+          <strong style="color:#d1ec44;">
+            Zero fraud. Full control. Built for real-world operations.
+          </strong>
+        </div>
+      </div>
+    </noscript>
+
+    <!-- 🔥 REQUIRED FOR FIREBASE PHONE AUTH -->
+    <div id="recaptcha-container"></div>
+
+    <!-- ⚛️ REACT ROOT -->
+    <div id="root"></div>
+
+    <!-- 🔹 APP ENTRY -->
+    <script type="module" src="/src/index.jsx"></script>
+  </body>
 </html>
