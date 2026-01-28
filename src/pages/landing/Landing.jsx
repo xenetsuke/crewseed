@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {  useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -13,28 +13,54 @@ import HowItWorks from "./HowItWorks";
 import ScaleSection from "./ScaleSection";
 import { motion } from "framer-motion";
 // gsap.registerPlugin(ScrollTrigger);
+import Preloader from "components/Preloader";
 
 export default function Landing() {
     
-  const landingRef = useRef(null);
-  
+    const [loading, setLoading] = useState(true);
+    const landingRef = useRef(null);
+    const MIN_LOADER_TIME = 7000; // ms (1.8s feels premium)
+const startTimeRef = useRef(Date.now());
+
 useEffect(() => {
   const canvas = document.getElementById("matrixRain");
   let cleanupMatrix;
 
+  // ⏱ record when loader started
+  startTimeRef.current = Date.now();
+  setLoading(true);
+
   if (canvas) cleanupMatrix = initMatrixRain(canvas);
 
+  // 🧠 DOUBLE RAF = guarantees browser painted loader at least once
   requestAnimationFrame(() => {
-    initLandingAnimations(landingRef.current);
-    initCounters(landingRef.current);
-    ScrollTrigger.refresh();
+    requestAnimationFrame(() => {
+      initLandingAnimations(landingRef.current);
+      initCounters(landingRef.current);
+      ScrollTrigger.refresh();
+
+      const elapsed = Date.now() - startTimeRef.current;
+      const remaining = Math.max(MIN_LOADER_TIME - elapsed, 0);
+
+      // ✅ hide loader ONLY after minimum time
+      setTimeout(() => {
+        setLoading(false);
+      }, remaining);
+    });
   });
 
   return () => cleanupMatrix?.();
 }, []);
 
+useEffect(() => {
+  document.body.style.overflow = loading ? "hidden" : "auto";
+  return () => (document.body.style.overflow = "auto");
+}, [loading]);
 
   return (
+      <>
+
+    {loading && <Preloader />}
 
 <div ref={landingRef}>
 
@@ -95,7 +121,17 @@ useEffect(() => {
     {/* Matrix Rain Canvas */}
     <canvas id="matrixRain" className="absolute inset-0 z-0 opacity-20" />
     {/* Dashboard Background Mockup */}
-<div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+<motion.div   initial="hidden"
+  whileInView="visible"
+  viewport={{ once: false, amount: 0.3 }}
+  variants={{
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.2 } 
+    }
+  }}  className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+    
   <motion.img
     src="https://img.rocket.new/generatedImages/rocket_gen_img_1681f78f6-1767085536563.png"
     alt="Workforce management dashboard"
@@ -111,7 +147,7 @@ useEffect(() => {
     }}
     className="w-full h-full object-cover opacity-20"
   />
-</div>
+</motion.div>
     {/* Gradient Overlay */}
     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-slate-900/60 to-transparent z-10" />
     {/* Animated Gradient Accent */}
@@ -805,6 +841,7 @@ useEffect(() => {
     </div>
   </footer>
 </div>
+  </>
   );
 }
 
