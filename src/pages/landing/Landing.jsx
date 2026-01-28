@@ -17,18 +17,18 @@ import Preloader from "components/Preloader";
 
 export default function Landing() {
     
-    const [loading, setLoading] = useState(true);
+    // const [loading, setLoading] = useState(true);
     const landingRef = useRef(null);
-    const MIN_LOADER_TIME = 7000; // ms (1.8s feels premium)
-const startTimeRef = useRef(Date.now());
+    // const MIN_LOADER_TIME = 7000; // ms (1.8s feels premium)
+// const startTimeRef = useRef(Date.now());
 
 useEffect(() => {
   const canvas = document.getElementById("matrixRain");
   let cleanupMatrix;
 
   // ⏱ record when loader started
-  startTimeRef.current = Date.now();
-  setLoading(true);
+//   startTimeRef.current = Date.now();
+//   setLoading(true);
 
   if (canvas) cleanupMatrix = initMatrixRain(canvas);
 
@@ -52,15 +52,15 @@ useEffect(() => {
   return () => cleanupMatrix?.();
 }, []);
 
-useEffect(() => {
-  document.body.style.overflow = loading ? "hidden" : "auto";
-  return () => (document.body.style.overflow = "auto");
-}, [loading]);
+// useEffect(() => {
+//   document.body.style.overflow = loading ? "hidden" : "auto";
+//   return () => (document.body.style.overflow = "auto");
+// }, [loading]);
 
   return (
       <>
 
-    {loading && <Preloader />}
+    {/* {loading && <Preloader />} */}
 
 <div ref={landingRef}>
 
