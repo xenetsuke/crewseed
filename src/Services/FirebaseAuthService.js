@@ -2,11 +2,11 @@ import axios from "axios";
 
 export const exchangeFirebaseToken = (firebaseToken, role) => {
   return axios.post(
-    "/api/auth/firebase-login",
+    "https://bluc-ysbf.onrender.com/auth/firebase-login",
     {},
     {
       headers: {
-        Authorization: `Bearer ${firebaseToken}`, // ✅ ONLY Firebase token
+        Authorization: `Bearer ${firebaseToken}`, // Firebase token ONLY
         "X-USER-ROLE": role,
       },
     }
