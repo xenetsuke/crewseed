@@ -7,7 +7,6 @@ import NotFound from "pages/NotFound";
 import ProtectedRoute from "./Services/ProtectedRoute.jsx";
 import PublicRoute from "./Services/PublicRoute.jsx";
 
-
 /* Pages */
 import Login from "./pages/login";
 import WorkerSignup from "./pages/worker-signup";
@@ -34,6 +33,8 @@ import AssignmentDetails from "./pages/assignment-details";
 import NotificationsSystem from "./pages/notifications-system";
 import HRToolComingSoon from "./pages/hr-tool";
 import AttendanceUploadPage from "pages/AttendanceUploadPage/AttendanceUploadPage.jsx";
+import Landing from "./pages/landing/Landing";
+import HowItWorksPage from "./pages/how-it-works/HowItWorksPage";
 
 const Routes = () => {
   return (
@@ -45,28 +46,26 @@ const Routes = () => {
           {/* =========================
               Public Routes
           ========================= */}
-          <Route
+          {/* <Route
             path="/"
             element={
               <PublicRoute>
                 <Login />
               </PublicRoute>
             }
+          /> */}
+          <Route path="/assignment-details" element={<AssignmentDetails />} />
+
+          <Route path="/" element={<Landing />} />
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
+          <Route
+            path="/attendance/upload/:token"
+            element={
+              <PublicRoute>
+                <AttendanceUploadPage />
+              </PublicRoute>
+            }
           />
-<Route
-  path="/assignment-details"
-  element={<AssignmentDetails />}
-/>
-
- 
-<Route
-  path="/attendance/upload/:token"
-         element=  {  <PublicRoute>
-
-  <AttendanceUploadPage />
-                </PublicRoute>
-         }
-/>
 
           <Route
             path="/login"
@@ -149,10 +148,9 @@ const Routes = () => {
               <ProtectedRoute allowedRoles={["APPLICANT"]}>
                 <WorkerProfile />
               </ProtectedRoute>
-            }  
+            }
           />
 
-       
           <Route
             path="/worker-profile-setup"
             element={
@@ -184,13 +182,13 @@ const Routes = () => {
           />
 
           <Route
-  path="/hr-tool"
-  element={
-    <ProtectedRoute allowedRoles={["EMPLOYER"]}>
-      <HRToolComingSoon />
-    </ProtectedRoute>
-  }
-/>
+            path="/hr-tool"
+            element={
+              <ProtectedRoute allowedRoles={["EMPLOYER"]}>
+                <HRToolComingSoon />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/employer-requirements"
