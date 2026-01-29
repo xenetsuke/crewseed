@@ -57,8 +57,10 @@ function WorkerJobList() {
       DERIVED STATE: FILTERING
   ========================================================= */
   const filteredJobs = useMemo(() => {
-    let updated = [...jobs];
+    // 1. First, exclude jobs where customJob is true
+    let updated = jobs.filter(job => job.customJob !== true);
 
+    // 2. Filter by search query
     if (searchQuery.trim()) {
       const lowQuery = searchQuery.toLowerCase();
       updated = updated.filter(
@@ -69,12 +71,14 @@ function WorkerJobList() {
       );
     }
 
+    // 3. Filter by industry
     if (activeFilters.industry.length > 0) {
       updated = updated.filter((job) => 
         activeFilters.industry.includes(job.industryCategory)
       );
     }
 
+    // 4. Sort by high pay if selected
     if (activeFilters.quickFilters.includes("highPay")) {
       updated.sort((a, b) => (b?.baseWageAmount || 0) - (a?.baseWageAmount || 0));
     }

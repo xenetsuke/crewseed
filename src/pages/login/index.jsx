@@ -55,7 +55,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [showPostLoginLoader, setShowPostLoginLoader] = useState(false);
 
-  const LOGIN_TIMEOUT_MS = 8000;
+  const LOGIN_TIMEOUT_MS = 9000;
 
   const withTimeout = (promise, timeout = LOGIN_TIMEOUT_MS) =>
     Promise.race([
@@ -400,7 +400,7 @@ const Login = () => {
       setLoading(false);
 
       if (err.message === "LOGIN_TIMEOUT") {
-        toast.error("Login timed out. Check your internet.");
+        toast.error("Login timed out. Check your internet & Retry.");
       } else {
         toast.error("Invalid email or password");
       }

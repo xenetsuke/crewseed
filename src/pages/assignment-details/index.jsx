@@ -34,28 +34,29 @@ const AssignmentDetails = () => {
   const [expandedAssignment, setExpandedAssignment] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  
   useEffect(() => {
     setLoading(true);
     getMyAttendanceHistory()
-      .then(async (res) => {
-        const data = res.data || [];
-        if (!data.length) {
-          setAssignments(EMPTY_STATE);
-          setLoading(false);
-          return;
-        }
-
-        const map = {};
-        const assignmentFetches = {};
-
-        data.forEach((a) => {
-          const snapshot = a.jobSnapshot || {};
-          if (!map[a.assignmentId]) {
-            map[a.assignmentId] = {
-              assignmentId: a.assignmentId,
+    .then(async (res) => {
+      const data = res.data || [];
+      if (!data.length) {
+        setAssignments(EMPTY_STATE);
+        setLoading(false);
+        return;
+      }
+      
+      const map = {};
+      const assignmentFetches = {};
+        
+      data.forEach((a) => {
+        const snapshot = a.jobSnapshot || {};
+        if (!map[a.assignmentId]) {
+          map[a.assignmentId] = {
+            assignmentId: a.assignmentId,
               jobId: a.jobId,
               workerId: a.workerId,
+               basePay : Number(a?.payroll?.basePay || 0),
               jobTitle: snapshot.jobTitle || "Archived Job",
               companyName: snapshot.companyName || "Company",
               managerName: snapshot.managerName || "Manager",
@@ -63,7 +64,9 @@ const AssignmentDetails = () => {
               shift: "--:--",
               role: a.hrSnapshot?.workerRole || "Worker",
               dailyWage: a.hrSnapshot?.payroll?.dailyPay || 0,
-              attendance: [],
+                            basePay: 0,
+
+                            attendance: [],
             };
             assignmentFetches[a.assignmentId] = getAssignmentByIdAndJob(a.assignmentId, a.jobId, a.workerId);
           }
@@ -96,6 +99,8 @@ const AssignmentDetails = () => {
               if (assignment?.shiftStartTime && assignment?.shiftEndTime) {
                 map[assignmentId].shift = `${formatTimeIST(assignment.shiftStartTime)} - ${formatTimeIST(assignment.shiftEndTime)}`;
               }
+                    map[assignmentId].payroll = assignment?.payroll || { basePay: 0 };
+
             } catch (e) {}
           })
         );
@@ -223,16 +228,16 @@ const AssignmentDetails = () => {
 
                       <div className="flex items-center justify-between sm:justify-end gap-6 border-t sm:border-t-0 pt-4 sm:pt-0">
                         <div className="text-left sm:text-right">
-                          <div className="flex items-center gap-1 sm:justify-end text-slate-400 mb-1">
-                            <Wallet className="w-3.5 h-3.5" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Total Earned</span>
-                          </div>
-                          <p className={cn(
-                            "text-2xl md:text-3xl font-black tabular-nums",
-                            payroll.netTotal < 0 ? "text-rose-600" : "text-emerald-600"
-                          )}>
-                            ₹{payroll.netTotal.toLocaleString("en-IN")}
-                          </p>
+                           <div className="flex items-center gap-1 justify-end text-slate-400 mb-1">
+                          <Wallet className="w-3.5 h-3.5" />
+                          <span className="text-[10px] font-black uppercase tracking-widest">
+                            Base Pay
+                          </span>
+                        </div>
+                      <p className="text-3xl font-black text-emerald-600 tabular-nums">
+    ₹{Number(assignment?.payroll?.basePay || 0).toLocaleString("en-IN")}
+  </p>
+                      {/* </div> */}
                         </div>
                         
                         <div className={cn(
