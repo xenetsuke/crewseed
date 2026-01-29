@@ -76,8 +76,9 @@ const WorkerAttendanceHR = () => {
     queryFn: () => getAssignmentsByJob(expandedJobId),
     enabled: !!expandedJobId,
   });
+const isExpandedContentLoading =
+  isAttendanceLoading || isAssignmentsLoading;
 
-  const isExpandedContentLoading = isAttendanceLoading || isAssignmentsLoading;
 
   const { data: profilesMap = {} } = useQuery({
     queryKey: ["workerProfiles", expandedJobId],
@@ -134,6 +135,11 @@ const WorkerAttendanceHR = () => {
       attendance: attendanceMap[Number(a.workerId)] || [],
     }));
   };
+const hasExpandedData =
+  assignmentsByJob.length > 0 || attendanceByJob.length > 0;
+
+const showExpandedLoader =
+  isExpandedContentLoading && !hasExpandedData;
 
   const jobs = useMemo(() => {
     return jobsFromApi.map((job) => ({
@@ -318,27 +324,37 @@ const WorkerAttendanceHR = () => {
                   {Number(expandedJobId) === Number(job.backendJobId) && (
                     <div className="px-3 lg:px-8 pb-5 lg:pb-8 pt-2 bg-slate-50/30 border-t border-slate-100">
                       <div className="bg-white rounded-2xl border border-slate-200/60 p-2 lg:p-4 shadow-inner min-h-[150px]">
-                        {isExpandedContentLoading ? (
-                          <ExpandedLoadingState />
-                        ) : job.workers.length === 0 ? (
+          {showExpandedLoader ? (
+  <ExpandedLoadingState />
+) : job.workers.length === 0 ? (
+
                           <div className="py-10 text-center animate-in fade-in duration-500">
                             <Users className="w-8 h-8 text-slate-200 mx-auto mb-2" />
                             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">No Workers Assigned</p>
                           </div>
                         ) : (
                           <div className="grid grid-cols-1 gap-2 lg:gap-4 animate-in slide-in-from-top-4 duration-500">
-                            {job.workers
-                              .filter((w) => w.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                              .map((worker) => (
-                                <WorkerRow
-                                  key={worker.workerId}
-                                  worker={worker}
-                                  viewMonth={currentMonth}
-                                  viewYear={currentYear}
-                                  onEditAssignment={(assignment) => { setSelectedAssignment(assignment); setEditOpen(true); }}
-                                  onAttendanceUpdated={() => setFrontendUpdateFlag((prev) => prev + 1)}
-                                />
-                              ))}
+                        {job.workers
+  .filter((w) =>
+    w.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+  .map((worker) => (
+    <WorkerRow
+      key={worker.workerId}
+      worker={worker}
+      viewMonth={currentMonth}
+      viewYear={currentYear}
+      isLoading={showExpandedLoader}   // ✅ IMPORTANT
+      onEditAssignment={(assignment) => {
+        setSelectedAssignment(assignment);
+        setEditOpen(true);
+      }}
+      onAttendanceUpdated={() =>
+        setFrontendUpdateFlag((prev) => prev + 1)
+      }
+    />
+))}
+
                           </div>
                         )}
                       </div>

@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 // 🔹 Lucide Icons
-import { 
-  Hammer, 
-  Building2, 
-  Mail, 
-  Phone, 
-  Chrome, 
-  ArrowRight, 
+import {
+  Hammer,
+  Building2,
+  Mail,
+  Phone,
+  Chrome,
+  ArrowRight,
   Loader2,
   CheckCircle2,
   AlertCircle,
-  ShieldAlert
+  ShieldAlert,
 } from "lucide-react";
 
 import Input from "../../components/ui/Input";
@@ -55,22 +55,22 @@ const Login = () => {
   const navigate = useNavigate();
   const [showPostLoginLoader, setShowPostLoginLoader] = useState(false);
 
-const LOGIN_TIMEOUT_MS = 8000;
+  const LOGIN_TIMEOUT_MS = 8000;
 
-const withTimeout = (promise, timeout = LOGIN_TIMEOUT_MS) =>
-  Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("LOGIN_TIMEOUT")), timeout)
-    ),
-  ]);
+  const withTimeout = (promise, timeout = LOGIN_TIMEOUT_MS) =>
+    Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("LOGIN_TIMEOUT")), timeout),
+      ),
+    ]);
 
   const [userRole, setUserRole] = useState("worker");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-const PROFILE_CACHE_KEY = "profile_cache";
-const PROFILE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+  const PROFILE_CACHE_KEY = "profile_cache";
+  const PROFILE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
   // Animation States
   const [isAnimating, setIsAnimating] = useState(false);
   const [isSettling, setIsSettling] = useState(false);
@@ -80,7 +80,7 @@ const PROFILE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [showOtpField, setShowOtpField] = useState(false);
-  
+
   // ✅ OTP Cooldown State
   const [cooldown, setCooldown] = useState(0);
 
@@ -96,20 +96,20 @@ const PROFILE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
         window.recaptchaVerifier = new RecaptchaVerifier(
           auth,
           "recaptcha-container",
-          { 
+          {
             size: "invisible",
             callback: () => {
               // ReCAPTCHA solved
             },
             "expired-callback": () => {
               toast.error("Captcha expired. Please try again.");
-              if(window.recaptchaVerifier) {
-                  window.recaptchaVerifier.render().then(widgetId => {
-                      window.grecaptcha.reset(widgetId);
-                  });
+              if (window.recaptchaVerifier) {
+                window.recaptchaVerifier.render().then((widgetId) => {
+                  window.grecaptcha.reset(widgetId);
+                });
               }
-            }
-          }
+            },
+          },
         );
       } catch (e) {
         console.error("❌ reCAPTCHA creation failed:", e);
@@ -125,179 +125,173 @@ const PROFILE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
     }
   }, [cooldown]);
 
-const handlePostLogin = async (token) => {
-  setShowPostLoginLoader(true);
-  setLoading(true);
+  const handlePostLogin = async (token) => {
+    setShowPostLoginLoader(true);
+    setLoading(true);
 
-  const failSafe = setTimeout(() => {
-    setShowPostLoginLoader(false);
-    setLoading(false);
-    toast.error("Network error occurred. Please try again.");
-  }, LOGIN_TIMEOUT_MS);
-
-  try {
-    // ⏳ allow browser to settle
-    await new Promise((r) => requestAnimationFrame(r));
-
-    const decoded = jwtDecode(token);
-    toast.dismiss();
-
-    const isWorkerPage = userRole === "worker";
-    const isApplicantAccount = decoded.accountType === "APPLICANT";
-
-    /* ======================================================
-       🔐 ROLE MISMATCH CHECK
-    ====================================================== */
-    if (
-      (isWorkerPage && !isApplicantAccount) ||
-      (!isWorkerPage && isApplicantAccount)
-    ) {
-      clearTimeout(failSafe);
-
-      dispatch(removeJwt());
-      localStorage.removeItem("token");
-      localStorage.removeItem(PROFILE_CACHE_KEY);
-
+    const failSafe = setTimeout(() => {
       setShowPostLoginLoader(false);
       setLoading(false);
+      toast.error("Network error occurred. Please try again.");
+    }, LOGIN_TIMEOUT_MS);
 
-      toast.error(
-        `This account is registered as a ${
-          isApplicantAccount ? "Worker" : "Employer"
-        }. Please switch roles.`,
-        { icon: <ShieldAlert className="text-red-500" /> }
-      );
-      return;
-    }
+    try {
+      // ⏳ allow browser to settle
+      await new Promise((r) => requestAnimationFrame(r));
 
-    /* ======================================================
+      const decoded = jwtDecode(token);
+      toast.dismiss();
+
+      const isWorkerPage = userRole === "worker";
+      const isApplicantAccount = decoded.accountType === "APPLICANT";
+
+      /* ======================================================
+       🔐 ROLE MISMATCH CHECK
+    ====================================================== */
+      if (
+        (isWorkerPage && !isApplicantAccount) ||
+        (!isWorkerPage && isApplicantAccount)
+      ) {
+        clearTimeout(failSafe);
+
+        dispatch(removeJwt());
+        localStorage.removeItem("token");
+        localStorage.removeItem(PROFILE_CACHE_KEY);
+
+        setShowPostLoginLoader(false);
+        setLoading(false);
+
+        toast.error(
+          `This account is registered as a ${
+            isApplicantAccount ? "Worker" : "Employer"
+          }. Please switch roles.`,
+          { icon: <ShieldAlert className="text-red-500" /> },
+        );
+        return;
+      }
+
+      /* ======================================================
        ✅ SAVE AUTH STATE
     ====================================================== */
-    localStorage.setItem("token", token);
-    dispatch(setJwt(token));
-    dispatch(setUser(decoded));
+      localStorage.setItem("token", token);
+      dispatch(setJwt(token));
+      dispatch(setUser(decoded));
 
-    /* ======================================================
+      /* ======================================================
        🚀 FAST PATH — REDUX
     ====================================================== */
-    const reduxProfile = store.getState().profile;
-
-    if (
-      reduxProfile?.id === decoded.profileId &&
-      reduxProfile?.completed === true
-    ) {
-      clearTimeout(failSafe);
-
-      navigate(
-        isApplicantAccount ? "/worker-profile" : "/employer-dashboard"
-      );
-      return;
-    }
-
-    /* ======================================================
-       🚀 FAST PATH — LOCAL CACHE
-    ====================================================== */
-    const cached = localStorage.getItem(PROFILE_CACHE_KEY);
-
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      const isExpired =
-        Date.now() - parsed.cachedAt > PROFILE_CACHE_TTL;
+      const reduxProfile = store.getState().profile;
 
       if (
-        !isExpired &&
-        parsed.id === decoded.profileId &&
-        parsed.completed === true
+        reduxProfile?.id === decoded.profileId &&
+        reduxProfile?.completed === true
       ) {
-        dispatch(setProfile(parsed));
         clearTimeout(failSafe);
 
         navigate(
-          isApplicantAccount ? "/worker-profile" : "/employer-dashboard"
+          isApplicantAccount ? "/worker-profile" : "/employer-dashboard",
         );
-
-        // background refresh (NON BLOCKING)
-        setTimeout(async () => {
-          try {
-            const fresh = await getProfile(decoded.profileId);
-            dispatch(setProfile(fresh));
-            localStorage.setItem(
-              PROFILE_CACHE_KEY,
-              JSON.stringify({ ...fresh, cachedAt: Date.now() })
-            );
-          } catch {
-            console.warn("⚠️ Background profile refresh failed");
-          }
-        }, 1500);
-
         return;
       }
-    }
 
-    /* ======================================================
+      /* ======================================================
+       🚀 FAST PATH — LOCAL CACHE
+    ====================================================== */
+      const cached = localStorage.getItem(PROFILE_CACHE_KEY);
+
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const isExpired = Date.now() - parsed.cachedAt > PROFILE_CACHE_TTL;
+
+        if (
+          !isExpired &&
+          parsed.id === decoded.profileId &&
+          parsed.completed === true
+        ) {
+          dispatch(setProfile(parsed));
+          clearTimeout(failSafe);
+
+          navigate(
+            isApplicantAccount ? "/worker-profile" : "/employer-dashboard",
+          );
+
+          // background refresh (NON BLOCKING)
+          setTimeout(async () => {
+            try {
+              const fresh = await getProfile(decoded.profileId);
+              dispatch(setProfile(fresh));
+              localStorage.setItem(
+                PROFILE_CACHE_KEY,
+                JSON.stringify({ ...fresh, cachedAt: Date.now() }),
+              );
+            } catch {
+              console.warn("⚠️ Background profile refresh failed");
+            }
+          }, 1500);
+
+          return;
+        }
+      }
+
+      /* ======================================================
        🟡 NO PROFILE → ONBOARDING
     ====================================================== */
-    if (!decoded.profileId) {
+      if (!decoded.profileId) {
+        clearTimeout(failSafe);
+
+        navigate(
+          isApplicantAccount ? "/worker-profile-setup" : "/company-onboarding",
+        );
+        return;
+      }
+
+      /* ======================================================
+       🚀 IMMEDIATE NAVIGATION (BEST UX)
+    ====================================================== */
       clearTimeout(failSafe);
 
       navigate(
-        isApplicantAccount
-          ? "/worker-profile-setup"
-          : "/company-onboarding"
+        decoded.accountType === "APPLICANT"
+          ? "/worker-dashboard"
+          : "/employer-dashboard",
       );
-      return;
-    }
 
-    /* ======================================================
-       🚀 IMMEDIATE NAVIGATION (BEST UX)
-    ====================================================== */
-    clearTimeout(failSafe);
-
-    navigate(
-      decoded.accountType === "APPLICANT"
-        ? "/worker-dashboard"
-        : "/employer-dashboard"
-    );
-
-    // background fetch (NON BLOCKING)
-    setTimeout(async () => {
-      try {
-        const profile = await getProfile(decoded.profileId);
-        dispatch(setProfile(profile));
-        localStorage.setItem(
-          PROFILE_CACHE_KEY,
-          JSON.stringify({ ...profile, cachedAt: Date.now() })
-        );
-
-        if (!profile.completed) {
-          navigate(
-            decoded.accountType === "APPLICANT"
-              ? "/worker-profile-setup"
-              : "/company-onboarding",
-            { replace: true }
+      // background fetch (NON BLOCKING)
+      setTimeout(async () => {
+        try {
+          const profile = await getProfile(decoded.profileId);
+          dispatch(setProfile(profile));
+          localStorage.setItem(
+            PROFILE_CACHE_KEY,
+            JSON.stringify({ ...profile, cachedAt: Date.now() }),
           );
+
+          if (!profile.completed) {
+            navigate(
+              decoded.accountType === "APPLICANT"
+                ? "/worker-profile-setup"
+                : "/company-onboarding",
+              { replace: true },
+            );
+          }
+        } catch {
+          console.warn("⚠️ Profile fetch failed (background)");
         }
-      } catch {
-        console.warn("⚠️ Profile fetch failed (background)");
+      }, 0);
+    } catch (err) {
+      clearTimeout(failSafe);
+
+      console.error("❌ Post-login failed", err);
+      setShowPostLoginLoader(false);
+      setLoading(false);
+
+      if (err.message === "LOGIN_TIMEOUT") {
+        toast.error("Network timeout. Please retry.");
+      } else {
+        toast.error("Login failed. Please try again.");
       }
-    }, 0);
-
-  } catch (err) {
-    clearTimeout(failSafe);
-
-    console.error("❌ Post-login failed", err);
-    setShowPostLoginLoader(false);
-    setLoading(false);
-
-    if (err.message === "LOGIN_TIMEOUT") {
-      toast.error("Network timeout. Please retry.");
-    } else {
-      toast.error("Login failed. Please try again.");
     }
-  }
-};
-
-
+  };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -308,14 +302,14 @@ const handlePostLogin = async (token) => {
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
       if (res?.data?.jwt) {
-await withTimeout(handlePostLogin(res.data.jwt));
+        await withTimeout(handlePostLogin(res.data.jwt));
       } else {
         setLoading(false);
       }
     } catch (err) {
       toast.error(err.message || "Google login failed");
-      setLoading(false); 
-    } 
+      setLoading(false);
+    }
   };
 
   const handleSendOtp = async () => {
@@ -329,10 +323,18 @@ await withTimeout(handlePostLogin(res.data.jwt));
 
     try {
       if (!window.recaptchaVerifier) {
-         window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
+        window.recaptchaVerifier = new RecaptchaVerifier(
+          auth,
+          "recaptcha-container",
+          { size: "invisible" },
+        );
       }
 
-      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        formattedPhone,
+        window.recaptchaVerifier,
+      );
       window.confirmationResult = confirmation;
       setShowOtpField(true);
       setCooldown(60);
@@ -348,14 +350,14 @@ await withTimeout(handlePostLogin(res.data.jwt));
         }
       }
 
-      if (err.code === 'auth/too-many-requests') {
+      if (err.code === "auth/too-many-requests") {
         setCooldown(60);
         toast.error("Too many attempts. Please wait a minute.");
       } else {
         toast.error("Failed to send OTP. Refresh and try again.");
       }
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   };
 
@@ -367,41 +369,42 @@ await withTimeout(handlePostLogin(res.data.jwt));
       const firebaseToken = await result.user.getIdToken();
       const res = await exchangeFirebaseToken(firebaseToken, userRole);
       if (res?.data?.jwt) {
-await withTimeout(handlePostLogin(res.data.jwt));
+        await withTimeout(handlePostLogin(res.data.jwt));
       } else {
         setLoading(false);
       }
     } catch (err) {
       console.error(err);
       toast.error("Invalid OTP");
-      setLoading(false); 
+      setLoading(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       dispatch(clearProfile());
       dispatch(removeJwt());
-      const res = await loginWithEmail({
-        loginType: "EMAIL",
-        email: formData.email,
-        password: formData.password,
-        role: userRole.toUpperCase(),
-      });
-      if (res?.data?.jwt) {
-await withTimeout(handlePostLogin(res.data.jwt));
-      } else {
-        setLoading(false);
-      }
-    } catch (err) {
-  if (!localStorage.getItem("token")) {
-    toast.error("Invalid email or password");
-  }
-  setLoading(false);
-}
 
+      const res = await withTimeout(
+        loginWithEmail({
+          email: formData.email,
+          password: formData.password,
+        }),
+      );
+
+      await handlePostLogin(res.data.jwt);
+    } catch (err) {
+      setLoading(false);
+
+      if (err.message === "LOGIN_TIMEOUT") {
+        toast.error("Login timed out. Check your internet.");
+      } else {
+        toast.error("Invalid email or password");
+      }
+    }
   };
 
   const handleRoleSwitch = () => {
@@ -419,8 +422,8 @@ await withTimeout(handlePostLogin(res.data.jwt));
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 py-8 overflow-hidden relative">
       <Toaster position="top-center" containerStyle={{ zIndex: 99999 }} />
-      
-{loading && <Preloader />}
+
+      {loading && <Preloader />}
 
       <style>
         {`
@@ -437,32 +440,48 @@ await withTimeout(handlePostLogin(res.data.jwt));
         `}
       </style>
 
-      <div className={`absolute top-[-10%] right-[-5%] w-96 h-96 rounded-full blur-[100px] transition-colors duration-1000 ${userRole === "worker" ? "bg-blue-200" : "bg-teal-200"}`} />
-      <div className={`absolute bottom-[-10%] left-[-5%] w-96 h-96 rounded-full blur-[100px] transition-colors duration-1000 ${userRole === "worker" ? "bg-indigo-100" : "bg-cyan-100"}`} />
+      <div
+        className={`absolute top-[-10%] right-[-5%] w-96 h-96 rounded-full blur-[100px] transition-colors duration-1000 ${userRole === "worker" ? "bg-blue-200" : "bg-teal-200"}`}
+      />
+      <div
+        className={`absolute bottom-[-10%] left-[-5%] w-96 h-96 rounded-full blur-[100px] transition-colors duration-1000 ${userRole === "worker" ? "bg-indigo-100" : "bg-cyan-100"}`}
+      />
 
       <div className="w-full max-w-md relative z-10">
-        <div className={`
+        <div
+          className={`
           bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white 
           ${isAnimating ? "animate-flip-out" : ""}
           ${isSettling ? "animate-flip-in" : ""}
-        `}>
-          
+        `}
+        >
           <div className="flex flex-col items-center mb-6">
-            <div className={`
+            <div
+              className={`
               relative w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl transition-all duration-700
               bg-gradient-to-br ${userRole === "worker" ? "from-blue-600 to-indigo-600 shadow-blue-200" : "from-teal-500 to-cyan-600 shadow-teal-200"}
-            `}>
-              {userRole === "worker" ? <Hammer size={38} color="#fff" /> : <Building2 size={38} color="#fff" />}
+            `}
+            >
+              {userRole === "worker" ? (
+                <Hammer size={38} color="#fff" />
+              ) : (
+                <Building2 size={38} color="#fff" />
+              )}
             </div>
 
             <h1 className="text-3xl font-black text-slate-800 mt-5 tracking-tight">
               Welcome Back
             </h1>
             <p className="text-slate-500 text-sm font-medium mt-1">
-              Sign in as <span className={`font-bold capitalize ${userRole === "worker" ? "text-blue-600" : "text-teal-600"}`}>{userRole}</span>
+              Sign in as{" "}
+              <span
+                className={`font-bold capitalize ${userRole === "worker" ? "text-blue-600" : "text-teal-600"}`}
+              >
+                {userRole}
+              </span>
             </p>
           </div>
-
+          {/* 
           <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-100 flex items-start gap-3 animate-pulse">
             <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={20} />
             <div>
@@ -470,14 +489,40 @@ await withTimeout(handlePostLogin(res.data.jwt));
               <p className="text-[11px] text-red-600 font-medium mt-1">
 For the fastest and most reliable experience, we recommend using <span className="font-bold">Google mail Login</span>.              </p>
             </div>
-          </div>
+          </div> */}
 
-          <form onSubmit={loginMethod === "email" ? handleSubmit : (e) => e.preventDefault()} className="space-y-4">
+          <form
+            onSubmit={
+              loginMethod === "email" ? handleSubmit : (e) => e.preventDefault()
+            }
+            className="space-y-4"
+          >
             {loginMethod === "email" ? (
               <>
-                <Input label="Email Address" type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
-                <Input label="Password" type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} required />
-                <Button type="submit" fullWidth loading={loading} className={`py-3 shadow-xl ${userRole === "worker" ? "shadow-blue-100" : "shadow-teal-100"}`}>
+                <Input
+                  label="Email Address"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  required
+                />
+                <Input
+                  label="Password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  required
+                />
+                <Button
+                  type="submit"
+                  fullWidth
+                  loading={loading}
+                  className={`py-3 shadow-xl ${userRole === "worker" ? "shadow-blue-100" : "shadow-teal-100"}`}
+                >
                   Sign In
                 </Button>
               </>
@@ -486,12 +531,20 @@ For the fastest and most reliable experience, we recommend using <span className
                 {!showOtpField ? (
                   <>
                     <div className="relative">
-                      <span className="absolute left-4 top-[38px] text-gray-500 font-bold z-10 text-sm">+91</span>
-                      <Input label="Phone Number" placeholder="9876543210" value={phoneNumber} style={{ paddingLeft: "48px" }} onChange={(e) => setPhoneNumber(e.target.value)} />
+                      <span className="absolute left-4 top-[38px] text-gray-500 font-bold z-10 text-sm">
+                        +91
+                      </span>
+                      <Input
+                        label="Phone Number"
+                        placeholder="9876543210"
+                        value={phoneNumber}
+                        style={{ paddingLeft: "48px" }}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                      />
                     </div>
-                    <Button 
-                      fullWidth 
-                      onClick={handleSendOtp} 
+                    <Button
+                      fullWidth
+                      onClick={handleSendOtp}
                       loading={loading}
                       disabled={cooldown > 0 || loading}
                     >
@@ -500,55 +553,134 @@ For the fastest and most reliable experience, we recommend using <span className
                   </>
                 ) : (
                   <>
-                    <Input label="Enter OTP" value={otp} onChange={(e) => setOtp(e.target.value)} className="text-center tracking-[0.5em] font-black text-xl" />
-                    <Button fullWidth onClick={handleVerifyOtp} loading={loading}>Verify & Login</Button>
-                    <button type="button" className="text-xs text-blue-600 w-full text-center font-bold" onClick={() => setShowOtpField(false)}>Change Number</button>
+                    <Input
+                      label="Enter OTP"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      className="text-center tracking-[0.5em] font-black text-xl"
+                    />
+                    <Button
+                      fullWidth
+                      onClick={handleVerifyOtp}
+                      loading={loading}
+                    >
+                      Verify & Login
+                    </Button>
+                    <button
+                      type="button"
+                      className="text-xs text-blue-600 w-full text-center font-bold"
+                      onClick={() => setShowOtpField(false)}
+                    >
+                      Change Number
+                    </button>
                   </>
                 )}
               </div>
             )}
 
             <div className="flex flex-col items-center space-y-3">
-              <button type="button" className="text-sm text-slate-400 hover:text-blue-600 font-semibold" onClick={() => setIsResetModalOpen(true)}>Forgot Password?</button>
+              <button
+                type="button"
+                className="text-sm text-slate-400 hover:text-blue-600 font-semibold"
+                onClick={() => setIsResetModalOpen(true)}
+              >
+                Forgot Password?
+              </button>
               <p className="text-xs text-slate-500 font-medium">
                 Don't have an account?{" "}
-                <button type="button" onClick={() => navigate(userRole === "worker" ? "/worker-signup" : "/employer-signup")} className={`font-black hover:underline ${userRole === "worker" ? "text-blue-600" : "text-teal-600"}`}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      userRole === "worker"
+                        ? "/worker-signup"
+                        : "/employer-signup",
+                    )
+                  }
+                  className={`font-black hover:underline ${userRole === "worker" ? "text-blue-600" : "text-teal-600"}`}
+                >
                   Sign up as {userRole}
                 </button>
               </p>
             </div>
 
             <div className="relative py-4">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100" /></div>
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-100" />
+              </div>
               <div className="relative flex justify-center text-[10px] uppercase">
-                <span className="bg-white/80 px-4 text-slate-400 font-black tracking-widest">Or continue with</span>
+                <span className="bg-white/80 px-4 text-slate-400 font-black tracking-widest">
+                  Or continue with
+                </span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Button type="button" variant="outline" fullWidth onClick={handleGoogleLogin} disabled={loading} className="h-11 border-red-100 hover:bg-red-50">
-                <Chrome size={18} className="text-red-500 mr-2" /> <span className="text-xs font-bold text-slate-700">Google</span>
+              <Button
+                type="button"
+                variant="outline"
+                fullWidth
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="h-11 border-red-100 hover:bg-red-50"
+              >
+                <Chrome size={18} className="text-red-500 mr-2" />{" "}
+                <span className="text-xs font-bold text-slate-700">Google</span>
               </Button>
-              <Button type="button" variant="outline" fullWidth onClick={() => { setLoginMethod(loginMethod === "email" ? "phone" : "email"); setShowOtpField(false); }} className="h-11">
-                {loginMethod === "email" ? <Phone size={18} className="text-blue-500 mr-2" /> : <Mail size={18} className="text-blue-500 mr-2" />}
-                <span className="text-xs font-bold">{loginMethod === "email" ? "Phone" : "Email"}</span>
+              <Button
+                type="button"
+                variant="outline"
+                fullWidth
+                onClick={() => {
+                  setLoginMethod(loginMethod === "email" ? "phone" : "email");
+                  setShowOtpField(false);
+                }}
+                className="h-11"
+              >
+                {loginMethod === "email" ? (
+                  <Phone size={18} className="text-blue-500 mr-2" />
+                ) : (
+                  <Mail size={18} className="text-blue-500 mr-2" />
+                )}
+                <span className="text-xs font-bold">
+                  {loginMethod === "email" ? "Phone" : "Email"}
+                </span>
               </Button>
             </div>
 
             <div className="pt-2">
-              <button type="button" onClick={handleRoleSwitch} disabled={isAnimating} className="w-full group flex items-center justify-center gap-3 p-3 rounded-2xl border-2 border-dashed border-slate-200 hover:border-blue-400 transition-all">
-                <div className={`p-1.5 rounded-xl ${userRole === "worker" ? "bg-teal-50 text-teal-600" : "bg-blue-50 text-blue-600"}`}>
-                   {userRole === "worker" ? <Building2 size={18} /> : <Hammer size={18} />}
+              <button
+                type="button"
+                onClick={handleRoleSwitch}
+                disabled={isAnimating}
+                className="w-full group flex items-center justify-center gap-3 p-3 rounded-2xl border-2 border-dashed border-slate-200 hover:border-blue-400 transition-all"
+              >
+                <div
+                  className={`p-1.5 rounded-xl ${userRole === "worker" ? "bg-teal-50 text-teal-600" : "bg-blue-50 text-blue-600"}`}
+                >
+                  {userRole === "worker" ? (
+                    <Building2 size={18} />
+                  ) : (
+                    <Hammer size={18} />
+                  )}
                 </div>
-                <span className="font-bold text-xs text-slate-600">Switch to {userRole === "worker" ? "Employer" : "Worker"}</span>
-                <ArrowRight size={14} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
+                <span className="font-bold text-xs text-slate-600">
+                  Switch to {userRole === "worker" ? "Employer" : "Worker"}
+                </span>
+                <ArrowRight
+                  size={14}
+                  className="text-slate-300 group-hover:translate-x-1 transition-transform"
+                />
               </button>
             </div>
           </form>
         </div>
       </div>
-      
-      <ResetPassword opened={isResetModalOpen} close={() => setIsResetModalOpen(false)} />
+
+      <ResetPassword
+        opened={isResetModalOpen}
+        close={() => setIsResetModalOpen(false)}
+      />
       <div id="recaptcha-container"></div>
     </div>
   );
