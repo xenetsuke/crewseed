@@ -154,7 +154,7 @@ const FAQSection = () => {
                 <div className="text-center mt-8">
                   <button
                     onClick={() => setShowAll(!showAll)}
-                    className="group inline-flex items-center gap-2 text-[#38b6ff] font-bold hover:text-white transition-colors"
+                    className="group inline-flex items-center gap-2 text-[#0000] font-bold hover:text-white transition-colors"
                   >
                     {showAll ? "Show Less" : `View All ${filteredFAQs.length} Questions`}
                     <Icon 
@@ -174,7 +174,6 @@ const FAQSection = () => {
           )}
         </div>
 
-        {/* Support CTA */}
         <div className="mt-16 text-center">
           <div className="bg-white/5 rounded-3xl p-8 border border-white/10 backdrop-blur-md">
             <Icon
@@ -191,7 +190,7 @@ const FAQSection = () => {
             </p>
 
             <a
-              href="mailto:support@crewseed.com"
+              href="mailto:contact@crewseed.com"
               className="inline-flex items-center gap-2 px-8 py-3 
               bg-[#d1ec44] text-slate-900 font-bold rounded-full 
               hover:scale-105 active:scale-95 transition-all shadow-lg shadow-[#d1ec44]/20"
