@@ -174,7 +174,6 @@ const FAQSection = () => {
           )}
         </div>
 
-        {/* Support CTA */}
         <div className="mt-16 text-center">
           <div className="bg-white/5 rounded-3xl p-8 border border-white/10 backdrop-blur-md">
             <Icon
