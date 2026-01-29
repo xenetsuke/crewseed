@@ -632,7 +632,7 @@ export default function Landing() {
           </svg>
         </button> */}
               <motion.a
-                href="https://www.crewseed.com/signup" // Updated to signup path
+                href="https://www.crewseed.com/login" // Updated to signup path
                 target="_blank"
                 rel="noopener noreferrer"
                 initial={{ opacity: 0, y: 20 }}
