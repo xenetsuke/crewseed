@@ -34,9 +34,12 @@ const handleEditClick = async () => {
     }, 600);
   };
 
-  
+const hasData =
+  worker &&
+  Array.isArray(worker.attendance) &&
+  worker.attendance.length > 0;
   // Skeleton Loading State
-  if (isLoading || !worker) {
+if (!hasData && isLoading) {
     return (
       <div className="bg-white border border-slate-100 rounded-2xl p-6 mb-4 animate-pulse">
         <div className="flex items-center justify-between mb-6">
