@@ -149,10 +149,10 @@ const AttendanceHistory = ({ attendance = [] }) => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <div className="text-right">
+                        {/* <div className="text-right">
                         <span className="block text-[10px] font-black text-slate-400 uppercase">Net Pay</span>
                         <span className="text-sm font-black text-slate-700">₹{payroll.netPayable?.toLocaleString("en-IN")}</span>
-                        </div>
+                        </div> */}
                         <ChevronDown size={18} className={cn("text-slate-400 transition-transform duration-300", isExpanded && "rotate-180 text-blue-600")} />
                     </div>
                     </div>

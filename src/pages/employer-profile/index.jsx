@@ -25,7 +25,6 @@ import { setProfile, clearProfile } from "../../features/ProfileSlice";
 import { removeUser, setUser } from "../../features/UserSlice"; 
 import { removeJwt } from "../../features/JwtSlice";
 import { persistor } from "../../Store";
-// REPLACED: import { notifications } from "@mantine/notifications";
 import toast, { Toaster } from "react-hot-toast"; 
 import { saveVerifiedPhone } from "../../Services/UserService";
 import { getRecaptcha, auth } from "../../firebase/firebase";
@@ -109,7 +108,8 @@ const EmployerProfile = () => {
     loadProfile();
   }, [user?.id, dispatch]);
 
-  useEffect(() => {
+  // Sync internal state with Redux profile
+  const syncFields = () => {
     if (profile) {
       setCompanyInfo({
         companyName: profile.companyName || "",
@@ -123,6 +123,10 @@ const EmployerProfile = () => {
       });
       setUserName(user.name || "");
     }
+  };
+
+  useEffect(() => {
+    syncFields();
   }, [profile, user.name, user.phoneNumber]);
 
   /** 📌 Phone Verification Handlers */
@@ -167,7 +171,6 @@ const EmployerProfile = () => {
       const res = await getProfile(user.id);
       dispatch(setProfile(res));
 
-      // MODERN CUSTOM POPUP
       toast.custom((t) => (
         <div
           className={`${
@@ -277,7 +280,6 @@ const EmployerProfile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Toast Container */}
       <Toaster position="top-right" reverseOrder={false} />
 
       <EmployerSidebar
@@ -355,7 +357,29 @@ const EmployerProfile = () => {
           <div className="animate-fade-in">
             {activeTab === "personal" && (
               <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
-                <h2 className="text-lg md:text-xl font-semibold mb-4">Personal Information</h2>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                  <h2 className="text-lg md:text-xl font-semibold">Personal Information</h2>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    {isEditingUser && (
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => {
+                          setIsEditingUser(false);
+                          syncFields();
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                    <Button
+                      variant={isEditingUser ? "default" : "outline"}
+                      onClick={() => (isEditingUser ? setIsEditingUser(false) : setIsEditingUser(true))}
+                      className="flex-1 sm:flex-none"
+                    >
+                      {isEditingUser ? "Save Changes" : "Edit Details"}
+                    </Button>
+                  </div>
+                </div>
                 <div className="w-full md:max-w-md">
                   <Input
                     label="Account Holder Name"
@@ -372,14 +396,27 @@ const EmployerProfile = () => {
               <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                   <h2 className="text-lg md:text-xl font-semibold">Account Details</h2>
-                  <Button
-                    variant={isEditingCompany ? "default" : "outline"}
-                    onClick={() => (isEditingCompany ? handleSaveCompanyInfo() : setIsEditingCompany(true))}
-                    className="w-full sm:w-auto"
-                    disabled={isEditingCompany && isPhoneChanged}
-                  >
-                    {isEditingCompany ? "Save Changes" : "Edit Details"}
-                  </Button>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    {isEditingCompany && (
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => {
+                          setIsEditingCompany(false);
+                          syncFields();
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                    <Button
+                      variant={isEditingCompany ? "default" : "outline"}
+                      onClick={() => (isEditingCompany ? handleSaveCompanyInfo() : setIsEditingCompany(true))}
+                      className="flex-1 sm:flex-none"
+                      disabled={isEditingCompany && isPhoneChanged}
+                    >
+                      {isEditingCompany ? "Save Changes" : "Edit Details"}
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -425,7 +462,6 @@ const EmployerProfile = () => {
                     icon={<Mail className="w-4 h-4 text-gray-400" />}
                   />
                   
-                  {/* Phone Section with OTP Integration */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-muted-foreground">Mobile Number</label>
                     <div className="flex items-end gap-2">
@@ -463,7 +499,8 @@ const EmployerProfile = () => {
                     </div>
                     {isEditingCompany && isPhoneChanged && (
                       <p className="text-[11px] text-blue-600 font-medium flex items-center gap-1">
-                        <Info size={12} /> Click "{hasExistingPhone ? "Change Number" : "Link Number"}" to verify via OTP.
+                        <span className="flex items-center justify-center w-3 h-3 bg-blue-100 text-blue-600 rounded-full text-[8px]"><Info size={10} /></span> 
+                        Click "{hasExistingPhone ? "Change Number" : "Link Number"}" to verify via OTP.
                       </p>
                     )}
                   </div>
