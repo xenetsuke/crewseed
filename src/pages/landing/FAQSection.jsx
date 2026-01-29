@@ -154,7 +154,7 @@ const FAQSection = () => {
                 <div className="text-center mt-8">
                   <button
                     onClick={() => setShowAll(!showAll)}
-                    className="group inline-flex items-center gap-2 text-[#0000] font-bold hover:text-white transition-colors"
+                    className="group inline-flex items-center gap-2 text-black font-bold hover:text-white transition-colors"
                   >
                     {showAll ? "Show Less" : `View All ${filteredFAQs.length} Questions`}
                     <Icon 
