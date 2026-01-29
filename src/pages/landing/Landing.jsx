@@ -197,7 +197,7 @@ export default function Landing() {
                 <h1 className="text-6xl md:text-8xl lg:text-9xl font-black leading-[0.85] tracking-tighter text-white mb-6">
                   Control
                   <br />
-                  Blue-Collar
+                  & Build
                   <br />
                   <span className="bg-gradient-to-r from-[#38b6ff] via-[#d1ec44] to-[#38b6ff] bg-clip-text text-transparent gradient-text-animate">
                     Workforce.
