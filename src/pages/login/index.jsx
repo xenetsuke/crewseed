@@ -396,15 +396,28 @@ const Login = () => {
       );
 
       await handlePostLogin(res.data.jwt);
-    } catch (err) {
-      setLoading(false);
+    } 
+ catch (err) {
+  setLoading(false);
 
-      if (err.message === "LOGIN_TIMEOUT") {
-        toast.error("Login timed out. Check your internet & Retry.");
-      } else {
-        toast.error("Invalid email or password");
-      }
-    }
+  if (err.message === "LOGIN_TIMEOUT") {
+    toast.error("Login timed out. Please check your internet.");
+    return;
+  }
+
+  if (err.response?.status === 401) {
+    toast.error("Invalid email or password");
+    return;
+  }
+
+  if (err.response?.status === 403) {
+    toast.error("Account not authorized for this role");
+    return;
+  }
+
+  toast.error("Login failed. Please try again.");
+}
+
   };
 
   const handleRoleSwitch = () => {

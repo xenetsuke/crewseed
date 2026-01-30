@@ -1,6 +1,6 @@
 import axiosClient from "../Interceptor/AxiosInterceptor";
 
-const LOGIN_API_TIMEOUT = 8000; // 8 seconds
+const LOGIN_API_TIMEOUT = 9000; // 9 seconds
 
 
 export const loginWithEmail = async ({ email, password }) => {
