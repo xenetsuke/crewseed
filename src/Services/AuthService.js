@@ -1,4 +1,4 @@
-import axiosClient from "../Interceptor/AxiosInterceptor";
+import axiosInstance from "../Interceptor/AxiosInterceptor";
 
 const LOGIN_API_TIMEOUT = 9000;
 
@@ -9,7 +9,7 @@ const LOGIN_API_TIMEOUT = 9000;
  */
 export const loginWithEmail = async ({ email, password }) => {
   try {
-    const res = await axiosClient.post(
+    const res = await axiosInstance.post(
       "/auth/login",
       {
         loginType: "EMAIL",
@@ -36,7 +36,7 @@ export const loginWithEmail = async ({ email, password }) => {
  * Uses HttpOnly cookie automatically
  */
 export const refreshAccessToken = async () => {
-  const res = await axiosClient.post(
+  const res = await axiosInstance.post(
     "/auth/refresh",
     {},
     { withCredentials: true }
@@ -49,7 +49,7 @@ export const refreshAccessToken = async () => {
  * Clears refresh cookie on backend
  */
 export const logout = async () => {
-  await axiosClient.post(
+  await axiosInstance.post(
     "/auth/logout",
     {},
     { withCredentials: true }
@@ -58,7 +58,7 @@ export const logout = async () => {
 
   export const bootstrapAuth = () => async (dispatch) => {
   try {
-    const res = await axiosClient.post("/auth/refresh");
+    const res = await axiosInstance.post("/auth/refresh");
     dispatch(setJwt(res.data.accessToken));
   } catch {
     dispatch(removeJwt());
