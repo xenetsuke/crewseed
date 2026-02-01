@@ -1,39 +1,25 @@
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 
-/*
-  ProtectedRoute
-  ----------------
-  - Checks if JWT token exists (Redux)
-  - Optionally checks allowedRoles
-  - Redirects accordingly
-*/
-
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  // JWT stored in Redux (set during login)
-  const token = useSelector((state) => state.jwt);
+  const token = useSelector((s) => s.jwt);
+  const user = useSelector((s) => s.user);
+  const authReady = useSelector((s) => s.auth.ready);
 
-  // Account type stored in localStorage after login
-  // Example: APPLICANT / EMPLOYER
-  const accountType = localStorage.getItem("accountType") || "";
+  if (!authReady) return null;
 
-  /* =========================
-     Not Logged In
-  ========================= */
-  if (!token) {
+  if (!token || !user?.id) {
     return <Navigate to="/login" replace />;
   }
 
-  /* =========================
-     Role-Based Access Control
-  ========================= */
-  if (allowedRoles && !allowedRoles.includes(accountType)) {
+  if (
+    allowedRoles &&
+    user.accountType &&
+    !allowedRoles.includes(user.accountType)
+  ) {
     return <Navigate to="/unauthorized" replace />;
   }
 
-  /* =========================
-     Authorized
-  ========================= */
   return children;
 };
 

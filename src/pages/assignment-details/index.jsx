@@ -56,7 +56,7 @@ const AssignmentDetails = () => {
             assignmentId: a.assignmentId,
               jobId: a.jobId,
               workerId: a.workerId,
-               basePay : Number(a?.payroll?.basePay || 0),
+               BasePay : Number(a?.payroll?.basePay || 0),
               jobTitle: snapshot.jobTitle || "Archived Job",
               companyName: snapshot.companyName || "Company",
               managerName: snapshot.managerName || "Manager",

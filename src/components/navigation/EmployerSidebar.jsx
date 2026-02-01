@@ -134,7 +134,7 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
             <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#d1ec44] scale-y-0 group-hover:scale-y-100 transition-transform duration-300" />
             
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 text-slate-400 group-hover:bg-gradient-to-tr from-[#38b6ff]/20 to-[#d1ec44]/20 group-hover:text-slate-600 transition-all duration-300 shadow-sm">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#38b6ff]/20 to-[#d1ec44]/20 flex items-center justify-center flex-shrink-0 text-slate-400 group-hover:bg-gradient-to-tr from-[#38b6ff]/20 to-[#d1ec44]/20 group-hover:text-slate-600 transition-all duration-300 shadow-sm">
                 <Icon name="Building2" size={18} />
               </div>
 
