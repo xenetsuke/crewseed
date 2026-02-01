@@ -134,6 +134,7 @@ const AttendanceHistory = ({ attendance = [] }) => {
                             a.status === "APPROVED" && "bg-emerald-100 text-emerald-700",
                             a.status === "HALF_DAY" && "bg-indigo-100 text-indigo-700",
                             a.status === "REJECTED" && "bg-rose-100 text-rose-700",
+                            a.status === "AUTO_MARKED_ABSENT" && "bg-rose-100 text-rose-700",
                             a.status === "PENDING" && "bg-amber-100 text-amber-700",
                             a.status === "NOT_STARTED" && "bg-slate-100 text-slate-500"
                         )}>

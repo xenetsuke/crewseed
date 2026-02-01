@@ -240,20 +240,29 @@ const EmployerProfile = () => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      dispatch(removeUser());
-      dispatch(clearProfile());
-      dispatch(removeJwt());
-      await persistor.purge();
-      localStorage.clear();
-      sessionStorage.clear();
-      window.location.replace("/login");
-    } catch (err) {
-      console.error("Logout failed:", err);
-      window.location.href = "/login";
-    }
-  };
+const handleLogout = async () => {
+  try {
+    // 🚫 block auto-refresh BEFORE anything else
+    sessionStorage.setItem("crewseed_logged_out", "true");
+
+    // 🔴 revoke refresh token (best effort)
+    await logout();
+  } catch (err) {
+    console.warn("Backend logout failed, continuing anyway");
+  } finally {
+    dispatch(removeUser());
+    dispatch(clearProfile());
+    dispatch(removeJwt());
+
+    await persistor.purge();
+    localStorage.clear();
+
+    // 🔁 HARD redirect
+    window.location.replace("/login");
+  }
+};
+
+
 
   const handleCompanyLogoUpload = async (e) => {
     const file = e?.target?.files?.[0];

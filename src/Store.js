@@ -5,32 +5,27 @@ import storage from "redux-persist/lib/storage";
 import userReducer from "./features/UserSlice";
 import profileReducer from "./features/ProfileSlice";
 import jwtReducer from "./features/JwtSlice";
+import authReducer from "./features/AuthSlice";
 
-/* 1️⃣ Combine reducers */
 const rootReducer = combineReducers({
   user: userReducer,
   profile: profileReducer,
   jwt: jwtReducer,
+  auth: authReducer, // 🔥 NEW
 });
 
-/* 2️⃣ Persist config */
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["user", "profile", "jwt"], // only persist important data
+  whitelist: ["user", "profile", "jwt"], // ❌ DO NOT persist auth.ready
 };
 
-/* 3️⃣ Persisted reducer */
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
-/* 4️⃣ Configure store */
 export const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: false, // REQUIRED for redux-persist
-    }),
+    getDefaultMiddleware({ serializableCheck: false }),
 });
 
-/* 5️⃣ Persistor */
 export const persistor = persistStore(store);

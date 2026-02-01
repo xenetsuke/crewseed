@@ -13,9 +13,14 @@ const getStatusClasses = (status) => {
     case "HALF_DAY":
       return "bg-amber-500 text-white border-amber-600";
 
-    case "REJECTED":
+    case "REJECTED" :
+    case  "AUTO_MARKED_ABSENT":
     case "ABSENT":
       return "bg-rose-500 text-white border-rose-600";
+
+    // case "AUTO_MARKED_ABSENT":
+    // case "ABSENT":
+    //   return "bg-rose-500 text-white border-rose-600";
 
     case "PENDING":
     case "PENDING_VERIFICATION":
@@ -65,7 +70,7 @@ const AttendanceCalendar = ({ attendance = [] }) => {
           const status = record?.status || (day > today.getDate() ? "UPCOMING" : "NOT_STARTED");
 
           // ✅ NEW: Extract Net Pay from HR Payroll Object
-          const netPay = Number(record?.payroll?.netPayable || 0);
+          // const netPay = Number(record?.payroll?.netPayable || 0);
 
           return (
             <div

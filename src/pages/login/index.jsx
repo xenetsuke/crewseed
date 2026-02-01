@@ -128,6 +128,8 @@ const Login = () => {
   const handlePostLogin = async (token) => {
     setShowPostLoginLoader(true);
     setLoading(true);
+  sessionStorage.removeItem("crewseed_logged_out");
+sessionStorage.setItem("auth_provider", "FIREBASE");
 
     const failSafe = setTimeout(() => {
       setShowPostLoginLoader(false);
@@ -173,7 +175,7 @@ const Login = () => {
       /* ======================================================
        ✅ SAVE AUTH STATE
     ====================================================== */
-      localStorage.setItem("token", token);
+      // localStorage.setItem("token", token);
       dispatch(setJwt(token));
       dispatch(setUser(decoded));
 
@@ -395,7 +397,7 @@ const Login = () => {
         }),
       );
 
-      await handlePostLogin(res.data.jwt);
+await handlePostLogin(res.accessToken);
     } 
  catch (err) {
   setLoading(false);

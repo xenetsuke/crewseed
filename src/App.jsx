@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Routes from "./Routes";
-import { Provider, useSelector } from "react-redux";
+import { Provider, useDispatch, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from "./Store";
 
@@ -12,7 +12,9 @@ import { Toaster } from "react-hot-toast";
 
 import Preloader from "./components/Preloader";
 import AppSkeleton from "./components/AppSkeleton";
-import "./i18n"; // 🔥 VERY IMPORTANT
+import "./i18n";
+
+import { bootstrapAuth } from "./Services/AuthBootstrap";
 
 /* ✅ React Query Client */
 const queryClient = new QueryClient({
@@ -25,45 +27,34 @@ const queryClient = new QueryClient({
   },
 });
 
+/* =====================================================
+   🔐 AUTH BOOTSTRAP WRAPPER
+===================================================== */
 function AppContent() {
-  const token = useSelector((state) => state.jwt.token);
-  const profile = useSelector((state) => state.profile);
-  const [ready, setReady] = useState(false);
+  const dispatch = useDispatch();
+  const authReady = useSelector((state) => state.auth.ready);
 
   useEffect(() => {
-    // 🔓 Logged out → ready immediately
-    if (!token) {
-      setReady(true);
-      return;
-    }
+    bootstrapAuth(dispatch);
+  }, [dispatch]);
 
-    // 🔐 Logged in → wait for profile
-    if (profile && profile.id) {
-      setReady(true);
-    }
-  }, [token, profile]);
-
-  if (!ready) {
+  if (!authReady) {
     return <AppSkeleton />;
   }
 
   return <Routes />;
 }
-// 🔒 GLOBAL TAB-LEVEL PRELOADER FLAG (RUNS ONCE PER TAB)
+
+/* =====================================================
+   🔒 TAB-LEVEL PRELOADER (UNCHANGED)
+===================================================== */
 const SHOULD_SHOW_PRELOADER = (() => {
   try {
     const nav = performance.getEntriesByType("navigation")[0];
-    const isReload = nav?.type === "reload";
+    if (nav?.type === "reload") return false;
 
-    // ❌ Never show on refresh
-    if (isReload) return false;
+    if (sessionStorage.getItem("crewseed_preloader_shown")) return false;
 
-    // ❌ Already shown in this tab
-    if (sessionStorage.getItem("crewseed_preloader_shown")) {
-      return false;
-    }
-
-    // ✅ First open in this tab
     sessionStorage.setItem("crewseed_preloader_shown", "true");
     return true;
   } catch {
@@ -76,17 +67,11 @@ function App() {
 
   useEffect(() => {
     if (!showPreloader) return;
-
-    const timer = setTimeout(() => {
-      setShowPreloader(false);
-    }, 7500); // ⏱️ GIF duration
-
+    const timer = setTimeout(() => setShowPreloader(false), 7500);
     return () => clearTimeout(timer);
   }, [showPreloader]);
 
-  if (showPreloader) {
-    return <Preloader />;
-  }
+  if (showPreloader) return <Preloader />;
 
   return (
     <QueryClientProvider client={queryClient}>
