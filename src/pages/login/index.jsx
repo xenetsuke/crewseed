@@ -296,6 +296,8 @@ sessionStorage.setItem("auth_provider", "FIREBASE");
   };
 
   const handleGoogleLogin = async () => {
+    sessionStorage.setItem("auth_provider", "FIREBASE");
+
     setLoading(true);
     try {
       dispatch(clearProfile());
@@ -364,6 +366,8 @@ sessionStorage.setItem("auth_provider", "FIREBASE");
   };
 
   const handleVerifyOtp = async () => {
+    sessionStorage.setItem("auth_provider", "FIREBASE");
+
     if (!otp) return toast.error("Enter OTP");
     setLoading(true);
     try {
@@ -383,6 +387,9 @@ sessionStorage.setItem("auth_provider", "FIREBASE");
   };
 
   const handleSubmit = async (e) => {
+    sessionStorage.setItem("auth_provider", "PASSWORD");
+sessionStorage.setItem("auth_provider", "FIREBASE");
+
     e.preventDefault();
     setLoading(true);
 
