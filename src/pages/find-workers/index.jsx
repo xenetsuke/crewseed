@@ -35,15 +35,21 @@ const FindWorkers = () => {
   /* =========================================================
       FETCH ALL WORKER PROFILES (REACT QUERY CACHING)
   ========================================================= */
-  const { data: allWorkers = [], isLoading: loading } = useQuery({
-    queryKey: ["workerProfiles"],
-    queryFn: async () => {
-      const res = await getAllProfiles();
-      return (res || []).filter((p) => p.accountType === "APPLICANT");
-    },
-    staleTime: 1000 * 60 * 5, // ✅ Cache data for 5 minutes
-    enabled: !!user?.id, // Only fetch if user exists
-  });
+const {
+  data: allWorkers = [],
+  isLoading,
+  isFetching,
+} = useQuery({
+  queryKey: ["workerProfiles"],
+  queryFn: async () => {
+    const res = await getAllProfiles();
+    return Array.isArray(res)
+      ? res.filter((p) => p.accountType === "APPLICANT")
+      : [];
+  },
+  staleTime: 1000 * 60 * 5,
+  enabled: !!user?.id,
+});
 
   /* =========================================================
       FETCH CURRENT USER (EMPLOYER) PROFILE
@@ -150,7 +156,7 @@ const FindWorkers = () => {
             </div>
           </div>
 
-          {loading ? (
+{isLoading || isFetching ? (
             <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
                <div className="bg-white p-10 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col items-center relative overflow-hidden">
                 {/* Shimmer Effect */}
