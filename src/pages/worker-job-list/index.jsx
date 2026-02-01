@@ -41,31 +41,45 @@ function WorkerJobList() {
     { id: "mySkills", label: "My Skills", icon: "Award" },
   ];
 
-  const industryOptions = ['Construction', 'Manufacturing', 'Hospitality', 'Retail', 'Healthcare', 'Transportation'];
+  const industryOptions = [
+    "Construction",
+    "Manufacturing",
+    "Hospitality",
+    "Retail",
+    "Healthcare",
+    "Transportation",
+  ];
+console.log("🟡 WorkerJobList mounted");
 
   /* =========================================================
       REACT QUERY: CACHED FETCHING
   ========================================================= */
-const {
-  data: jobs,
-  isLoading,
-  isFetching,
-  isError
-} = useQuery({
-  queryKey: ["allJobs"],
-  queryFn: getAllJobs,
-  staleTime: 5 * 60 * 1000,
-  refetchOnWindowFocus: false,
-});
+  const {
+    data: jobs,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["allJobs"],
+    queryFn: getAllJobs,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    console.log("🟢 JOBS FROM QUERY:", jobs);
+    console.log("⏳ isLoading:", isLoading, "isFetching:", isFetching);
+  }, [jobs, isLoading, isFetching]);
 
   /* =========================================================
       DERIVED STATE: FILTERING
   ========================================================= */
   const filteredJobs = useMemo(() => {
     // 1. First, exclude jobs where customJob is true
-      if (!Array.isArray(jobs)) return [];
+    if (!Array.isArray(jobs)) return [];
 
-    let updated = jobs.filter(job => job.customJob !== true);
+    let updated = jobs.filter((job) => job.customJob !== true);
 
     // 2. Filter by search query
     if (searchQuery.trim()) {
@@ -74,20 +88,22 @@ const {
         (job) =>
           job.jobTitle?.toLowerCase().includes(lowQuery) ||
           job.fullWorkAddress?.toLowerCase().includes(lowQuery) ||
-          job?.employer?.companyName?.toLowerCase().includes(lowQuery)
+          job?.employer?.companyName?.toLowerCase().includes(lowQuery),
       );
     }
 
     // 3. Filter by industry
     if (activeFilters.industry.length > 0) {
-      updated = updated.filter((job) => 
-        activeFilters.industry.includes(job.industryCategory)
+      updated = updated.filter((job) =>
+        activeFilters.industry.includes(job.industryCategory),
       );
     }
 
     // 4. Sort by high pay if selected
     if (activeFilters.quickFilters.includes("highPay")) {
-      updated.sort((a, b) => (b?.baseWageAmount || 0) - (a?.baseWageAmount || 0));
+      updated.sort(
+        (a, b) => (b?.baseWageAmount || 0) - (a?.baseWageAmount || 0),
+      );
     }
 
     return updated;
@@ -104,7 +120,8 @@ const {
   ========================================================= */
   const getRelativeTime = (dateValue) => {
     if (!dateValue) return "Recently";
-    let cleanDate = typeof dateValue === 'string' ? dateValue.replace(',', '') : dateValue;
+    let cleanDate =
+      typeof dateValue === "string" ? dateValue.replace(",", "") : dateValue;
     const posted = new Date(cleanDate);
     const now = new Date();
     if (isNaN(posted.getTime())) return dateValue;
@@ -114,24 +131,33 @@ const {
     if (diffInMins < 1) return "Just now";
     if (diffInMins < 60) return `${diffInMins}m ago`;
     if (diffInHours < 24) return `${diffInHours}h ago`;
-    return posted.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    return posted.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   /* =========================================================
       EVENT HANDLERS
   ========================================================= */
   const handleQuickFilterToggle = (id) => {
-    setActiveFilters(prev => ({
+    setActiveFilters((prev) => ({
       ...prev,
       quickFilters: prev.quickFilters.includes(id)
         ? prev.quickFilters.filter((f) => f !== id)
-        : [...prev.quickFilters, id]
+        : [...prev.quickFilters, id],
     }));
   };
 
   const handleClearAllFilters = () => {
-    setActiveFilters({ quickFilters: [], industry: [], jobType: [], shiftTiming: [] });
-    setSearchQuery('');
+    setActiveFilters({
+      quickFilters: [],
+      industry: [],
+      jobType: [],
+      shiftTiming: [],
+    });
+    setSearchQuery("");
   };
 
   const handleSaveJob = async (jobId) => {
@@ -176,7 +202,7 @@ const {
             className="w-2 bg-[#23acf6] rounded-full animate-musical-bar"
             style={{
               animationDelay: `${bar * 0.1}s`,
-              height: '100%'
+              height: "100%",
             }}
           />
         ))}
@@ -194,20 +220,26 @@ const {
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      <main className={`main-content transition-all duration-300 ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+      <main
+        className={`main-content transition-all duration-300 ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}
+      >
         <div className="sticky top-0 z-10 bg-background border-b border-border">
           <div className="p-4">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h1 className="text-2xl font-bold">Available Jobs</h1>
                 <p className="text-sm text-muted-foreground">
-                  {!loading && `${filteredJobs.length} jobs found`}
+{!isLoading && !isFetching && `${filteredJobs.length} jobs found`}
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
                 {!searchExpanded && (
-                  <Button variant="ghost" size="sm" onClick={() => setSearchExpanded(true)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSearchExpanded(true)}
+                  >
                     <Icon name="Search" size={20} />
                   </Button>
                 )}
@@ -218,9 +250,12 @@ const {
                   className="relative"
                 >
                   <Icon name="Filter" size={20} />
-                  {activeFilters.quickFilters.length + activeFilters.industry.length > 0 && (
+                  {activeFilters.quickFilters.length +
+                    activeFilters.industry.length >
+                    0 && (
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] rounded-full flex items-center justify-center">
-                      {activeFilters.quickFilters.length + activeFilters.industry.length}
+                      {activeFilters.quickFilters.length +
+                        activeFilters.industry.length}
                     </span>
                   )}
                 </Button>
@@ -230,7 +265,11 @@ const {
             {searchExpanded && (
               <div className="mb-4 flex items-center gap-2">
                 <div className="flex-1 relative">
-                  <Icon name="Search" size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                  <Icon
+                    name="Search"
+                    size={18}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
+                  />
                   <Input
                     ref={searchInputRef}
                     placeholder="Search jobs, companies..."
@@ -239,7 +278,14 @@ const {
                     className="pl-10"
                   />
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => {setSearchExpanded(false); setSearchQuery('');}}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchExpanded(false);
+                    setSearchQuery("");
+                  }}
+                >
                   Cancel
                 </Button>
               </div>
@@ -268,15 +314,21 @@ const {
               <label className="text-sm font-medium mb-2 block">Industry</label>
               <div className="flex flex-wrap gap-2">
                 {industryOptions.map((ind) => (
-                  <label key={ind} className="flex items-center gap-2 bg-white px-3 py-1 rounded-md border cursor-pointer">
+                  <label
+                    key={ind}
+                    className="flex items-center gap-2 bg-white px-3 py-1 rounded-md border cursor-pointer"
+                  >
                     <input
                       type="checkbox"
                       checked={activeFilters.industry.includes(ind)}
                       onChange={(e) => {
-                        const newInd = e.target.checked 
-                          ? [...activeFilters.industry, ind] 
-                          : activeFilters.industry.filter(i => i !== ind);
-                        setActiveFilters({ ...activeFilters, industry: newInd });
+                        const newInd = e.target.checked
+                          ? [...activeFilters.industry, ind]
+                          : activeFilters.industry.filter((i) => i !== ind);
+                        setActiveFilters({
+                          ...activeFilters,
+                          industry: newInd,
+                        });
                       }}
                     />
                     <span className="text-sm">{ind}</span>
@@ -288,23 +340,29 @@ const {
         </div>
 
         <div className="p-4">
-      {isLoading || isFetching ? (
-  <MusicalLoader />
-) : !Array.isArray(jobs) ? (
-  <MusicalLoader />
-) : filteredJobs.length === 0 ? (
-  <div className="text-center py-12">
-    <Icon name="Briefcase" size={48} className="mx-auto text-muted-foreground mb-4" />
-    <h3 className="text-lg font-semibold">No jobs found</h3>
-    <Button variant="ghost" onClick={handleClearAllFilters}>
-      Clear Filters
-    </Button>
-  </div>
-) : (
+          {isLoading || isFetching ? (
+            <MusicalLoader />
+          ) : !Array.isArray(jobs) ? (
+            <MusicalLoader />
+          ) : filteredJobs.length === 0 ? (
+            <div className="text-center py-12">
+              <Icon
+                name="Briefcase"
+                size={48}
+                className="mx-auto text-muted-foreground mb-4"
+              />
+              <h3 className="text-lg font-semibold">No jobs found</h3>
+              <Button variant="ghost" onClick={handleClearAllFilters}>
+                Clear Filters
+              </Button>
+            </div>
+          ) : (
             <div className="grid grid-cols-1 gap-4">
               {filteredJobs.map((job) => {
                 const isSaved = profile.savedJobs?.includes(job.id);
-                const userApplication = job.applicants?.find(app => app.applicantId === user?.id);
+                const userApplication = job.applicants?.find(
+                  (app) => app.applicantId === user?.id,
+                );
                 const appStatus = userApplication?.applicationStatus;
                 const isApplied = !!appStatus;
 
@@ -321,63 +379,121 @@ const {
                   >
                     <div className="flex gap-4">
                       <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border">
-                        <Image src={companyLogo} alt={companyName} className="w-full h-full object-cover" />
+                        <Image
+                          src={companyLogo}
+                          alt={companyName}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
-                          <h3 className="text-lg font-bold truncate pr-2">{job.jobTitle}</h3>
+                          <h3 className="text-lg font-bold truncate pr-2">
+                            {job.jobTitle}
+                          </h3>
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleSaveJob(job.id); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSaveJob(job.id);
+                            }}
                             className={`p-2 rounded-full transition-colors ${
-                              isSaved ? "text-[#23acf6] bg-[#23acf6]/10" : "text-muted-foreground hover:bg-muted"
+                              isSaved
+                                ? "text-[#23acf6] bg-[#23acf6]/10"
+                                : "text-muted-foreground hover:bg-muted"
                             }`}
                           >
-                            <Icon name="Bookmark" size={18} fill={isSaved ? "currentColor" : "none"} />
+                            <Icon
+                              name="Bookmark"
+                              size={18}
+                              fill={isSaved ? "currentColor" : "none"}
+                            />
                           </button>
                         </div>
 
-                        <p className="text-sm font-medium text-slate-600 truncate">{companyName}</p>
-                        
+                        <p className="text-sm font-medium text-slate-600 truncate">
+                          {companyName}
+                        </p>
+
                         <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                           <Icon name="MapPin" size={14} />
-                          <span className="truncate">{job.fullWorkAddress}</span>
+                          <span className="truncate">
+                            {job.fullWorkAddress}
+                          </span>
                         </div>
 
                         <div className="mt-4 bg-slate-50 p-3 rounded-lg flex justify-between items-center border border-slate-100">
                           <div>
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">
-                                {job.paymentFrequency || 'WAGE'}
+                              {job.paymentFrequency || "WAGE"}
                             </p>
-                            <p className="text-lg font-black text-[#23acf6]">₹{job.baseWageAmount}</p>
+                            <p className="text-lg font-black text-[#23acf6]">
+                              ₹{job.baseWageAmount}
+                            </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">EXPERIENCE</p>
-                            <p className="text-sm font-bold text-slate-700">{job?.experienceLevel?.replace('_', ' ') || "Freshers"}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">
+                              EXPERIENCE
+                            </p>
+                            <p className="text-sm font-bold text-slate-700">
+                              {job?.experienceLevel?.replace("_", " ") ||
+                                "Freshers"}
+                            </p>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between mt-4">
                           <div className="flex flex-wrap gap-3">
                             <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                              <Icon name="Clock" size={14} className="text-[#23acf6]" />
-                              <span>{getRelativeTime(job?.postedDate || job?.createdAt)}</span>
+                              <Icon
+                                name="Clock"
+                                size={14}
+                                className="text-[#23acf6]"
+                              />
+                              <span>
+                                {getRelativeTime(
+                                  job?.postedDate || job?.createdAt,
+                                )}
+                              </span>
                             </div>
                             <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                              <Icon name="Users" size={14} className="text-blue-500" />
+                              <Icon
+                                name="Users"
+                                size={14}
+                                className="text-blue-500"
+                              />
                               <span>{job?.numberOfWorkers || 1} open</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="flex gap-2 mt-3 mb-4 overflow-x-auto scrollbar-hide">
-                          {job?.transportProvided && <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded border border-blue-100 uppercase">Transport</span>}
-                          {job?.foodProvided && <span className="px-2 py-1 bg-orange-50 text-orange-600 text-[10px] font-bold rounded border border-orange-100 uppercase">Food</span>}
-                          {job?.accommodationProvided && <span className="px-2 py-1 bg-purple-50 text-purple-600 text-[10px] font-bold rounded border border-purple-100 uppercase">Stay</span>}
+                          {job?.transportProvided && (
+                            <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded border border-blue-100 uppercase">
+                              Transport
+                            </span>
+                          )}
+                          {job?.foodProvided && (
+                            <span className="px-2 py-1 bg-orange-50 text-orange-600 text-[10px] font-bold rounded border border-orange-100 uppercase">
+                              Food
+                            </span>
+                          )}
+                          {job?.accommodationProvided && (
+                            <span className="px-2 py-1 bg-purple-50 text-purple-600 text-[10px] font-bold rounded border border-purple-100 uppercase">
+                              Stay
+                            </span>
+                          )}
                         </div>
 
                         <div className="flex gap-3">
-                          <Button variant="outline" fullWidth className="h-10 text-xs font-bold" onClick={(e) => { e.stopPropagation(); handleViewJobDetails(job.id); }}>
+                          <Button
+                            variant="outline"
+                            fullWidth
+                            className="h-10 text-xs font-bold"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewJobDetails(job.id);
+                            }}
+                          >
                             Details
                           </Button>
                           <Button
@@ -386,7 +502,7 @@ const {
                             className={`h-10 text-xs font-bold ${
                               isApplied
                                 ? appStatus === "REJECTED"
-                                  ? "bg-red-600 hover:bg-red-700 text-white" 
+                                  ? "bg-red-600 hover:bg-red-700 text-white"
                                   : "bg-green-600 hover:bg-green-700 text-white"
                                 : ""
                             }`}
@@ -410,7 +526,10 @@ const {
 
         {(activeFilters.quickFilters.length > 0 || searchQuery) && (
           <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
-            <Button onClick={handleClearAllFilters} className="shadow-xl rounded-full px-6 py-2 h-auto text-sm font-bold">
+            <Button
+              onClick={handleClearAllFilters}
+              className="shadow-xl rounded-full px-6 py-2 h-auto text-sm font-bold"
+            >
               Clear Filters
             </Button>
           </div>
