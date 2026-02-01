@@ -46,18 +46,25 @@ function WorkerJobList() {
   /* =========================================================
       REACT QUERY: CACHED FETCHING
   ========================================================= */
-  const { data: jobs = [], isLoading: loading } = useQuery({
-    queryKey: ["allJobs"],
-    queryFn: getAllJobs,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+const {
+  data: jobs,
+  isLoading,
+  isFetching,
+  isError
+} = useQuery({
+  queryKey: ["allJobs"],
+  queryFn: getAllJobs,
+  staleTime: 5 * 60 * 1000,
+  refetchOnWindowFocus: false,
+});
 
   /* =========================================================
       DERIVED STATE: FILTERING
   ========================================================= */
   const filteredJobs = useMemo(() => {
     // 1. First, exclude jobs where customJob is true
+      if (!Array.isArray(jobs)) return [];
+
     let updated = jobs.filter(job => job.customJob !== true);
 
     // 2. Filter by search query
@@ -281,15 +288,19 @@ function WorkerJobList() {
         </div>
 
         <div className="p-4">
-          {loading && jobs.length === 0 ? (
-            <MusicalLoader />
-          ) : filteredJobs.length === 0 ? (
-            <div className="text-center py-12">
-              <Icon name="Briefcase" size={48} className="mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold">No jobs found</h3>
-              <Button variant="ghost" onClick={handleClearAllFilters}>Clear Filters</Button>
-            </div>
-          ) : (
+      {isLoading || isFetching ? (
+  <MusicalLoader />
+) : !Array.isArray(jobs) ? (
+  <MusicalLoader />
+) : filteredJobs.length === 0 ? (
+  <div className="text-center py-12">
+    <Icon name="Briefcase" size={48} className="mx-auto text-muted-foreground mb-4" />
+    <h3 className="text-lg font-semibold">No jobs found</h3>
+    <Button variant="ghost" onClick={handleClearAllFilters}>
+      Clear Filters
+    </Button>
+  </div>
+) : (
             <div className="grid grid-cols-1 gap-4">
               {filteredJobs.map((job) => {
                 const isSaved = profile.savedJobs?.includes(job.id);
