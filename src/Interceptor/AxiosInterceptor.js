@@ -82,137 +82,6 @@
 
 // //       return Promise.reject(error);
 
-// import axios from "axios";
-// import { store } from "../Store";
-// import { setJwt, removeJwt } from "../features/JwtSlice";
-// import { removeUser } from "../features/UserSlice";
-// import { refreshAccessToken } from "../Services/AuthService";
-
-// /* =====================================================
-//    AXIOS INSTANCE
-// ===================================================== */
-// const axiosInstance = axios.create({
-//   baseURL: "https://bluc-ysbf.onrender.com", // backend
-//   withCredentials: true, // 🔥 REQUIRED for refresh cookie
-// });
-
-// /* =====================================================
-//    REQUEST INTERCEPTOR
-//    - Attach Access Token
-// ===================================================== */
-// axiosInstance.interceptors.request.use(
-//   (config) => {
-//     // 🔹 Strip /api if present (vite proxy support)
-//     if (config.url?.startsWith("/api")) {
-//       config.url = config.url.replace("/api", "");
-//     }
-
-//     const token = store.getState().jwt;
-
-//     if (token) {
-//       config.headers.Authorization = `Bearer ${token}`;
-//       if (import.meta.env.DEV) {
-//         console.log("🔐 JWT attached");
-//       }
-//     }
-
-//     // 🔹 Let browser set boundary for FormData
-//     if (config.data instanceof FormData) {
-//       delete config.headers["Content-Type"];
-//     }
-
-//     return config;
-//   },
-//   (error) => Promise.reject(error)
-// );
-
-// /* =====================================================
-//    RESPONSE INTERCEPTOR
-//    - Silent Refresh (Password Login)
-//    - Skip Refresh for Firebase Login
-// ===================================================== */
-// let isRefreshing = false;
-// let failedQueue = [];
-
-// const processQueue = (error, token = null) => {
-//   failedQueue.forEach((p) =>
-//     error ? p.reject(error) : p.resolve(token)
-//   );
-//   failedQueue = [];
-// };
-
-// axiosInstance.interceptors.response.use(
-//   (response) => response,
-//   async (error) => {
-//     const originalRequest = error.config;
-//     const status = error?.response?.status;
-//     const provider = sessionStorage.getItem("auth_provider"); // 🔥 KEY
-
-//     /* =========================================
-//        🔥 FIREBASE LOGIN → NEVER REFRESH
-//     ========================================= */
-//     if (status === 401 && provider === "FIREBASE") {
-//       // ❌ DO NOTHING — Firebase is stateless
-//       return Promise.reject(error);
-//     }
-
-//     /* =========================================
-//        🔁 PASSWORD LOGIN → SILENT REFRESH
-//     ========================================= */
-//     if (
-//       status === 401 &&
-//       !originalRequest._retry &&
-//       !originalRequest.url.includes("/auth")
-//     ) {
-//       if (isRefreshing) {
-//         return new Promise((resolve, reject) => {
-//           failedQueue.push({ resolve, reject });
-//         }).then((newToken) => {
-//           originalRequest.headers.Authorization = `Bearer ${newToken}`;
-//           return axiosInstance(originalRequest);
-//         });
-//       }
-
-//       originalRequest._retry = true;
-//       isRefreshing = true;
-
-//       try {
-//         const newToken = await refreshAccessToken(); // 🔥 calls /auth/refresh
-//         store.dispatch(setJwt(newToken));
-
-//         processQueue(null, newToken);
-
-//         originalRequest.headers.Authorization = `Bearer ${newToken}`;
-//         return axiosInstance(originalRequest);
-//       } catch (err) {
-//         processQueue(err, null);
-
-//         // 🔴 HARD LOGOUT
-//         store.dispatch(removeJwt());
-//         store.dispatch(removeUser());
-//         localStorage.clear();
-//         sessionStorage.clear();
-//         window.location.replace("/login");
-
-//         return Promise.reject(err);
-//       } finally {
-//         isRefreshing = false;
-//       }
-//     }
-
-//     return Promise.reject(error);
-//   }
-// );
-
-// export default axiosInstance;
-
-// //     }
-// //   );
-// // };
-
-// // export default axiosInstance;
-
-
 import axios from "axios";
 import { store } from "../Store";
 import { setJwt, removeJwt } from "../features/JwtSlice";
@@ -220,20 +89,20 @@ import { removeUser } from "../features/UserSlice";
 import { refreshAccessToken } from "../Services/AuthService";
 
 /* =====================================================
-   AXIOS CLIENT
+   AXIOS INSTANCE
 ===================================================== */
-const axiosClient = axios.create({
-  baseURL: "https://bluc-ysbf.onrender.com", // ✅ DO NOT CHANGE
-  withCredentials: true,                    // 🔥 REQUIRED for refresh cookie
+const axiosInstance = axios.create({
+  baseURL: "https://bluc-ysbf.onrender.com", // backend
+  withCredentials: true, // 🔥 REQUIRED for refresh cookie
 });
 
 /* =====================================================
    REQUEST INTERCEPTOR
    - Attach Access Token
 ===================================================== */
-axiosClient.interceptors.request.use(
+axiosInstance.interceptors.request.use(
   (config) => {
-    /* 🔹 STRIP /api PREFIX (vite proxy support) */
+    // 🔹 Strip /api if present (vite proxy support)
     if (config.url?.startsWith("/api")) {
       config.url = config.url.replace("/api", "");
     }
@@ -242,12 +111,13 @@ axiosClient.interceptors.request.use(
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+
       if (import.meta.env.DEV) {
         console.log("🔐 JWT attached");
       }
     }
 
-    /* 🔹 Let browser handle multipart boundary */
+    // 🔹 Let browser set multipart boundary
     if (config.data instanceof FormData) {
       delete config.headers["Content-Type"];
     }
@@ -259,8 +129,8 @@ axiosClient.interceptors.request.use(
 
 /* =====================================================
    RESPONSE INTERCEPTOR
-   - Silent Refresh (PASSWORD login)
-   - Skip Refresh (FIREBASE login)
+   - Silent refresh (PASSWORD)
+   - Skip refresh (FIREBASE)
 ===================================================== */
 let isRefreshing = false;
 let failedQueue = [];
@@ -272,7 +142,7 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-axiosClient.interceptors.response.use(
+axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
@@ -283,6 +153,7 @@ axiosClient.interceptors.response.use(
        🔥 FIREBASE LOGIN → NEVER REFRESH
     ================================================= */
     if (status === 401 && provider === "FIREBASE") {
+      // ❌ Firebase tokens are stateless
       return Promise.reject(error);
     }
 
@@ -292,14 +163,14 @@ axiosClient.interceptors.response.use(
     if (
       status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url?.includes("/auth")
+      !originalRequest.url.includes("/auth")
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then((newToken) => {
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          return axiosClient(originalRequest);
+          return axiosInstance(originalRequest);
         });
       }
 
@@ -313,11 +184,11 @@ axiosClient.interceptors.response.use(
         processQueue(null, newToken);
 
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return axiosClient(originalRequest);
+        return axiosInstance(originalRequest);
       } catch (err) {
         processQueue(err, null);
 
-        // 🔴 HARD LOGOUT
+        // 🔴 HARD LOGOUT (refresh expired / invalid)
         store.dispatch(removeJwt());
         store.dispatch(removeUser());
         localStorage.clear();
@@ -334,5 +205,4 @@ axiosClient.interceptors.response.use(
   }
 );
 
-export default axiosClient;
-
+export default axiosInstance;
