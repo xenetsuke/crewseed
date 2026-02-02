@@ -107,15 +107,24 @@ axiosInstance.interceptors.request.use(
       config.url = config.url.replace("/api", "");
     }
 
-    const token = store.getState().jwt;
+    let token = store.getState().jwt;
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+// 🔥 HANDLE STRINGIFIED TOKEN
+if (typeof token === "string" && token.startsWith('"')) {
+  try {
+    token = JSON.parse(token);
+  } catch {
+    token = null;
+  }
+}
 
-      if (import.meta.env.DEV) {
-        console.log("🔐 JWT attached");
-      }
-    }
+if (token) {
+  config.headers.Authorization = `Bearer ${token}`;
+
+  if (import.meta.env.DEV) {
+    console.log("🔐 JWT attached");
+  }
+}
 
     // 🔹 Let browser set multipart boundary
     if (config.data instanceof FormData) {
