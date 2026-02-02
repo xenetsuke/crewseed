@@ -35,6 +35,7 @@ import HRToolComingSoon from "./pages/hr-tool";
 import AttendanceUploadPage from "pages/AttendanceUploadPage/AttendanceUploadPage.jsx";
 import Landing from "./pages/landing/Landing";
 import HowItWorksPage from "./pages/how-it-works/HowItWorksPage";
+import Unauthorized from "pages/Unauthorized.jsx";
 
 const Routes = () => {
   return (
@@ -66,6 +67,7 @@ const Routes = () => {
               </PublicRoute>
             }
           />
+<Route path="/unauthorized" element={<Unauthorized />} />
 
           <Route
             path="/login"
@@ -220,9 +222,9 @@ const Routes = () => {
           <Route
             path="/find-workers"
             element={
-              <PublicRoute>
+<ProtectedRoute allowedRoles={["EMPLOYER", "APPLICANT"]}>
                 <FindWorkers />
-              </PublicRoute>
+              </ProtectedRoute>
             }
           />
  
