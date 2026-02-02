@@ -1,21 +1,30 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const jwtSlice = createSlice({
+const normalizeToken = (token) => {
+  if (!token) return null;
+
+  // 🔥 Handle stringified JWT from redux-persist
+  if (typeof token === "string" && token.startsWith('"')) {
+    try {
+      return JSON.parse(token);
+    } catch {
+      return null;
+    }
+  }
+
+  return token;
+};
+
+const JwtSlice = createSlice({
   name: "jwt",
-
-  // ✅ START EMPTY (in-memory only)
-  initialState: "",
-
+  initialState: null,
   reducers: {
     setJwt: (state, action) => {
-      return action.payload; // 🔥 DO NOT TOUCH localStorage
+      return normalizeToken(action.payload);
     },
-
-    removeJwt: () => {
-      return "";
-    },
+    removeJwt: () => null,
   },
 });
 
-export const { setJwt, removeJwt } = jwtSlice.actions;
-export default jwtSlice.reducer;
+export const { setJwt, removeJwt } = JwtSlice.actions;
+export default JwtSlice.reducer;
