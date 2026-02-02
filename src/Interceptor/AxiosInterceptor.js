@@ -92,41 +92,36 @@ import { refreshAccessToken } from "../Services/AuthService";
    AXIOS INSTANCE
 ===================================================== */
 const axiosInstance = axios.create({
-  baseURL: "https://bluc-ysbf.onrender.com", // backend
-  withCredentials: true, // 🔥 REQUIRED for refresh cookie
+  baseURL: "https://bluc-ysbf.onrender.com",
+  withCredentials: true, // 🔥 required for refresh cookie
 });
 
 /* =====================================================
    REQUEST INTERCEPTOR
-   - Attach Access Token
+   - Attach NORMALIZED JWT ONLY
 ===================================================== */
 axiosInstance.interceptors.request.use(
   (config) => {
-    // 🔹 Strip /api if present (vite proxy support)
+    // 🔹 Vite proxy support
     if (config.url?.startsWith("/api")) {
       config.url = config.url.replace("/api", "");
     }
 
-    let token = store.getState().jwt;
+    const { token } = store.getState().jwt || {};
 
-// 🔥 HANDLE STRINGIFIED TOKEN
-if (typeof token === "string" && token.startsWith('"')) {
-  try {
-    token = JSON.parse(token);
-  } catch {
-    token = null;
-  }
-}
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
 
-if (token) {
-  config.headers.Authorization = `Bearer ${token}`;
+      if (import.meta.env.DEV) {
+        console.log("➡️ [API REQUEST]");
+        console.log("   URL   :", config.url);
+        console.log("   JWT   :", token.slice(0, 20) + "...");
+      }
+    } else if (import.meta.env.DEV) {
+      console.warn("⚠️ [NO JWT FOUND] Request without Authorization");
+    }
 
-  if (import.meta.env.DEV) {
-    console.log("🔐 JWT attached");
-  }
-}
-
-    // 🔹 Let browser set multipart boundary
+    // Let browser handle multipart boundaries
     if (config.data instanceof FormData) {
       delete config.headers["Content-Type"];
     }
@@ -138,8 +133,8 @@ if (token) {
 
 /* =====================================================
    RESPONSE INTERCEPTOR
-   - Silent refresh (PASSWORD)
-   - Skip refresh (FIREBASE)
+   - PASSWORD → silent refresh
+   - FIREBASE → no refresh
 ===================================================== */
 let isRefreshing = false;
 let failedQueue = [];
@@ -154,20 +149,32 @@ const processQueue = (error, token = null) => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
     const status = error?.response?.status;
+    const originalRequest = error.config;
     const provider = sessionStorage.getItem("auth_provider"); // PASSWORD | FIREBASE
+    const loggedOut = sessionStorage.getItem("crewseed_logged_out");
+
+    if (import.meta.env.DEV) {
+      console.warn("❌ [API ERROR]", status, originalRequest?.url);
+    }
 
     /* =================================================
-       🔥 FIREBASE LOGIN → NEVER REFRESH
+       HARD STOP IF LOGGED OUT
     ================================================= */
-    if (status === 401 && provider === "FIREBASE") {
-      // ❌ Firebase tokens are stateless
+    if (loggedOut) {
       return Promise.reject(error);
     }
 
     /* =================================================
-       🔁 PASSWORD LOGIN → SILENT REFRESH
+       FIREBASE LOGIN → NEVER REFRESH
+    ================================================= */
+    if (status === 401 && provider === "FIREBASE") {
+      console.warn("🔥 Firebase auth → skipping refresh");
+      return Promise.reject(error);
+    }
+
+    /* =================================================
+       PASSWORD LOGIN → SILENT REFRESH
     ================================================= */
     if (
       status === 401 &&
@@ -187,7 +194,9 @@ axiosInstance.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const newToken = await refreshAccessToken(); // POST /auth/refresh
+        console.log("🔄 [JWT EXPIRED] Refreshing token...");
+
+        const newToken = await refreshAccessToken();
         store.dispatch(setJwt(newToken));
 
         processQueue(null, newToken);
@@ -197,13 +206,15 @@ axiosInstance.interceptors.response.use(
       } catch (err) {
         processQueue(err, null);
 
-        // 🔴 HARD LOGOUT (refresh expired / invalid)
+        console.error("🚨 [REFRESH FAILED] Logging out");
+
         store.dispatch(removeJwt());
         store.dispatch(removeUser());
+
         localStorage.clear();
         sessionStorage.clear();
-        window.location.replace("/login");
 
+        window.location.replace("/login");
         return Promise.reject(err);
       } finally {
         isRefreshing = false;
