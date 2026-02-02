@@ -256,7 +256,46 @@ const handleLogout = async () => {
           {activeTab === "workHistory" && (
             <WorkHistoryTab data={backendProfile} onSave={handleSaveToDB} />
           )}
-        </div>
+        </div>{/* PHONE OTP MODAL */}
+{isOtpModalOpen && (
+  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
+    <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl">
+      <h3 className="text-lg font-bold mb-2">
+        {t("otp.verifyTitle", "Verify Phone")}
+      </h3>
+
+      <p className="text-sm text-muted-foreground mb-4">
+        Enter OTP sent to +91 {pendingPhone}
+      </p>
+
+      <Input
+        value={otpValue}
+        onChange={(e) => setOtpValue(e.target.value)}
+        maxLength={6}
+        autoFocus
+        className="text-center text-xl tracking-widest mb-4"
+      />
+
+      <div className="flex gap-3">
+        <Button
+          variant="outline"
+          className="flex-1"
+          onClick={() => setIsOtpModalOpen(false)}
+        >
+          Cancel
+        </Button>
+        <Button
+          className="flex-1"
+          onClick={handleConfirmPhoneOtp}
+          loading={verifying}
+        >
+          Verify
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
+
 
         {/* LOGOUT CONFIRM */}
         {showLogoutConfirm && (
