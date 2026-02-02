@@ -19,16 +19,24 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   const workerProfile = useSelector((state) => state?.profile);
   const token = useSelector((state) => state?.jwt);
 
-  useEffect(() => {
-    const storedToken = token || localStorage.getItem("token");
-    if (storedToken) {
-      try {
-        setJwtUser(jwtDecode(storedToken));
-      } catch (err) {
-        console.error("Invalid JWT", err);
-      }
-    }
-  }, [token]);
+const jwtToken = useSelector((state) => state?.jwt?.token);
+
+useEffect(() => {
+  if (!jwtToken) {
+    console.warn("⚠️ WorkerSidebar: No JWT token found");
+    return;
+  }
+
+  try {
+    const decoded = jwtDecode(jwtToken);
+    setJwtUser(decoded);
+
+    console.log("✅ WorkerSidebar JWT decoded:", decoded);
+  } catch (err) {
+    console.error("❌ WorkerSidebar Invalid JWT", err);
+  }
+}, [jwtToken]);
+
 
   const maskPhoneNumber = (val) => {
     if (!val) return "";

@@ -17,18 +17,24 @@ const EmployerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
   const user = useSelector((state) => state?.user);
   const profile = useSelector((state) => state?.profile);
   const token = useSelector((state) => state?.jwt);
+const jwtToken = useSelector((state) => state?.jwt?.token);
 
-  useEffect(() => {
-    const storedToken = token || localStorage.getItem("token");
-    if (storedToken) {
-      try {
-        const decoded = jwtDecode(storedToken);
-        setJwtUser(decoded);
-      } catch (err) {
-        console.error("Invalid JWT token", err);
-      }
-    }
-  }, [token]);
+useEffect(() => {
+  if (!jwtToken) {
+    console.warn("⚠️ EmployerSidebar: No JWT token found");
+    return;
+  }
+
+  try {
+    const decoded = jwtDecode(jwtToken);
+    setJwtUser(decoded);
+
+    console.log("✅ EmployerSidebar JWT decoded:", decoded);
+  } catch (err) {
+    console.error("❌ EmployerSidebar Invalid JWT", err);
+  }
+}, [jwtToken]);
+
 
   const maskPhoneNumber = (val) => {
     if (!val) return "";
