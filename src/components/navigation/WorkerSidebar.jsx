@@ -21,19 +21,18 @@ const WorkerSidebar = ({ isCollapsed = false, onToggleCollapse }) => {
 
 const jwtToken = useSelector((state) => state?.jwt?.token);
 
+// const jwtToken = useSelector((state) => state?.jwt?.token);
+
 useEffect(() => {
-  if (!jwtToken) {
-    console.warn("⚠️ WorkerSidebar: No JWT token found");
-    return;
-  }
+  if (!jwtToken) return;
 
   try {
     const decoded = jwtDecode(jwtToken);
     setJwtUser(decoded);
 
-    console.log("✅ WorkerSidebar JWT decoded:", decoded);
+    console.log("✅ [WorkerSidebar] JWT decoded:", decoded);
   } catch (err) {
-    console.error("❌ WorkerSidebar Invalid JWT", err);
+    console.error("❌ [WorkerSidebar] Invalid JWT", err);
   }
 }, [jwtToken]);
 
