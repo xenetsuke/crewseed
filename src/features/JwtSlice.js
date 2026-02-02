@@ -30,37 +30,31 @@ const jwtSlice = createSlice({
   name: "jwt",
   initialState,
   reducers: {
-    /* =========================
-       SET JWT
-       - stores BOTH raw + token
-    ========================= */
     setJwt: (state, action) => {
+      // 🛑 SAFETY: handle old persisted string
+      if (typeof state === "string") {
+        state = initialState;
+      }
+
       const raw = action.payload;
-      const token = normalizeToken(raw);
+      let token = raw;
+
+      if (typeof raw === "string" && raw.startsWith('"')) {
+        try {
+          token = JSON.parse(raw);
+        } catch {
+          token = null;
+        }
+      }
 
       state.raw = raw;
       state.token = token;
 
-      if (import.meta.env.DEV) {
-        console.log("🔐 [JWT SET]");
-        console.log("   raw   →", raw);
-        console.log("   token →", token);
-      }
+      console.log("🔐 [JWT SET]", { raw, token });
     },
 
-    /* =========================
-       REMOVE JWT
-    ========================= */
-    removeJwt: (state) => {
-      state.raw = null;
-      state.token = null;
-
-      if (import.meta.env.DEV) {
-        console.log("🧹 [JWT CLEARED]");
-      }
-    },
+    removeJwt: () => initialState,
   },
 });
-
 export const { setJwt, removeJwt } = jwtSlice.actions;
 export default jwtSlice.reducer;
