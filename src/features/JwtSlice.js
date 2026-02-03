@@ -2,20 +2,20 @@ import { createSlice } from "@reduxjs/toolkit";
 
 /* =====================================================
    JWT SLICE
-   - raw   : exactly what backend sends (may be quoted)
-   - token : normalized JWT (NO quotes) → used everywhere
+   - raw   : exactly what backend sends
+   - token : normalized JWT (string only)
 ===================================================== */
 
 const initialState = {
-  raw: null,    // persisted
-  token: null,  // normalized, safe
+  raw: null,
+  token: null,
 };
 
 const normalizeToken = (value) => {
-  if (!value) return null;
+  if (!value || typeof value !== "string") return null;
 
-  // If token is stringified like: "\"eyJhbGciOi...\""
-  if (typeof value === "string" && value.startsWith('"')) {
+  // handle "\"eyJhbGci...\"" edge case
+  if (value.startsWith('"')) {
     try {
       return JSON.parse(value);
     } catch {
@@ -31,30 +31,27 @@ const jwtSlice = createSlice({
   initialState,
   reducers: {
     setJwt: (state, action) => {
-      // 🛑 SAFETY: handle old persisted string
-      if (typeof state === "string") {
-        state = initialState;
-      }
-
       const raw = action.payload;
-      let token = raw;
-
-      if (typeof raw === "string" && raw.startsWith('"')) {
-        try {
-          token = JSON.parse(raw);
-        } catch {
-          token = null;
-        }
-      }
+      const token = normalizeToken(raw);
 
       state.raw = raw;
       state.token = token;
 
-      console.log("🔐 [JWT SET]", { raw, token });
+      if (import.meta.env.DEV) {
+        console.log("🔐 [JWT SET]", { token });
+      }
     },
 
-    removeJwt: () => initialState,
+    removeJwt: (state) => {
+      state.raw = null;
+      state.token = null;
+
+      if (import.meta.env.DEV) {
+        console.log("🧹 [JWT CLEARED]");
+      }
+    },
   },
 });
+
 export const { setJwt, removeJwt } = jwtSlice.actions;
 export default jwtSlice.reducer;
