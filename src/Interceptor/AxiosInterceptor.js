@@ -99,6 +99,7 @@ const axiosInstance = axios.create({
 /* =====================================================
    REQUEST INTERCEPTOR
    - DO NOT attach JWT for /auth/*
+   - BLOCK calls until auth.ready === true
 ===================================================== */
 axiosInstance.interceptors.request.use(
   (config) => {
@@ -107,14 +108,28 @@ axiosInstance.interceptors.request.use(
       config.url = config.url.replace("/api", "");
     }
 
-    const isAuthRequest = config.url?.startsWith("/auth");
+  const isAuthRequest = config.url?.startsWith("/auth");
 
-    if (isAuthRequest) {
-      if (import.meta.env.DEV) {
-        console.log("🔓 [AUTH REQUEST] Skipping JWT →", config.url);
-      }
-      return config;
-    }
+/* 🔓 AUTH endpoints → ALWAYS ALLOW */
+if (isAuthRequest) {
+  if (import.meta.env.DEV) {
+    console.log("🔓 [AUTH REQUEST] Allowing →", config.url);
+  }
+  return config;
+}
+
+/* ⏳ BLOCK only NON-AUTH calls until bootstrap finishes */
+const authReady = store.getState().auth?.ready;
+if (!authReady) {
+  if (import.meta.env.DEV) {
+    console.warn("⏳ [AUTH NOT READY] Blocking API →", config.url);
+  }
+  return Promise.reject({
+    message: "AUTH_NOT_READY",
+    config,
+  });
+}
+
 
     const { token } = store.getState().jwt || {};
 
@@ -130,7 +145,7 @@ axiosInstance.interceptors.request.use(
       console.warn("⚠️ [NO JWT FOUND]", config.url);
     }
 
-    // multipart fix
+    // 🧩 Let browser handle multipart boundaries
     if (config.data instanceof FormData) {
       delete config.headers["Content-Type"];
     }
@@ -143,6 +158,7 @@ axiosInstance.interceptors.request.use(
 /* =====================================================
    RESPONSE INTERCEPTOR
    - NEVER refresh on /auth/*
+   - STOP infinite refresh loops
 ===================================================== */
 let isRefreshing = false;
 let failedQueue = [];
@@ -161,26 +177,35 @@ axiosInstance.interceptors.response.use(
     const originalRequest = error.config;
     const provider = sessionStorage.getItem("auth_provider");
     const loggedOut = sessionStorage.getItem("crewseed_logged_out");
-
     const isAuthRequest = originalRequest?.url?.startsWith("/auth");
 
     if (import.meta.env.DEV) {
       console.warn("❌ [API ERROR]", status, originalRequest?.url);
     }
 
-    // 🚫 hard stop
+    /* =================================================
+       HARD STOPS
+    ================================================= */
     if (loggedOut || isAuthRequest) {
       return Promise.reject(error);
     }
 
-    // 🔥 Firebase → no refresh
+    // ⛔ Stop infinite retry loops
+    if (status === 401 && originalRequest._retry) {
+      console.warn("⛔ [RETRY BLOCKED]", originalRequest.url);
+      return Promise.reject(error);
+    }
+
+    // 🔥 Firebase → NEVER refresh
     if (status === 401 && provider === "FIREBASE") {
       console.warn("🔥 Firebase auth → skip refresh");
       return Promise.reject(error);
     }
 
-    // 🔁 Password login → refresh
-    if (status === 401 && !originalRequest._retry) {
+    /* =================================================
+       PASSWORD LOGIN → SILENT REFRESH
+    ================================================= */
+    if (status === 401) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -206,15 +231,21 @@ axiosInstance.interceptors.response.use(
       } catch (err) {
         processQueue(err, null);
 
-        console.error("🚨 [REFRESH FAILED] Logging out");
+        console.error("🚨 [REFRESH FAILED]");
 
+        // 📱 Mobile-safe behavior (DON'T hard logout)
+        if (/Mobi|Android/i.test(navigator.userAgent)) {
+          console.warn("📱 Mobile detected → keeping session alive");
+          return Promise.reject(err);
+        }
+
+        // 🖥️ Desktop → hard logout
         store.dispatch(removeJwt());
         store.dispatch(removeUser());
-
         localStorage.clear();
         sessionStorage.clear();
-
         window.location.replace("/login");
+
         return Promise.reject(err);
       } finally {
         isRefreshing = false;
