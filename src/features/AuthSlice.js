@@ -3,7 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 const authSlice = createSlice({
   name: "auth",
   initialState: {
-    ready: false, // 🔑 CRITICAL
+    ready: false, // 🔑 gates API calls
   },
   reducers: {
     setAuthReady: (state) => {
