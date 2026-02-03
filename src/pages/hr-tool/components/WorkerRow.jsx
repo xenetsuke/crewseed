@@ -5,7 +5,7 @@ import AssignmentStatsOverview from "./AssignmentStatsOverview";
 import { cn } from "utils/cn";
 import { useQuery } from "@tanstack/react-query";
 import { getMonthlyPayrollForAssignment } from "Services/monthlyPayroll.service";
-
+import PayrollSlipEditor from "./PayrollSlipEditor";
 const WorkerRow = ({
   worker,
   onEditAssignment,
@@ -72,17 +72,31 @@ if (!hasData && isLoading) {
     let esi = 0;
     let advanceDeduction = 0;
 
-    attendanceRecords.forEach((a) => {
-      if (!a.payroll) return;
-      if ( a.payroll.basePay ) basePay = Number(a.payroll.basePay);
-      dailyPay += Number(a.payroll.dailyPay || 0);
-      otPay += Number(a.payroll.overtimePay || 0);
-    
-      bata += Number(a.payroll.bata || 0);
-      pf += Number(a.payroll.pfDeduction || 0);
-      esi += Number(a.payroll.esiDeduction || 0);
-      advanceDeduction += Number(a.payroll.advanceDeduction || 0);
-    });
+attendanceRecords.forEach((a) => {
+  if (!a.payroll) return;
+
+  const d = new Date(a.date);
+
+  // ✅ FILTER BY VIEW MONTH & YEAR
+  if (
+    d.getMonth() !== viewMonth ||
+    d.getFullYear() !== viewYear
+  ) {
+    return;
+  }
+
+  if (a.payroll.basePay) {
+    basePay = Number(a.payroll.basePay);
+  }
+
+  dailyPay += Number(a.payroll.dailyPay || 0);
+  otPay += Number(a.payroll.overtimePay || 0);
+  bata += Number(a.payroll.bata || 0);
+  pf += Number(a.payroll.pfDeduction || 0);
+  esi += Number(a.payroll.esiDeduction || 0);
+  advanceDeduction += Number(a.payroll.advanceDeduction || 0);
+});
+
 
     const grossPay = dailyPay + otPay + bata;
     const totalDeductions = pf + esi + advanceDeduction;
@@ -101,97 +115,61 @@ if (!hasData && isLoading) {
       netPayable,
     };
   }, [attendanceRecords, viewMonth, viewYear]);
+const ytdPayroll = useMemo(() => {
+  let gross = 0;
+  let deductions = 0;
+  let net = 0;
 
-  const downloadPayrollChit = () => {
-    const monthYear = new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' }).format(new Date(viewYear, viewMonth));
-    const slipHtml = `
-      <html>
-        <head>
-          <title>Salary_Slip_${worker.name}_${monthYear}</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; background: #fff; }
-            .container { max-width: 800px; margin: 0 auto; border: 1px solid #e2e8f0; padding: 30px; border-radius: 8px; }
-            .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 20px; }
-            .company-name { font-size: 24px; font-weight: 800; color: #0f172a; margin: 0; }
-            .slip-title { font-size: 14px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
-            .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; background: #f8fafc; padding: 15px; border-radius: 6px; }
-            .meta-item p { margin: 4px 0; font-size: 13px; }
-            .meta-item span { color: #64748b; font-weight: 500; }
-            .payroll-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .payroll-table th { text-align: left; background: #0f172a; color: #fff; padding: 10px 15px; font-size: 12px; text-transform: uppercase; }
-            .payroll-table td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
-            .section-split { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid #f1f5f9; }
-            .amount { text-align: right; font-family: monospace; font-weight: 600; }
-            .total-row { background: #f8fafc; font-weight: 700; }
-            .net-payable-box { margin-top: 20px; padding: 20px; background: #0f172a; color: #fff; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
-            .net-label { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
-            .net-amount { font-size: 24px; font-weight: 800; }
-            .footer { margin-top: 60px; display: flex; justify-content: space-between; }
-            .signature { border-top: 1px solid #cbd5e1; width: 200px; text-align: center; padding-top: 10px; font-size: 12px; color: #64748b; }
-            @media print { body { padding: 0; } .container { border: none; } }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <div>
-                <h1 class="company-name">PAYROLL DISBURSEMENT</h1>
-                <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Period: ${monthYear}</p>
-              </div>
-              <div class="slip-title">Private & Confidential</div>
-            </div>
-            <div class="meta-grid">
-              <div class="meta-item">
-                <p><span>Employee Name:</span> ${worker.name}</p>
-                <p><span>Designation:</span> ${worker.role}</p>
-              </div>
-              <div class="meta-item">
-                <p><span>Statement Date:</span> ${new Date().toLocaleDateString('en-IN')}</p>
-                <p><span>Status:</span> Generated Online</p>
-              </div>
-            </div>
-            <div class="section-split">
-              <div class="earnings">
-                <table class="payroll-table">
-                  <thead><tr><th>Earnings Description</th><th class="amount">Amount</th></tr></thead>
-                  <tbody>
-                    <tr><td>Basic/Attendance Pay</td><td class="amount">₹${effectivePayroll.dailyPay.toLocaleString('en-IN')}</td></tr>
-                    <tr><td>Overtime (OT)</td><td class="amount">₹${effectivePayroll.overtimePay.toLocaleString('en-IN')}</td></tr>
-                    <tr><td>Bata / Allowance</td><td class="amount">₹${effectivePayroll.bata.toLocaleString('en-IN')}</td></tr>
-                    <tr class="total-row"><td>Gross Earnings</td><td class="amount">₹${effectivePayroll.grossPay.toLocaleString('en-IN')}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="deductions">
-                <table class="payroll-table">
-                  <thead><tr><th>Deductions</th><th class="amount">Amount</th></tr></thead>
-                  <tbody>
-                    <tr><td>Provident Fund (PF)</td><td class="amount">₹${effectivePayroll.pfDeduction.toLocaleString('en-IN')}</td></tr>
-                    <tr><td>ESI</td><td class="amount">₹${effectivePayroll.esiDeduction.toLocaleString('en-IN')}</td></tr>
-                    <tr><td>Advance Recovery</td><td class="amount">₹${effectivePayroll.advanceDeduction.toLocaleString('en-IN')}</td></tr>
-                    <tr class="total-row"><td>Total Deductions</td><td class="amount">₹${effectivePayroll.totalDeductions.toLocaleString('en-IN')}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div class="net-payable-box">
-              <span class="net-label">Net Payable Amount</span>
-              <span class="net-amount">₹${effectivePayroll.netPayable.toLocaleString('en-IN')}</span>
-            </div>
-            <div class="footer">
-              <div class="signature">Employer Signature</div>
-              <div class="signature">Employee Signature</div>
-            </div>
-          </div>
-          <script>window.print();</script>
-        </body>
-      </html>
-    `;
-    const win = window.open("", "_blank");
-    win.document.write(slipHtml);
-    win.document.close();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  attendanceRecords.forEach((a) => {
+    if (!a.payroll) return;
+
+    const d = new Date(a.date);
+    d.setHours(0, 0, 0, 0);
+
+    // 🔒 SAME YEAR ONLY
+    if (d.getFullYear() !== viewYear) return;
+
+    // 🔒 NO FUTURE DAYS
+    if (d > today) return;
+
+    const p = a.payroll;
+    const g =
+      Number(p.dailyPay || 0) +
+      Number(p.overtimePay || 0) +
+      Number(p.bata || 0);
+
+    const ded =
+      Number(p.pfDeduction || 0) +
+      Number(p.esiDeduction || 0) +
+      Number(p.advanceDeduction || 0);
+
+    gross += g;
+    deductions += ded;
+    net += g - ded;
+  });
+
+  return {
+    gross,
+    deductions,
+    net,
   };
+}, [attendanceRecords, viewYear]);
+const payrollWithYTD = useMemo(() => {
+  return {
+    ...effectivePayroll,      // month-scoped
+    ytdNetPay: ytdPayroll.net // year-to-date
+  };
+}, [effectivePayroll, ytdPayroll]);
+
+const [showSlipEditor, setShowSlipEditor] = useState(false);
+
+const downloadPayrollChit = () => {
+  setShowSlipEditor(true);
+};
+
 
   const handleAttendanceStatusChange = (attendanceId, newStatus) => {
     // Handled via onRefresh prop to parent
@@ -287,8 +265,18 @@ if (!hasData && isLoading) {
         </div>
 
         <div className="mb-8">
-          <AssignmentStatsOverview payroll={effectivePayroll} />
+<AssignmentStatsOverview payroll={payrollWithYTD} />
+          
+          
         </div>
+<PayrollSlipEditor
+  open={showSlipEditor}
+  onClose={() => setShowSlipEditor(false)}
+  worker={worker}
+  payroll={effectivePayroll}
+  viewMonth={viewMonth}
+  viewYear={viewYear}
+/>
 
         {/* HEATMAP GRID */}
         <div className="group/heatmap">

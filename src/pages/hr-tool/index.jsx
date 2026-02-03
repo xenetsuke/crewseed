@@ -54,7 +54,17 @@ const WorkerAttendanceHR = () => {
 
   const employerId = useSelector((state) => state.user?.id);
 
-  const [viewDate, setViewDate] = useState(new Date(2026, 0, 1));
+const getISTDate = () => {
+  const now = new Date();
+
+  const istOffset = 5.5 * 60 * 60 * 1000; // IST offset
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+
+  return new Date(utc + istOffset);
+};
+
+const [viewDate, setViewDate] = useState(getISTDate());
+
   const currentMonth = viewDate.getMonth();
   const currentYear = viewDate.getFullYear();
 
