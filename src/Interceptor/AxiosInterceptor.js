@@ -92,7 +92,7 @@ import { refreshAccessToken } from "../Services/AuthService";
    AXIOS INSTANCE
 ===================================================== */
 const axiosInstance = axios.create({
-  baseURL: "api.crewseed.com",
+  baseURL: "https://api.crewseed.com",
   withCredentials: true, // 🔥 refresh cookie
 });
 
