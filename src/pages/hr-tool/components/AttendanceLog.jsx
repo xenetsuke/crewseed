@@ -291,48 +291,106 @@ const AttendanceLog = ({
                     </div>
                   </div>
 
-                  {(isApproved || isHalfDay) && (
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="flex items-center justify-between bg-white rounded-xl border border-slate-100 shadow-sm px-1 py-1.5">
-                        <button className="w-6 h-6 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 active:scale-90 transition-transform" onClick={() => handleLocalUpdate(log.attendanceId, "overtimePay", 50, mergedPayroll)}>
-                          <Plus className="w-3 h-3" />
-                        </button>
-                        <div className="flex flex-col items-center">
-                          <Clock className="w-3 h-3 text-slate-300 mb-0.5" />
-                          <span className="text-[9px] font-bold text-slate-600">₹{mergedPayroll.overtimePay || 0}</span>
-                        </div>
-                        <button className="w-6 h-6 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 active:scale-90 transition-transform" onClick={() => handleLocalUpdate(log.attendanceId, "overtimePay", -50, mergedPayroll)}>
-                          <Minus className="w-3 h-3" />
-                        </button>
-                      </div>
+             {!isEmpty && !isFutureDay && (
+  <div className="grid grid-cols-3 gap-2">
+    {/* OT PAY */}
+    <div className="flex items-center justify-between bg-white rounded-xl border border-slate-100 shadow-sm px-1 py-1.5">
+      <button
+        className="w-6 h-6 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 active:scale-90"
+        onClick={() =>
+          handleLocalUpdate(log.attendanceId, "overtimePay", 50, mergedPayroll)
+        }
+      >
+        <Plus className="w-3 h-3" />
+      </button>
 
-                      <div className="flex items-center justify-between bg-white rounded-xl border border-slate-100 shadow-sm px-1 py-1.5">
-                        <button className="w-6 h-6 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 active:scale-90 transition-transform" onClick={() => handleLocalUpdate(log.attendanceId, "bata", 50, mergedPayroll)}>
-                          <Plus className="w-3 h-3" />
-                        </button>
-                        <div className="flex flex-col items-center">
-                          <span className="text-[8px] font-black text-slate-300 uppercase leading-none mb-0.5">BATA</span>
-                          <span className="text-[9px] font-bold text-slate-600">₹{mergedPayroll.bata || 0}</span>
-                        </div>
-                        <button className="w-6 h-6 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 active:scale-90 transition-transform" onClick={() => handleLocalUpdate(log.attendanceId, "bata", -50, mergedPayroll)}>
-                          <Minus className="w-3 h-3" />
-                        </button>
-                      </div>
+      <div className="flex flex-col items-center">
+        <Clock className="w-3 h-3 text-slate-300 mb-0.5" />
+        <span className="text-[9px] font-bold text-slate-600">
+          ₹{mergedPayroll.overtimePay || 0}
+        </span>
+      </div>
 
-                      <div className="flex items-center justify-between bg-white rounded-xl border border-rose-100 shadow-sm px-1 py-1.5">
-                        <button className="w-6 h-6 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 active:scale-90 transition-transform" onClick={() => handleLocalUpdate(log.attendanceId, "advanceDeduction", 100, mergedPayroll)}>
-                          <Plus className="w-3 h-3" />
-                        </button>
-                        <div className="flex flex-col items-center">
-                          <Coins className="w-3 h-3 text-rose-300 mb-0.5" />
-                          <span className="text-[9px] font-bold text-rose-600">₹{mergedPayroll.advanceDeduction || 0}</span>
-                        </div>
-                        <button className="w-6 h-6 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 active:scale-90 transition-transform" onClick={() => handleLocalUpdate(log.attendanceId, "advanceDeduction", -100, mergedPayroll)}>
-                          <Minus className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
+      <button
+        className="w-6 h-6 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 active:scale-90"
+        onClick={() =>
+          handleLocalUpdate(log.attendanceId, "overtimePay", -50, mergedPayroll)
+        }
+      >
+        <Minus className="w-3 h-3" />
+      </button>
+    </div>
+
+    {/* BATA */}
+    <div className="flex items-center justify-between bg-white rounded-xl border border-slate-100 shadow-sm px-1 py-1.5">
+      <button
+        className="w-6 h-6 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 active:scale-90"
+        onClick={() =>
+          handleLocalUpdate(log.attendanceId, "bata", 50, mergedPayroll)
+        }
+      >
+        <Plus className="w-3 h-3" />
+      </button>
+
+      <div className="flex flex-col items-center">
+        <span className="text-[8px] font-black text-slate-300 uppercase mb-0.5">
+          BATA
+        </span>
+        <span className="text-[9px] font-bold text-slate-600">
+          ₹{mergedPayroll.bata || 0}
+        </span>
+      </div>
+
+      <button
+        className="w-6 h-6 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 active:scale-90"
+        onClick={() =>
+          handleLocalUpdate(log.attendanceId, "bata", -50, mergedPayroll)
+        }
+      >
+        <Minus className="w-3 h-3" />
+      </button>
+    </div>
+
+    {/* ADVANCE */}
+    <div className="flex items-center justify-between bg-white rounded-xl border border-rose-100 shadow-sm px-1 py-1.5">
+      <button
+        className="w-6 h-6 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 active:scale-90"
+        onClick={() =>
+          handleLocalUpdate(
+            log.attendanceId,
+            "advanceDeduction",
+            100,
+            mergedPayroll
+          )
+        }
+      >
+        <Plus className="w-3 h-3" />
+      </button>
+
+      <div className="flex flex-col items-center">
+        <Coins className="w-3 h-3 text-rose-300 mb-0.5" />
+        <span className="text-[9px] font-bold text-rose-600">
+          ₹{mergedPayroll.advanceDeduction || 0}
+        </span>
+      </div>
+
+      <button
+        className="w-6 h-6 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 active:scale-90"
+        onClick={() =>
+          handleLocalUpdate(
+            log.attendanceId,
+            "advanceDeduction",
+            -100,
+            mergedPayroll
+          )
+        }
+      >
+        <Minus className="w-3 h-3" />
+      </button>
+    </div>
+  </div>
+)}
+
                   
                   {hasUnsavedChanges && (
                     <button

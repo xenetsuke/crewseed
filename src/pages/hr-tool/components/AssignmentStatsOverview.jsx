@@ -75,6 +75,25 @@ const AssignmentStatsOverview = ({ payroll }) => {
         {/* Hero Stat */}
         <Stat label="Net Payable" value={format(payroll.netPayable)} icon={Wallet} isHero />
       </div>
+<div className="mt-4 flex gap-3">
+  <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3">
+    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+      This Month
+    </p>
+    <p className="text-sm font-black text-slate-800 mt-1">
+      ₹{Number(payroll.netPayable || 0).toLocaleString("en-IN")}
+    </p>
+  </div>
+
+  <div className="flex-1 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+    <p className="text-[9px] font-black uppercase tracking-widest text-indigo-500">
+      YTD Net Pay
+    </p>
+    <p className="text-sm font-black text-indigo-700 mt-1">
+      ₹{Number(payroll.ytdNetPay || 0).toLocaleString("en-IN")}
+    </p>
+  </div>
+</div>
 
       {/* Optional: Add custom CSS to global styles for .no-scrollbar if needed */}
       <style jsx="true">{`

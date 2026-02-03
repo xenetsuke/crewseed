@@ -34,7 +34,19 @@ const AssignmentDetails = () => {
   const [expandedAssignment, setExpandedAssignment] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+  const [calendarMonth, setCalendarMonth] = useState(
+  new Date().getMonth()
+);
+const [calendarYear, setCalendarYear] = useState(
+  new Date().getFullYear()
+);
+
+const changeCalendarMonth = (offset) => {
+  const d = new Date(calendarYear, calendarMonth + offset);
+  setCalendarMonth(d.getMonth());
+  setCalendarYear(d.getFullYear());
+};
+
   useEffect(() => {
     setLoading(true);
     getMyAttendanceHistory()
@@ -257,10 +269,13 @@ const AssignmentDetails = () => {
                             <TodayAttendanceCard assignment={assignment} />
                           </div>
                           <div className="lg:col-span-7 order-1 lg:order-2">
-                            <AttendanceCalendar 
-                              attendance={assignment.attendance} 
-                              dailyPay={assignment.dailyWage} 
-                            />
+                         <AttendanceCalendar
+  attendance={assignment.attendance}
+  viewMonth={calendarMonth}
+  viewYear={calendarYear}
+  onMonthChange={changeCalendarMonth}
+/>
+
                           </div>
                         </div>
 
