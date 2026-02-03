@@ -129,11 +129,13 @@ axiosInstance.interceptors.request.use(
     //     config,
     //   });
     // }
-      if (!authReady) {
+const authReady = store.getState().auth?.ready;
+
+if (!authReady) {
   return new Promise((resolve) => {
     const unsubscribe = store.subscribe(() => {
-      const ready = store.getState().auth?.ready;
-      if (ready) {
+      const readyNow = store.getState().auth?.ready;
+      if (readyNow) {
         unsubscribe();
         resolve(config);
       }
