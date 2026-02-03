@@ -108,28 +108,27 @@ axiosInstance.interceptors.request.use(
       config.url = config.url.replace("/api", "");
     }
 
-  const isAuthRequest = config.url?.startsWith("/auth");
+    const isAuthRequest = config.url?.startsWith("/auth");
 
-/* 🔓 AUTH endpoints → ALWAYS ALLOW */
-if (isAuthRequest) {
-  if (import.meta.env.DEV) {
-    console.log("🔓 [AUTH REQUEST] Allowing →", config.url);
-  }
-  return config;
-}
+    /* 🔓 AUTH endpoints → ALWAYS ALLOW */
+    if (isAuthRequest) {
+      if (import.meta.env.DEV) {
+        console.log("🔓 [AUTH REQUEST] Allowing →", config.url);
+      }
+      return config;
+    }
 
-/* ⏳ BLOCK only NON-AUTH calls until bootstrap finishes */
-const authReady = store.getState().auth?.ready;
-if (!authReady) {
-  if (import.meta.env.DEV) {
-    console.warn("⏳ [AUTH NOT READY] Blocking API →", config.url);
-  }
-  return Promise.reject({
-    message: "AUTH_NOT_READY",
-    config,
-  });
-}
-
+    /* ⏳ BLOCK only NON-AUTH calls until bootstrap finishes */
+    const authReady = store.getState().auth?.ready;
+    if (!authReady) {
+      if (import.meta.env.DEV) {
+        console.warn("⏳ [AUTH NOT READY] Blocking API →", config.url);
+      }
+      return Promise.reject({
+        message: "AUTH_NOT_READY",
+        config,
+      });
+    }
 
     const { token } = store.getState().jwt || {};
 
@@ -154,14 +153,6 @@ if (!authReady) {
   },
   (error) => Promise.reject(error)
 );
-if (status === 401 && isRefreshing) {
-  return new Promise((resolve, reject) => {
-    failedQueue.push({ resolve, reject });
-  }).then((newToken) => {
-    originalRequest.headers.Authorization = `Bearer ${newToken}`;
-    return axiosInstance(originalRequest);
-  });
-}
 
 /* =====================================================
    RESPONSE INTERCEPTOR
@@ -197,14 +188,16 @@ axiosInstance.interceptors.response.use(
     if (loggedOut || isAuthRequest) {
       return Promise.reject(error);
     }
-if (status === 401 && isRefreshing) {
-  return new Promise((resolve, reject) => {
-    failedQueue.push({ resolve, reject });
-  }).then((newToken) => {
-    originalRequest.headers.Authorization = `Bearer ${newToken}`;
-    return axiosInstance(originalRequest);
-  });
-}
+
+    if (status === 401 && isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      }).then((newToken) => {
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return axiosInstance(originalRequest);
+      });
+    }
+
     // ⛔ Stop infinite retry loops
     if (status === 401 && originalRequest._retry) {
       console.warn("⛔ [RETRY BLOCKED]", originalRequest.url);
@@ -216,20 +209,11 @@ if (status === 401 && isRefreshing) {
       console.warn("🔥 Firebase auth → skip refresh");
       return Promise.reject(error);
     }
+
     if (status === 401) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then((newToken) => {
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          return axiosInstance(originalRequest);
-        });
-      }
-    /* =================================================
-       PASSWORD LOGIN → SILENT REFRESH
-    ================================================= */
-
-
+      /* =================================================
+         PASSWORD LOGIN → SILENT REFRESH
+      ================================================= */
       originalRequest._retry = true;
       isRefreshing = true;
 
