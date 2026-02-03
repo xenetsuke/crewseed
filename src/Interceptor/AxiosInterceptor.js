@@ -154,6 +154,14 @@ if (!authReady) {
   },
   (error) => Promise.reject(error)
 );
+if (status === 401 && isRefreshing) {
+  return new Promise((resolve, reject) => {
+    failedQueue.push({ resolve, reject });
+  }).then((newToken) => {
+    originalRequest.headers.Authorization = `Bearer ${newToken}`;
+    return axiosInstance(originalRequest);
+  });
+}
 
 /* =====================================================
    RESPONSE INTERCEPTOR
