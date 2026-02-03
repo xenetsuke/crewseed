@@ -119,16 +119,28 @@ axiosInstance.interceptors.request.use(
     }
 
     /* ⏳ BLOCK only NON-AUTH calls until bootstrap finishes */
-    const authReady = store.getState().auth?.ready;
-    if (!authReady) {
-      if (import.meta.env.DEV) {
-        console.warn("⏳ [AUTH NOT READY] Blocking API →", config.url);
+    // const authReady = store.getState().auth?.ready;
+    // if (!authReady) {
+    //   if (import.meta.env.DEV) {
+    //     console.warn("⏳ [AUTH NOT READY] Blocking API →", config.url);
+    //   }
+    //   return Promise.reject({
+    //     message: "AUTH_NOT_READY",
+    //     config,
+    //   });
+    // }
+      if (!authReady) {
+  return new Promise((resolve) => {
+    const unsubscribe = store.subscribe(() => {
+      const ready = store.getState().auth?.ready;
+      if (ready) {
+        unsubscribe();
+        resolve(config);
       }
-      return Promise.reject({
-        message: "AUTH_NOT_READY",
-        config,
-      });
-    }
+    });
+  });
+}
+
 
     const { token } = store.getState().jwt || {};
 
