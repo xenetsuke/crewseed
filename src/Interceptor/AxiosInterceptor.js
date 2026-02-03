@@ -197,7 +197,14 @@ axiosInstance.interceptors.response.use(
     if (loggedOut || isAuthRequest) {
       return Promise.reject(error);
     }
-
+if (status === 401 && isRefreshing) {
+  return new Promise((resolve, reject) => {
+    failedQueue.push({ resolve, reject });
+  }).then((newToken) => {
+    originalRequest.headers.Authorization = `Bearer ${newToken}`;
+    return axiosInstance(originalRequest);
+  });
+}
     // ⛔ Stop infinite retry loops
     if (status === 401 && originalRequest._retry) {
       console.warn("⛔ [RETRY BLOCKED]", originalRequest.url);
@@ -209,10 +216,6 @@ axiosInstance.interceptors.response.use(
       console.warn("🔥 Firebase auth → skip refresh");
       return Promise.reject(error);
     }
-
-    /* =================================================
-       PASSWORD LOGIN → SILENT REFRESH
-    ================================================= */
     if (status === 401) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -222,6 +225,10 @@ axiosInstance.interceptors.response.use(
           return axiosInstance(originalRequest);
         });
       }
+    /* =================================================
+       PASSWORD LOGIN → SILENT REFRESH
+    ================================================= */
+
 
       originalRequest._retry = true;
       isRefreshing = true;
