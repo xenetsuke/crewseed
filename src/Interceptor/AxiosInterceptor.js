@@ -219,9 +219,51 @@ axiosInstance.interceptors.response.use(
     }
 
     // 🔥 Firebase → NEVER refresh
-    if (status === 401 && provider === "FIREBASE") {
-      console.warn("🔥 Firebase auth → skip refresh");
-      return Promise.reject(error);
+ if (status === 401 && provider === "FIREBASE") {
+      try {
+        console.warn("🔄 Firebase JWT expired → re-exchanging");
+
+        const firebaseAuth = window.firebaseAuth;
+        const firebaseUser = firebaseAuth?.currentUser;
+        if (!firebaseUser) throw new Error("NO_FIREBASE_USER");
+
+        const firebaseToken = await firebaseUser.getIdToken(true);
+
+        const role =
+          store.getState().user?.accountType === "EMPLOYER"
+            ? "employer"
+            : "worker";
+
+        const res = await axios.post(
+          "https://api.crewseed.com/auth/firebase-login",
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${firebaseToken}`,
+              "X-USER-ROLE": role,
+            },
+          }
+        );
+
+        const newJwt = res?.data?.jwt;
+        if (!newJwt) throw new Error("NO_BACKEND_JWT");
+
+        store.dispatch(setJwt(newJwt));
+        processQueue(null, newJwt);
+
+        originalRequest.headers.Authorization = `Bearer ${newJwt}`;
+        return axiosInstance(originalRequest);
+      } catch (err) {
+        processQueue(err, null);
+
+        store.dispatch(removeJwt());
+        store.dispatch(removeUser());
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.replace("/login");
+
+        return Promise.reject(error);
+      }
     }
 
     if (status === 401) {
@@ -248,7 +290,7 @@ axiosInstance.interceptors.response.use(
 
         // 📱 Mobile-safe behavior (DON'T hard logout)
         if (/Mobi|Android/i.test(navigator.userAgent)) {
-          console.warn("📱 Mobile detected → keeping session alive");
+          // console.warn("📱 Mobile detected → keeping session alive");
           return Promise.reject(err);
         }
 
