@@ -20,6 +20,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
+/* 🔥 REQUIRED FOR AXIOS FIREBASE RE-EXCHANGE */
+window.firebaseAuth = auth;
+
 /* =========================
    Google Auth
 ========================= */
@@ -27,7 +30,6 @@ export const googleProvider = new GoogleAuthProvider();
 
 /* =========================
    🔥 SINGLETON reCAPTCHA
-   (VERY IMPORTANT)
 ========================= */
 let recaptchaVerifier = null;
 
@@ -41,4 +43,3 @@ export const getRecaptcha = () => {
   }
   return recaptchaVerifier;
 };
-
