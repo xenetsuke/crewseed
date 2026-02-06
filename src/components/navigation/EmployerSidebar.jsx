@@ -25,7 +25,7 @@ useEffect(() => {
     const decoded = jwtDecode(jwtToken);
     setJwtUser(decoded);
 
-    console.log("✅ [EmployerSidebar] JWT decoded:", decoded);
+    // console.log("✅ [EmployerSidebar] JWT decoded:", decoded);
   } catch (err) {
     console.error("❌ [EmployerSidebar] Invalid JWT", err);
   }
