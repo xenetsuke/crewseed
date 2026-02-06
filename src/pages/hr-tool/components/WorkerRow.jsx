@@ -195,6 +195,8 @@ const downloadPayrollChit = () => {
       case "REJECTED":
       case "ABSENT":
         return { status: "REJECTED", label: "Rejected / Absent" };
+        case "AUTO_MARKED_ABSENT":
+  return { status: "REJECTED", label: "Auto Marked Absent" };
       case "PENDING":
       case "PENDING_VERIFICATION":
         return { status: "PENDING", label: "Pending Verification" };
