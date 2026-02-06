@@ -37,11 +37,12 @@ function AppContent() {
   useEffect(() => {
     bootstrapAuth(dispatch);
   }, [dispatch]);
+const token = useSelector((state) => state.jwt.token);
 
-  if (!authReady) {
-    return <AppSkeleton />;
+  // 🚀 ZERO skeleton if token already exists
+  if (!authReady && !token) {
+    return null; // 🔥 replaces <AppSkeleton />
   }
-
   return <Routes />;
 }
 
@@ -72,8 +73,10 @@ function App() {
   }, [showPreloader]);
 
   if (showPreloader) return <Preloader />;
+{/* <div id="recaptcha-container"></div> */}
 
   return (
+
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
         <PersistGate loading={<AppSkeleton />} persistor={persistor}>

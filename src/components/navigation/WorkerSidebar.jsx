@@ -30,7 +30,7 @@ useEffect(() => {
     const decoded = jwtDecode(jwtToken);
     setJwtUser(decoded);
 
-    console.log("✅ [WorkerSidebar] JWT decoded:", decoded);
+    // console.log("✅ [WorkerSidebar] JWT decoded:", decoded);
   } catch (err) {
     console.error("❌ [WorkerSidebar] Invalid JWT", err);
   }
