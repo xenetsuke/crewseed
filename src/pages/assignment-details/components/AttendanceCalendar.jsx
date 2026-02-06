@@ -10,17 +10,26 @@ const getStatusClasses = (status) => {
     case "APPROVED":
     case "VERIFIED":
       return "bg-emerald-500 text-white border-emerald-600";
+
     case "HALF_DAY":
       return "bg-amber-500 text-white border-amber-600";
+
     case "REJECTED":
     case "AUTO_MARKED_ABSENT":
     case "ABSENT":
       return "bg-rose-500 text-white border-rose-600";
+
     case "PENDING":
     case "PENDING_VERIFICATION":
       return "bg-blue-400 text-white border-blue-500";
+
     case "NOT_STARTED":
       return "bg-blue-600 text-white border-blue-700";
+
+    /* ✅ UPCOMING DAYS */
+    case "FUTURE":
+      return "bg-slate-100 text-slate-400 border-slate-200";
+
     default:
       return "bg-white text-slate-400 border-slate-200";
   }
@@ -81,7 +90,15 @@ const AttendanceCalendar = ({
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
           const record = getRecordForDay(day);
-          const status = record?.status || "NOT_STARTED";
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const date = new Date(viewYear, viewMonth, day);
+date.setHours(0, 0, 0, 0);
+
+const status = date > today
+  ? "FUTURE"
+  : record?.status || "NOT_STARTED";
 
           return (
             <div
