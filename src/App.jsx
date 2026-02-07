@@ -73,24 +73,21 @@ function App() {
   }, [showPreloader]);
 
   if (showPreloader) return <Preloader />;
-{/* <div id="recaptcha-container"></div> */}
 
   return (
-
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
-        <PersistGate loading={<AppSkeleton />} persistor={persistor}>
-          <MantineProvider defaultColorScheme="light">
-            <Notifications position="top-right" />
-            <ModalsProvider>
-              <AppContent />
-              <Toaster position="top-center" />
-            </ModalsProvider>
-          </MantineProvider>
-        </PersistGate>
+        <MantineProvider defaultColorScheme="light">
+          <Notifications position="top-right" />
+          <ModalsProvider>
+            <AppContent />
+            <Toaster position="top-center" />
+          </ModalsProvider>
+        </MantineProvider>
       </Provider>
     </QueryClientProvider>
   );
 }
+
 
 export default App;
