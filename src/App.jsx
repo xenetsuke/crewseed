@@ -3,6 +3,7 @@ import Routes from "./Routes";
 import { Provider, useDispatch, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from "./Store";
+import { startAutoRefresh } from "./Services/AuthRefreshScheduler";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MantineProvider } from "@mantine/core";
@@ -33,16 +34,20 @@ const queryClient = new QueryClient({
 function AppContent() {
   const dispatch = useDispatch();
   const authReady = useSelector((state) => state.auth.ready);
-
-  useEffect(() => {
-    bootstrapAuth(dispatch);
-  }, [dispatch]);
 const token = useSelector((state) => state.jwt.token);
 
-  // 🚀 ZERO skeleton if token already exists
-  if (!authReady && !token) {
-    return null; // 🔥 replaces <AppSkeleton />
-  }
+ useEffect(() => {
+    bootstrapAuth(dispatch);
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (authReady && token) {
+      startAutoRefresh();
+    }
+  }, [authReady, token]);
+
+  if (!authReady && !token) return null;
+
   return <Routes />;
 }
 
