@@ -2,7 +2,7 @@ import axios from "axios";
 
 export const exchangeFirebaseToken = (firebaseToken, role) => {
   return axios.post(
-    "https://bluc-ysbf.onrender.com/auth/firebase-login",
+    "https://api.crewseed.com/auth/firebase-login",
     {},
     {
       headers: {
