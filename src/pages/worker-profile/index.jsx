@@ -8,9 +8,9 @@ import PersonalInfoTab from "./components/PersonalInfoTab";
 import ProfessionalInfoTab from "./components/ProfessionalInfoTab";
 import DocumentsVerificationTab from "./components/DocumentsVerificationTab";
 import WorkHistoryTab from "./components/WorkHistoryTab";
-import { logout } from "../../Services/AuthService";
+// import { logout } from "../../Services/AuthService";
 import { removeJwt } from "../../features/JwtSlice";
-import { resetAuth } from "../../features/AuthSlice";
+// import { resetAuth } from "../../features/AuthSlice";
 import { persistor } from "../../Store";
 
 import Button from "../../components/ui/Button";
