@@ -242,25 +242,27 @@ const EmployerProfile = () => {
 
 const handleLogout = async () => {
   try {
-    // 🚫 block auto-refresh BEFORE anything else
+    // 🚫 hard block all future refresh attempts
     sessionStorage.setItem("crewseed_logged_out", "true");
+    sessionStorage.removeItem("auth_provider");
 
-    // 🔴 revoke refresh token (best effort)
-    await logout();
+    await logout(); // backend + firebase
   } catch (err) {
-    console.warn("Backend logout failed, continuing anyway");
+    console.warn("Logout error, continuing anyway");
   } finally {
     dispatch(removeUser());
     dispatch(clearProfile());
     dispatch(removeJwt());
+    dispatch(resetAuth()); // 🔥 IMPORTANT
 
     await persistor.purge();
     localStorage.clear();
 
-    // 🔁 HARD redirect
+    // 🔁 kill history + memory cache
     window.location.replace("/login");
   }
 };
+
 
 
 
