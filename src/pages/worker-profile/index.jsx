@@ -23,7 +23,8 @@ import { saveVerifiedPhone } from "../../Services/UserService";
 
 import { getRecaptcha, auth } from "../../firebase/firebase";
 import { linkWithPhoneNumber, signInAnonymously } from "firebase/auth";
-
+import { resetAuth } from "features/AuthSlice";
+import { logout } from "Services/AuthService";
 import toast, { Toaster } from "react-hot-toast";
 
 const WorkerProfile = () => {
