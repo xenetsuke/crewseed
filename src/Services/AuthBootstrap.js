@@ -14,10 +14,14 @@ export const bootstrapAuth = async (dispatch) => {
 
   try {
     // 🚫 user explicitly logged out
-    if (sessionStorage.getItem("crewseed_logged_out") === "true") {
-      dispatch(setAuthReady());
-      return;
-    }
+if (sessionStorage.getItem("crewseed_logged_out") === "true") {
+  dispatch(removeJwt());
+  dispatch(removeUser());
+  dispatch(resetAuth());
+  dispatch(setAuthReady());
+  return;
+}
+
 
     const provider = sessionStorage.getItem("auth_provider"); // PASSWORD | FIREBASE
 
