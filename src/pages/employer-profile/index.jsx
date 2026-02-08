@@ -29,7 +29,8 @@ import toast, { Toaster } from "react-hot-toast";
 import { saveVerifiedPhone } from "../../Services/UserService";
 import { getRecaptcha, auth } from "../../firebase/firebase";
 import { linkWithPhoneNumber, signInAnonymously } from "firebase/auth";
-
+import { resetAuth } from "features/AuthSlice";
+import { logout } from "Services/AuthService";
 const EmployerProfile = () => {
   const dispatch = useDispatch();
 
@@ -41,8 +42,7 @@ const EmployerProfile = () => {
   const [isEditingCompany, setIsEditingCompany] = useState(false);
   const [isEditingUser, setIsEditingUser] = useState(false);
   const [loading, setLoading] = useState(false);
-import { resetAuth } from "features/AuthSlice";
-import { logout } from "Services/AuthService";
+
   // OTP Verification States
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
   const [otpValue, setOtpValue] = useState("");
