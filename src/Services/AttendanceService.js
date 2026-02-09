@@ -18,13 +18,19 @@ export const checkOut = (assignmentId) =>
 
 export const uploadSitePhoto = (attendanceId, file) => {
   const formData = new FormData();
-  formData.append("photo", file); // 🔥 MUST be "photo"
+  formData.append("photo", file);
 
   return axiosInstance.post(
     `/attendance/upload-photo/${attendanceId}`,
-    formData
+    formData,
+    {
+      headers: {
+        "Content-Type": undefined, // 🔥 LET BROWSER SET IT
+      },
+    }
   );
 };
+
 
 // =========================
 // HR – GENERATE PHOTO LINK
