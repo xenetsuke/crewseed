@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "../../../components/AppIcon";
 import Button from "../../../components/ui/Button";
-
+import { deleteJob } from "Services/JobService";
 const RequirementRow = ({ requirement, onEdit, onPause, onDelete }) => {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -31,10 +31,28 @@ const RequirementRow = ({ requirement, onEdit, onPause, onDelete }) => {
     navigate(`/requirement-details/${requirement.id}`);
   };
 
-  const handleDeleteClick = (e) => {
-    e.stopPropagation();
-    if (requirement?.id) onDelete(requirement.id);
-  };
+const handleDeleteClick = async (e) => {
+  e.stopPropagation();
+
+  if (!requirement?.id) return;
+
+  const confirmed = window.confirm(
+    "Are you sure you want to permanently delete this job?"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await deleteJob(requirement.id);
+
+    // 🔥 inform parent to remove from list
+    if (onDelete) onDelete(requirement.id);
+  } catch (error) {
+    console.error("Delete job failed:", error);
+    alert("Failed to delete job. Please try again.");
+  }
+};
+
 
   const handleCloseClick = (e) => {
     e.stopPropagation();
