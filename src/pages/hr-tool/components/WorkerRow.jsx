@@ -20,6 +20,9 @@ const WorkerRow = ({
 const [isNavigating, setIsNavigating] = useState(false);
   const currentMonth = viewMonth;
   const currentYear = viewYear;
+const [showStats, setShowStats] = useState(false); // 🔒 hidden initially
+const [isExpanded, setIsExpanded] = useState(false); // 🔒 collapsed by default
+
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
   const attendanceRecords = worker?.attendance || [];
@@ -226,160 +229,174 @@ const downloadPayrollChit = () => {
   }, [attendanceRecords, currentMonth, currentYear, daysInMonth]);
 
   return (
-    
-    <div className="bg-white border border-slate-200/60 rounded-3xl shadow-sm mb-5 overflow-hidden transition-all duration-300 hover:shadow-md hover:border-slate-300/80">
+  <div className="bg-white border border-slate-200/60 rounded-3xl shadow-sm mb-5 overflow-hidden transition-all duration-300 hover:shadow-md hover:border-slate-300/80">
     {isNavigating && (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/60 backdrop-blur-md transition-all duration-300">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-            <Loader2 className="w-6 h-6 text-indigo-600 animate-pulse absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-          </div>
-          <p className="mt-4 text-xs font-black text-indigo-600 uppercase tracking-[0.3em] animate-pulse">
-            Fetching Assignment
-          </p>
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/60 backdrop-blur-md">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+          <Loader2 className="w-6 h-6 text-indigo-600 animate-pulse absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
         </div>
-      )}
-      <div className="p-5 lg:p-7">
-        
-        {/* WORKER HEADER */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 shadow-inner">
-              <User className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="font-black text-slate-900 text-base tracking-tight">{worker.name}</h3>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[10px] font-black text-teal-600 uppercase tracking-widest bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100">
-                  {worker.role}
-                </span>
-              </div>
-            </div>
+        <p className="mt-4 text-xs font-black text-indigo-600 uppercase tracking-[0.3em] animate-pulse">
+          Fetching Assignment
+        </p>
+      </div>
+    )}
+
+    <div className="p-5 lg:p-7">
+      {/* ================= WORKER HEADER ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 shadow-inner">
+            <User className="w-6 h-6" />
           </div>
 
-        <button
-            onClick={handleEditClick} // Updated to use the handler
-            className="flex items-center justify-center gap-2 px-4 py-2 text-[11px] font-black text-indigo-600 hover:text-white bg-indigo-50 hover:bg-indigo-600 rounded-xl transition-all duration-300 border border-indigo-100 uppercase tracking-wider"
+          <div>
+            <h3 className="font-black text-slate-900 text-base tracking-tight">
+              {worker.name}
+            </h3>
+            <span className="text-[10px] font-black text-teal-600 uppercase tracking-widest bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100">
+              {worker.role}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-2 px-4 py-2 text-[11px] font-black text-slate-700 hover:text-white bg-slate-100 hover:bg-slate-800 rounded-xl border border-slate-200 uppercase tracking-wider"
+          >
+            <Info className="w-3.5 h-3.5" />
+            {isExpanded ? "Hide Details" : "View Details"}
+          </button>
+
+          <button
+            onClick={handleEditClick}
+            className="flex items-center gap-2 px-4 py-2 text-[11px] font-black text-indigo-600 hover:text-white bg-indigo-50 hover:bg-indigo-600 rounded-xl border border-indigo-100 uppercase tracking-wider"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             Edit Assignment
           </button>
         </div>
+      </div>
 
-        <div className="mb-8">
-<AssignmentStatsOverview payroll={payrollWithYTD} />
-          
-          
-        </div>
-<PayrollSlipEditor
-  open={showSlipEditor}
-  onClose={() => setShowSlipEditor(false)}
-  worker={worker}
-  payroll={effectivePayroll}
-  viewMonth={viewMonth}
-  viewYear={viewYear}
-/>
+      {/* ================= DETAILS SECTION ================= */}
+      {isExpanded && (
+        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+          <button
+            onClick={() => setShowStats(!showStats)}
+            className="mb-4 flex items-center gap-2 px-4 py-2 text-[11px] font-black text-slate-700 bg-white border border-slate-200 rounded-xl uppercase"
+          >
+            <Info className="w-4 h-4" />
+            {showStats ? "Hide Stats" : "View Stats"}
+          </button>
 
-        {/* HEATMAP GRID */}
-        <div className="group/heatmap">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Monthly Attendance Tracker</h4>
+          {showStats && (
+            <div className="mb-6">
+              <AssignmentStatsOverview payroll={payrollWithYTD} />
+            </div>
+          )}
+
+          <PayrollSlipEditor
+            open={showSlipEditor}
+            onClose={() => setShowSlipEditor(false)}
+            worker={worker}
+            payroll={effectivePayroll}
+            viewMonth={viewMonth}
+            viewYear={viewYear}
+          />
+
+          {/* ================= HEATMAP ================= */}
+          <div className="group/heatmap">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">
+              Monthly Attendance Tracker
+            </h4>
+
             <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide px-1">
-            {Array.from({ length: daysInMonth }).map((_, i) => {
+              {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1;
                 const { status, label } = getDayInfo(day);
                 const isSelected = selectedDay === day;
+
                 return (
-                <div
+                  <div
                     key={day}
                     className="relative flex flex-col items-center flex-shrink-0"
                     onMouseEnter={() => setHoveredDay(day)}
                     onMouseLeave={() => setHoveredDay(null)}
-                >
+                  >
                     <button
-                    onClick={() => {
+                      onClick={() => {
                         setSelectedDay(isSelected ? null : day);
                         setShowLogs(true);
-                    }}
-                    className={cn(
+                      }}
+                      className={cn(
                         "w-10 h-12 rounded-xl border-2 text-[11px] font-black transition-all duration-300 flex items-center justify-center",
-                        status === "APPROVED" && "bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-100 hover:scale-110",
-                        status === "REJECTED" && "bg-rose-500 text-white border-rose-400 shadow-lg shadow-rose-100 hover:scale-110",
-                        status === "PENDING" && "bg-amber-400 text-white border-amber-300 shadow-lg shadow-amber-50 hover:scale-110",
-                        status === "NOT_STARTED" && "bg-blue-500 text-white border-blue-400 shadow-lg shadow-blue-50 hover:scale-110",
-                        status === "FUTURE" && "bg-white text-slate-200 border-slate-50",
-                        status === "EMPTY" && "bg-slate-50 text-slate-300 border-slate-100 hover:border-slate-300",
-                        isSelected && "ring-4 ring-slate-900/10 border-slate-900 scale-110 z-10"
-                    )}
+                        status === "APPROVED" &&
+                          "bg-emerald-500 text-white border-emerald-400",
+                        status === "REJECTED" &&
+                          "bg-rose-500 text-white border-rose-400",
+                        status === "PENDING" &&
+                          "bg-amber-400 text-white border-amber-300",
+                        status === "NOT_STARTED" &&
+                          "bg-blue-500 text-white border-blue-400",
+                        status === "FUTURE" &&
+                          "bg-white text-slate-200 border-slate-50",
+                        status === "EMPTY" &&
+                          "bg-slate-50 text-slate-300 border-slate-100",
+                        isSelected &&
+                          "ring-4 ring-slate-900/10 border-slate-900 scale-110 z-10"
+                      )}
                     >
-                    {day}
+                      {day}
                     </button>
-                    {(hoveredDay === day || isSelected) && (
-                    <div className="absolute -top-10 z-30 bg-slate-900 text-white text-[10px] px-3 py-2 rounded-xl shadow-2xl flex items-center gap-2 whitespace-nowrap animate-in fade-in slide-in-from-bottom-2">
-                        <div className={cn("w-2 h-2 rounded-full", 
-                            status === "APPROVED" ? "bg-emerald-400" : 
-                            status === "REJECTED" ? "bg-rose-400" : "bg-amber-400"
-                        )} />
-                        {label}
-                    </div>
-                    )}
-                </div>
-                );
-            })}
-            </div>
-        </div>
 
-        {/* FOOTER ACTIONS */}
-        <div className="mt-6 pt-6 border-t border-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
-            {[
-              { color: "bg-emerald-500", text: "Present" },
-              { color: "bg-rose-500", text: "Absent" },
-              { color: "bg-amber-400", text: "Pending" },
-              { color: "bg-blue-500", text: "No Photo" },
-            ].map((item) => (
-              <div key={item.text} className="flex items-center gap-2">
-                <span className={cn("w-2.5 h-2.5 rounded-full ring-2 ring-offset-1", item.color, "ring-"+item.color.split('-')[1]+"-100")} />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                  {item.text}
-                </span>
-              </div>
-            ))}
+                    {(hoveredDay === day || isSelected) && (
+                      <div className="absolute -top-10 z-30 bg-slate-900 text-white text-[10px] px-3 py-2 rounded-xl shadow-2xl">
+                        {label}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="flex gap-3">
+          {/* ================= FOOTER ================= */}
+          <div className="mt-6 pt-6 border-t border-slate-50 flex justify-end gap-3">
             <button
               onClick={() => setShowLogs(!showLogs)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl text-[11px] font-black text-slate-700 uppercase tracking-widest transition-all shadow-sm"
+              className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-2xl text-[11px] font-black uppercase"
             >
-              <ClipboardList className="w-4 h-4 text-slate-400" />
-              {showLogs ? "Hide Logs" : "View Detailed Logs"}
+              <ClipboardList className="w-4 h-4" />
+              {showLogs ? "Hide Logs" : "View Logs"}
             </button>
 
             <button
               onClick={downloadPayrollChit}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-200/50"
+              className="flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white rounded-2xl text-[11px] font-black uppercase"
             >
               <Download className="w-4 h-4" />
               Download Slip
             </button>
           </div>
         </div>
-      </div>
-
-      {showLogs && (
-        <div className="border-t border-slate-100 bg-slate-50/40 animate-in slide-in-from-top-4 duration-500 ease-out">
-          <div className="p-2">
-            <AttendanceLog
-              logs={fullMonthLogs}
-              highlightedDay={selectedDay}
-              onStatusUpdate={handleAttendanceStatusChange}
-              onRefresh={onAttendanceUpdated}
-            />
-          </div>
-        </div>
       )}
     </div>
-  );
+
+    {showLogs && (
+      <div className="border-t border-slate-100 bg-slate-50/40">
+        <AttendanceLog
+          logs={fullMonthLogs}
+          highlightedDay={selectedDay}
+          onStatusUpdate={handleAttendanceStatusChange}
+          onRefresh={onAttendanceUpdated}
+        />
+      </div>
+    )}
+  </div>
+);
+
+  
 };
 
 export default WorkerRow;
