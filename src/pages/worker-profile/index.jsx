@@ -8,9 +8,9 @@ import PersonalInfoTab from "./components/PersonalInfoTab";
 import ProfessionalInfoTab from "./components/ProfessionalInfoTab";
 import DocumentsVerificationTab from "./components/DocumentsVerificationTab";
 import WorkHistoryTab from "./components/WorkHistoryTab";
-import { logout } from "../../Services/AuthService";
+// import { logout } from "../../Services/AuthService";
 import { removeJwt } from "../../features/JwtSlice";
-import { resetAuth } from "../../features/AuthSlice";
+// import { resetAuth } from "../../features/AuthSlice";
 import { persistor } from "../../Store";
 
 import Button from "../../components/ui/Button";
@@ -149,25 +149,27 @@ const WorkerProfile = () => {
   /* ---------------- LOGOUT ---------------- */
 const handleLogout = async () => {
   try {
-    // 🚫 block auto-refresh BEFORE anything else
+    // 🚫 hard block all future refresh attempts
     sessionStorage.setItem("crewseed_logged_out", "true");
+    sessionStorage.removeItem("auth_provider");
 
-    // 🔴 revoke refresh token (best effort)
-    await logout();
+    await logout(); // backend + firebase
   } catch (err) {
-    console.warn("Backend logout failed, continuing anyway");
+    console.warn("Logout error, continuing anyway");
   } finally {
     dispatch(removeUser());
     dispatch(clearProfile());
     dispatch(removeJwt());
+    dispatch(resetAuth()); // 🔥 IMPORTANT
 
     await persistor.purge();
     localStorage.clear();
 
-    // 🔁 HARD redirect
+    // 🔁 kill history + memory cache
     window.location.replace("/login");
   }
 };
+
 
   /* ---------------- TABS ---------------- */
   const tabs = [
