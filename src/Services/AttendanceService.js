@@ -31,7 +31,7 @@ export const uploadSitePhoto = (attendanceId, file) => {
     formData
   );
 };
-
+//
 
 
 // =========================

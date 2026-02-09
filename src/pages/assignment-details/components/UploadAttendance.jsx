@@ -11,7 +11,7 @@ const UploadAttendance = ({ status, onUpload }) => {
 // console.log("Attendance ID:", attendanceId);
 // console.log("Raw file from input:", file);
 // console.log("File instanceof File:", file instanceof File);
-// console.log("File constructor:", file?.constructor?.name);
+// consolexs.log("File constructor:", file?.constructor?.name);
 // console.log("File size:", file?.size);
 // console.log("File type:", file?.type);
 // console.groupEnd();
