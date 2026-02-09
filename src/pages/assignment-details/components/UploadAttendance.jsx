@@ -7,14 +7,14 @@ const UploadAttendance = ({ status, onUpload }) => {
   const fileInputRef = useRef(null);
 
   const canUpload = status === "NOT_STARTED" || uploadSuccess;
-console.group("⬆️ [UPLOAD CLICK]");
-console.log("Attendance ID:", attendanceId);
-console.log("Raw file from input:", file);
-console.log("File instanceof File:", file instanceof File);
-console.log("File constructor:", file?.constructor?.name);
-console.log("File size:", file?.size);
-console.log("File type:", file?.type);
-console.groupEnd();
+// console.group("⬆️ [UPLOAD CLICK]");
+// console.log("Attendance ID:", attendanceId);
+// console.log("Raw file from input:", file);
+// console.log("File instanceof File:", file instanceof File);
+// console.log("File constructor:", file?.constructor?.name);
+// console.log("File size:", file?.size);
+// console.log("File type:", file?.type);
+// console.groupEnd();
 
   const handleButtonClick = () => {
     if (uploadSuccess) {
