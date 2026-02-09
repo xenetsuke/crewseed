@@ -23,15 +23,15 @@ const handleUpload = async (file) => {
     return;
   }
 
-  const formData = new FormData();
+  // const formData = new FormData();
 
-  // 🔥 MUST FORCE FILENAME (iOS FIX)
-  formData.append("photo", file, "attendance.jpg");
+  // // 🔥 MUST FORCE FILENAME (iOS FIX)
+  // formData.append("photo", file, "attendance.jpg");
 
-  console.log("🧾 FormData keys:");
-  for (let pair of formData.entries()) {
-    console.log(pair[0], pair[1]);
-  }
+  // console.log("🧾 FormData keys:");
+  // for (let pair of formData.entries()) {
+  //   console.log(pair[0], pair[1]);
+  // }
 
   await uploadSitePhoto(todayRecord.attendanceId, formData);
 
