@@ -7,6 +7,14 @@ const UploadAttendance = ({ status, onUpload }) => {
   const fileInputRef = useRef(null);
 
   const canUpload = status === "NOT_STARTED" || uploadSuccess;
+console.group("⬆️ [UPLOAD CLICK]");
+console.log("Attendance ID:", attendanceId);
+console.log("Raw file from input:", file);
+console.log("File instanceof File:", file instanceof File);
+console.log("File constructor:", file?.constructor?.name);
+console.log("File size:", file?.size);
+console.log("File type:", file?.type);
+console.groupEnd();
 
   const handleButtonClick = () => {
     if (uploadSuccess) {
@@ -48,14 +56,32 @@ const handleFileSelect = async (event) => {
   const rawFile = event.target.files?.[0];
   if (!rawFile) return;
 
+  console.group("⬆️ [UPLOAD CLICK]");
+  console.log("Raw file:", rawFile);
+  console.log("instanceof File:", rawFile instanceof File);
+  console.log("constructor:", rawFile?.constructor?.name);
+  console.log("name:", rawFile?.name);
+  console.log("size (KB):", rawFile?.size / 1024);
+  console.log("type:", rawFile?.type);
+  console.groupEnd();
+
   setUploading(true);
 
   try {
     const normalized = await normalizeImage(rawFile);
-    await onUpload(normalized); // 🔥 upload compressed jpeg
+
+    console.group("🧪 [NORMALIZED IMAGE]");
+    console.log("Normalized file:", normalized);
+    console.log("instanceof File:", normalized instanceof File);
+    console.log("name:", normalized?.name);
+    console.log("size (KB):", normalized?.size / 1024);
+    console.log("type:", normalized?.type);
+    console.groupEnd();
+
+    await onUpload(normalized);
     setUploadSuccess(true);
   } catch (err) {
-    console.error(err);
+    console.error("❌ Upload failed:", err);
     alert("Upload failed. Please retry.");
   } finally {
     setUploading(false);
