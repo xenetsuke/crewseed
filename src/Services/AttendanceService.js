@@ -17,17 +17,13 @@ export const checkOut = (assignmentId) =>
 //   );
 
 export const uploadSitePhoto = (attendanceId, file) => {
-  console.group("📸 [UPLOAD SITE PHOTO]");
-  console.log("Attendance ID:", attendanceId);
-  console.log("File:", file);
-  console.log("Is File instance:", file instanceof File);
-  console.log("Name:", file?.name);
-  console.log("Size (KB):", file?.size / 1024);
-  console.log("Type:", file?.type);
-  console.groupEnd();
+  if (!(file instanceof File)) {
+    console.error("🚨 NOT A FILE:", file);
+    throw new Error("uploadSitePhoto expects File");
+  }
 
   const formData = new FormData();
-  formData.append("photo", file); // ✅ file is File
+  formData.append("photo", file);
 
   return axiosInstance.post(
     `/attendance/upload-photo/${attendanceId}`,

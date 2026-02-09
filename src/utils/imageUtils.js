@@ -1,33 +1,11 @@
-// src/utils/imageUtils.js
-
-export const normalizeImage = async (file) => {
-  if (!file || !file.type?.startsWith("image/")) {
-    throw new Error("Invalid image file");
+export async function normalizeImage(file) {
+  if (!(file instanceof File)) {
+    throw new Error("normalizeImage expects File");
   }
 
-  const bitmap = await createImageBitmap(file);
-  const canvas = document.createElement("canvas");
-
-  const MAX_WIDTH = 1280;
-  const scale = Math.min(1, MAX_WIDTH / bitmap.width);
-
-  canvas.width = bitmap.width * scale;
-  canvas.height = bitmap.height * scale;
-
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-
-  return new Promise((resolve) => {
-    canvas.toBlob(
-      (blob) => {
-        resolve(
-          new File([blob], "attendance.jpg", {
-            type: "image/jpeg",
-          })
-        );
-      },
-      "image/jpeg",
-      0.75 // 🔥 compression
-    );
+  // optional compression logic here
+  return new File([file], file.name, {
+    type: file.type || "image/jpeg",
+    lastModified: Date.now(),
   });
-};
+}
