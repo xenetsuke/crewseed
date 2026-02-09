@@ -33,7 +33,7 @@ const handleUpload = async (file) => {
   //   console.log(pair[0], pair[1]);
   // }
 
-  await uploadSitePhoto(todayRecord.attendanceId, formData);
+await uploadSitePhoto(todayRecord.attendanceId, file);
 
   setPreviewUrl(URL.createObjectURL(file));
 };
