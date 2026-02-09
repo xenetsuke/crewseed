@@ -24,12 +24,14 @@ export const uploadSitePhoto = (attendanceId, file) => {
     `/attendance/upload-photo/${attendanceId}`,
     formData,
     {
+      withCredentials: false, // 🔥 CRITICAL
       headers: {
-        "Content-Type": undefined, // 🔥 LET BROWSER SET IT
+        "Content-Type": undefined, // let browser set boundary
       },
     }
   );
 };
+
 
 
 // =========================
