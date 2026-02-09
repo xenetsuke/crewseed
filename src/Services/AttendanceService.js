@@ -10,11 +10,22 @@ export const checkIn = (assignmentId) =>
 export const checkOut = (assignmentId) =>
   axiosInstance.post(`/attendance/check-out/${assignmentId}`);
 
-export const uploadSitePhoto = (attendanceId, formData) =>
-  axiosInstance.post(
+// export const uploadSitePhoto = (attendanceId, formData) =>
+//   axiosInstance.post(
+//     `/attendance/upload-photo/${attendanceId}`,
+//     formData
+//   );
+
+export const uploadSitePhoto = (attendanceId, file) => {
+  const formData = new FormData();
+  formData.append("photo", file); // 🔥 MUST be "photo"
+
+  return axiosInstance.post(
     `/attendance/upload-photo/${attendanceId}`,
     formData
   );
+};
+
 // =========================
 // HR – GENERATE PHOTO LINK
 // =========================
