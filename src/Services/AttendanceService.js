@@ -17,19 +17,21 @@ export const checkOut = (assignmentId) =>
 //   );
 
 export const uploadSitePhoto = (attendanceId, file) => {
-  if (!(file instanceof File)) {
-    console.error("🚨 NOT A FILE:", file);
-    throw new Error("uploadSitePhoto expects File");
-  }
+  console.group("📸 [UPLOAD SITE PHOTO]");
+  console.log("Attendance ID:", attendanceId);
+  console.log("File:", file);
+  console.log("Is File:", file instanceof File);
+  console.groupEnd();
 
   const formData = new FormData();
-  formData.append("photo", file);
+  formData.append("photo", file); // ✅ MUST be File
 
   return axiosInstance.post(
     `/attendance/upload-photo/${attendanceId}`,
     formData
   );
 };
+
 
 
 // =========================
