@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
+import { normalizeImage } from "utils/imageUtils";
+// or "../../utils/imageUtils" if no alias
+
 import {
   Camera,
   UploadCloud,
@@ -25,11 +28,24 @@ const AttendanceUploadPage = () => {
     reader.onloadend = () => setPreview(reader.result);
     reader.readAsDataURL(file);
 
-    handleUpload(file);
+    // handleUpload(file);
+    (async () => {
+  try {
+    const normalized = await normalizeImage(file);
+    handleUpload(normalized);
+  } catch (err) {
+    toast.error("Invalid image. Please try again.");
+  }
+})();
+
   };
 
   const handleUpload = async (file) => {
-    if (!file) return;
+    // if (!file) return;
+if (!file || !file.type.startsWith("image/")) {
+  toast.error("Please upload a valid image");
+  return;
+}
 
     const form = new FormData();
     form.append("photo", file);
@@ -41,7 +57,7 @@ const AttendanceUploadPage = () => {
       console.log("🔑 Upload token:", token);
 
       const res = await fetch(
-        `https://bluc-ysbf.onrender.com/attendance/public-upload/${token}`,
+        `https://api.crewseed.com/attendance/public-upload/${token}`,
         {
           method: "POST",
           body: form,
