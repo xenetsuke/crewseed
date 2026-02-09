@@ -7,6 +7,10 @@ export const getAssignmentsByJob = async (jobId) => {
   const res = await axiosInstance.get(`/assignments/job/${jobId}`);
   return res.data;
 };
+export const getMyAssignments = async (workerId) => {
+  const res = await axiosInstance.get(`/assignments/worker/${workerId}`);
+  return res.data;
+};
 
 /* ===============================
    ADD WORKER TO JOB

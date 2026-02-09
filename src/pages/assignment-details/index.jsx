@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import WorkerSidebar from "components/navigation/WorkerSidebar";
 import { MapPin, ChevronDown, Briefcase, Wallet, Clock, TrendingUp } from "lucide-react";
 import { cn } from "utils/cn";
+import { getMyAssignments } from "../../Services/AssignmentService";
 
 import AssignmentHeader from "./components/AssignmentHeader";
 import TodayAttendanceCard from "./components/TodayAttendanceCard";
@@ -34,6 +35,7 @@ const AssignmentDetails = () => {
   const [expandedAssignment, setExpandedAssignment] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
+  
   const [calendarMonth, setCalendarMonth] = useState(
   new Date().getMonth()
 );
@@ -47,81 +49,305 @@ const changeCalendarMonth = (offset) => {
   setCalendarYear(d.getFullYear());
 };
 
-  useEffect(() => {
-    setLoading(true);
-    getMyAttendanceHistory()
-    .then(async (res) => {
-      const data = res.data || [];
-      if (!data.length) {
-        setAssignments(EMPTY_STATE);
-        setLoading(false);
-        return;
-      }
+  // useEffect(() => {
+  //   setLoading(true);
+  //   getMyAttendanceHistory()
+  //   .then(async (res) => {
+  //     const data = res.data || [];
+  //     if (!data.length) {
+  //       setAssignments(EMPTY_STATE);
+  //       setLoading(false);
+  //       return;
+  //     }
       
-      const map = {};
-      const assignmentFetches = {};
+  //     const map = {};
+  //     const assignmentFetches = {};
         
-      data.forEach((a) => {
-        const snapshot = a.jobSnapshot || {};
-        if (!map[a.assignmentId]) {
-          map[a.assignmentId] = {
-            assignmentId: a.assignmentId,
-              jobId: a.jobId,
-              workerId: a.workerId,
-               BasePay : Number(a?.payroll?.basePay || 0),
-              jobTitle: snapshot.jobTitle || "Archived Job",
-              companyName: snapshot.companyName || "Company",
-              managerName: snapshot.managerName || "Manager",
-              location: snapshot.location || "Location Unavailable",
-              shift: "--:--",
-              role: a.hrSnapshot?.workerRole || "Worker",
-              dailyWage: a.hrSnapshot?.payroll?.dailyPay || 0,
-                            basePay: 0,
+  //     data.forEach((a) => {
+  //       const snapshot = a.jobSnapshot || {};
+  //       if (!map[a.assignmentId]) {
+  //         map[a.assignmentId] = {
+  //           assignmentId: a.assignmentId,
+  //             jobId: a.jobId,
+  //             workerId: a.workerId,
+  //              BasePay : Number(a?.payroll?.basePay || 0),
+  //             jobTitle: snapshot.jobTitle || "Archived Job",
+  //             companyName: snapshot.companyName || "Company",
+  //             managerName: snapshot.managerName || "Manager",
+  //             location: snapshot.location || "Location Unavailable",
+  //             shift: "--:--",
+  //             role: a.hrSnapshot?.workerRole || "Worker",
+  //             dailyWage: a.hrSnapshot?.payroll?.dailyPay || 0,
+  //                           basePay: 0,
 
-                            attendance: [],
-            };
-            assignmentFetches[a.assignmentId] = getAssignmentByIdAndJob(a.assignmentId, a.jobId, a.workerId);
-          }
+  //                           attendance: [],
+  //           };
+  //           assignmentFetches[a.assignmentId] = getAssignmentByIdAndJob(a.assignmentId, a.jobId, a.workerId);
+  //         }
 
-          map[a.assignmentId].attendance.push({
-            attendanceId: a.id,
-            date: a.attendanceDate,
-            status: a.status,
-            checkIn: a.checkInTime ? formatTimeIST(a.checkInTime) : "--:--",
-            checkOut: a.checkOutTime ? formatTimeIST(a.checkOutTime) : "--:--",
-            siteVerified: a.sitePhotoUploaded,
-            payroll: {
-              basePay: a.hrSnapshot?.payroll?.basePay || 0,
-              dailyPay: a.hrSnapshot?.payroll?.dailyPay || 0,
-              overtimePay: a.hrSnapshot?.payroll?.overtimePay || 0,
-              bata: a.hrSnapshot?.payroll?.bata || 0,
-              pfDeduction: a.hrSnapshot?.payroll?.pfDeduction || 0,
-              esiDeduction: a.hrSnapshot?.payroll?.esiDeduction || 0,
-              advanceDeduction: a.hrSnapshot?.payroll?.advanceDeduction || 0,
-              totalDeductions: a.hrSnapshot?.payroll?.totalDeductions || 0,
-              netPayable: a.hrSnapshot?.payroll?.netPayable || 0,
-            },
-          });
+  //         map[a.assignmentId].attendance.push({
+  //           attendanceId: a.id,
+  //           date: a.attendanceDate,
+  //           status: a.status,
+  //           checkIn: a.checkInTime ? formatTimeIST(a.checkInTime) : "--:--",
+  //           checkOut: a.checkOutTime ? formatTimeIST(a.checkOutTime) : "--:--",
+  //           siteVerified: a.sitePhotoUploaded,
+  //           payroll: {
+  //             basePay: a.hrSnapshot?.payroll?.basePay || 0,
+  //             dailyPay: a.hrSnapshot?.payroll?.dailyPay || 0,
+  //             overtimePay: a.hrSnapshot?.payroll?.overtimePay || 0,
+  //             bata: a.hrSnapshot?.payroll?.bata || 0,
+  //             pfDeduction: a.hrSnapshot?.payroll?.pfDeduction || 0,
+  //             esiDeduction: a.hrSnapshot?.payroll?.esiDeduction || 0,
+  //             advanceDeduction: a.hrSnapshot?.payroll?.advanceDeduction || 0,
+  //             totalDeductions: a.hrSnapshot?.payroll?.totalDeductions || 0,
+  //             netPayable: a.hrSnapshot?.payroll?.netPayable || 0,
+  //           },
+  //         });
+  //       });
+
+  //       await Promise.all(
+  //         Object.entries(assignmentFetches).map(async ([assignmentId, promise]) => {
+  //           try {
+  //             const assignment = await promise;
+  //             if (assignment?.shiftStartTime && assignment?.shiftEndTime) {
+  //               map[assignmentId].shift = `${formatTimeIST(assignment.shiftStartTime)} - ${formatTimeIST(assignment.shiftEndTime)}`;
+  //             }
+  //                   map[assignmentId].payroll = assignment?.payroll || { basePay: 0 };
+
+  //           } catch (e) {}
+  //         })
+  //       );
+  //       setAssignments(Object.values(map));
+  //     })
+  //     .catch(() => setAssignments(EMPTY_STATE))
+  //     .finally(() => setLoading(false));
+  // }, []);
+// useEffect(() => {
+//   let isMounted = true;
+//   setLoading(true);
+
+//   (async () => {
+//     try {
+//       /* ===============================
+//          1️⃣ FETCH ATTENDANCE HISTORY
+//       ================================ */
+//       const res = await getMyAttendanceHistory();
+//       const data = res?.data || [];
+
+//       const map = {};
+//       const assignmentFetches = {};
+
+//       /* ===============================
+//          2️⃣ BUILD FROM ATTENDANCE
+//       ================================ */
+//       data.forEach((a) => {
+//         const snapshot = a.jobSnapshot || {};
+
+//         if (!map[a.assignmentId]) {
+//           map[a.assignmentId] = {
+//             assignmentId: a.assignmentId,
+//             jobId: a.jobId,
+//             workerId: a.workerId,
+
+//             jobTitle: snapshot.jobTitle || "Archived Job",
+//             companyName: snapshot.companyName || "Company",
+//             managerName: snapshot.managerName || "Manager",
+//             location: snapshot.location || "Location Unavailable",
+
+//             role: a.hrSnapshot?.workerRole || "Worker",
+//             shift: "--:--",
+
+//             payroll: { basePay: 0 },
+//             attendance: [],
+//           };
+
+//           // fetch assignment even if attendance exists
+//           assignmentFetches[a.assignmentId] = getAssignmentByIdAndJob(
+//             a.assignmentId,
+//             a.jobId,
+//             a.workerId
+//           );
+//         }
+
+//         map[a.assignmentId].attendance.push({
+//           attendanceId: a.id,
+//           date: a.attendanceDate,
+//           status: a.status,
+//           checkIn: a.checkInTime ? formatTimeIST(a.checkInTime) : "--:--",
+//           checkOut: a.checkOutTime ? formatTimeIST(a.checkOutTime) : "--:--",
+//           siteVerified: a.sitePhotoUploaded,
+//           payroll: {
+//             basePay: a.hrSnapshot?.payroll?.basePay || 0,
+//             dailyPay: a.hrSnapshot?.payroll?.dailyPay || 0,
+//             overtimePay: a.hrSnapshot?.payroll?.overtimePay || 0,
+//             bata: a.hrSnapshot?.payroll?.bata || 0,
+//             pfDeduction: a.hrSnapshot?.payroll?.pfDeduction || 0,
+//             esiDeduction: a.hrSnapshot?.payroll?.esiDeduction || 0,
+//             advanceDeduction: a.hrSnapshot?.payroll?.advanceDeduction || 0,
+//             totalDeductions: a.hrSnapshot?.payroll?.totalDeductions || 0,
+//             netPayable: a.hrSnapshot?.payroll?.netPayable || 0,
+//           },
+//         });
+//       });
+
+//       /* ===============================
+//          3️⃣ FETCH & MERGE ASSIGNMENTS
+//       ================================ */
+//       const results = await Promise.allSettled(
+//         Object.values(assignmentFetches)
+//       );
+
+//       results.forEach((res) => {
+//         if (res.status !== "fulfilled") return;
+
+//         const assignment = res.value;
+//         const id = assignment?.id || assignment?.assignmentId;
+
+//         if (!map[id]) {
+//           // 👇 assignment WITHOUT attendance
+//           map[id] = {
+//             assignmentId: id,
+//             jobId: assignment.jobId,
+//             workerId: assignment.workerId,
+
+//             jobTitle: assignment.jobTitle,
+//             companyName: assignment.companyName,
+//             managerName: assignment.managerName,
+//             location: assignment.location || "Location Unavailable",
+
+//             role: assignment.workerRole || "Worker",
+//             shift:
+//               assignment.shiftStartTime && assignment.shiftEndTime
+//                 ? `${formatTimeIST(
+//                     assignment.shiftStartTime
+//                   )} - ${formatTimeIST(assignment.shiftEndTime)}`
+//                 : "--:--",
+
+//             payroll: assignment.payroll || { basePay: 0 },
+//             attendance: [], // 👈 NO attendance yet
+//           };
+//         } else {
+//           // 👇 enrich existing assignment
+//           if (assignment.shiftStartTime && assignment.shiftEndTime) {
+//             map[id].shift = `${formatTimeIST(
+//               assignment.shiftStartTime
+//             )} - ${formatTimeIST(assignment.shiftEndTime)}`;
+//           }
+//           map[id].payroll = assignment.payroll || { basePay: 0 };
+//         }
+//       });
+
+//       if (isMounted) {
+//         setAssignments(Object.values(map));
+//       }
+//     } catch (e) {
+//       if (isMounted) setAssignments(EMPTY_STATE);
+//     } finally {
+//       if (isMounted) setLoading(false);
+//     }
+//   })();
+
+//   return () => {
+//     isMounted = false;
+//   };
+// }, []);
+
+useEffect(() => {
+  let isMounted = true;
+  setLoading(true);
+
+  (async () => {
+    try {
+      /* ===============================
+         1️⃣ FETCH ALL ASSIGNMENTS (SOURCE OF TRUTH)
+      ================================ */
+      const assignmentsRes = await getMyAssignments();
+      const assignmentsList = assignmentsRes || [];
+
+      /* ===============================
+         2️⃣ INIT MAP FROM ASSIGNMENTS
+      ================================ */
+      const map = {};
+
+      assignmentsList.forEach((a) => {
+        map[a.id] = {
+          assignmentId: a.id,
+          jobId: a.jobId,
+          workerId: a.workerId,
+
+          jobTitle: a.jobTitle || "Job",
+          companyName: a.companyName || "Company",
+          managerName: a.managerName || "Manager",
+          location: a.location || "Location Unavailable",
+
+          role: a.workerRole || "Worker",
+          shift:
+            a.shiftStartTime && a.shiftEndTime
+              ? `${formatTimeIST(a.shiftStartTime)} - ${formatTimeIST(
+                  a.shiftEndTime
+                )}`
+              : "--:--",
+
+          payroll: a.payroll || { basePay: 0 },
+          attendance: [], // 👈 empty initially
+        };
+      });
+
+      /* ===============================
+         3️⃣ FETCH ATTENDANCE HISTORY
+      ================================ */
+      const attendanceRes = await getMyAttendanceHistory();
+      const attendanceList = attendanceRes?.data || [];
+
+      /* ===============================
+         4️⃣ MERGE ATTENDANCE INTO ASSIGNMENTS
+      ================================ */
+      attendanceList.forEach((a) => {
+        if (!map[a.assignmentId]) return;
+
+        map[a.assignmentId].attendance.push({
+          attendanceId: a.id,
+          date: a.attendanceDate,
+          status: a.status,
+          checkIn: a.checkInTime
+            ? formatTimeIST(a.checkInTime)
+            : "--:--",
+          checkOut: a.checkOutTime
+            ? formatTimeIST(a.checkOutTime)
+            : "--:--",
+          siteVerified: a.sitePhotoUploaded,
+          payroll: {
+            basePay: a.hrSnapshot?.payroll?.basePay || 0,
+            dailyPay: a.hrSnapshot?.payroll?.dailyPay || 0,
+            overtimePay: a.hrSnapshot?.payroll?.overtimePay || 0,
+            bata: a.hrSnapshot?.payroll?.bata || 0,
+            pfDeduction: a.hrSnapshot?.payroll?.pfDeduction || 0,
+            esiDeduction: a.hrSnapshot?.payroll?.esiDeduction || 0,
+            advanceDeduction:
+              a.hrSnapshot?.payroll?.advanceDeduction || 0,
+            totalDeductions:
+              a.hrSnapshot?.payroll?.totalDeductions || 0,
+            netPayable: a.hrSnapshot?.payroll?.netPayable || 0,
+          },
         });
+      });
 
-        await Promise.all(
-          Object.entries(assignmentFetches).map(async ([assignmentId, promise]) => {
-            try {
-              const assignment = await promise;
-              if (assignment?.shiftStartTime && assignment?.shiftEndTime) {
-                map[assignmentId].shift = `${formatTimeIST(assignment.shiftStartTime)} - ${formatTimeIST(assignment.shiftEndTime)}`;
-              }
-                    map[assignmentId].payroll = assignment?.payroll || { basePay: 0 };
-
-            } catch (e) {}
-          })
-        );
+      if (isMounted) {
         setAssignments(Object.values(map));
-      })
-      .catch(() => setAssignments(EMPTY_STATE))
-      .finally(() => setLoading(false));
-  }, []);
+      }
+    } catch (err) {
+      console.error("Failed to load assignments", err);
+      if (isMounted) setAssignments([]);
+    } finally {
+      if (isMounted) setLoading(false);
+    }
+  })();
 
+  return () => {
+    isMounted = false;
+  };
+}, []);
   const getPayroll = (assignment) => {
     const netTotal = assignment.attendance.reduce((sum, a) => sum + Number(a.payroll?.netPayable || 0), 0);
     return { netTotal };
