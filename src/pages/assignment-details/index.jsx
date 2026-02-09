@@ -49,80 +49,80 @@ const changeCalendarMonth = (offset) => {
   setCalendarYear(d.getFullYear());
 };
 
-  // useEffect(() => {
-  //   setLoading(true);
-  //   getMyAttendanceHistory()
-  //   .then(async (res) => {
-  //     const data = res.data || [];
-  //     if (!data.length) {
-  //       setAssignments(EMPTY_STATE);
-  //       setLoading(false);
-  //       return;
-  //     }
+  useEffect(() => {
+    setLoading(true);
+    getMyAttendanceHistory()
+    .then(async (res) => {
+      const data = res.data || [];
+      if (!data.length) {
+        setAssignments(EMPTY_STATE);
+        setLoading(false);
+        return;
+      }
       
-  //     const map = {};
-  //     const assignmentFetches = {};
+      const map = {};
+      const assignmentFetches = {};
         
-  //     data.forEach((a) => {
-  //       const snapshot = a.jobSnapshot || {};
-  //       if (!map[a.assignmentId]) {
-  //         map[a.assignmentId] = {
-  //           assignmentId: a.assignmentId,
-  //             jobId: a.jobId,
-  //             workerId: a.workerId,
-  //              BasePay : Number(a?.payroll?.basePay || 0),
-  //             jobTitle: snapshot.jobTitle || "Archived Job",
-  //             companyName: snapshot.companyName || "Company",
-  //             managerName: snapshot.managerName || "Manager",
-  //             location: snapshot.location || "Location Unavailable",
-  //             shift: "--:--",
-  //             role: a.hrSnapshot?.workerRole || "Worker",
-  //             dailyWage: a.hrSnapshot?.payroll?.dailyPay || 0,
-  //                           basePay: 0,
+      data.forEach((a) => {
+        const snapshot = a.jobSnapshot || {};
+        if (!map[a.assignmentId]) {
+          map[a.assignmentId] = {
+            assignmentId: a.assignmentId,
+              jobId: a.jobId,
+              workerId: a.workerId,
+               BasePay : Number(a?.payroll?.basePay || 0),
+              jobTitle: snapshot.jobTitle || "Archived Job",
+              companyName: snapshot.companyName || "Company",
+              managerName: snapshot.managerName || "Manager",
+              location: snapshot.location || "Location Unavailable",
+              shift: "--:--",
+              role: a.hrSnapshot?.workerRole || "Worker",
+              dailyWage: a.hrSnapshot?.payroll?.dailyPay || 0,
+                            basePay: 0,
 
-  //                           attendance: [],
-  //           };
-  //           assignmentFetches[a.assignmentId] = getAssignmentByIdAndJob(a.assignmentId, a.jobId, a.workerId);
-  //         }
+                            attendance: [],
+            };
+            assignmentFetches[a.assignmentId] = getAssignmentByIdAndJob(a.assignmentId, a.jobId, a.workerId);
+          }
 
-  //         map[a.assignmentId].attendance.push({
-  //           attendanceId: a.id,
-  //           date: a.attendanceDate,
-  //           status: a.status,
-  //           checkIn: a.checkInTime ? formatTimeIST(a.checkInTime) : "--:--",
-  //           checkOut: a.checkOutTime ? formatTimeIST(a.checkOutTime) : "--:--",
-  //           siteVerified: a.sitePhotoUploaded,
-  //           payroll: {
-  //             basePay: a.hrSnapshot?.payroll?.basePay || 0,
-  //             dailyPay: a.hrSnapshot?.payroll?.dailyPay || 0,
-  //             overtimePay: a.hrSnapshot?.payroll?.overtimePay || 0,
-  //             bata: a.hrSnapshot?.payroll?.bata || 0,
-  //             pfDeduction: a.hrSnapshot?.payroll?.pfDeduction || 0,
-  //             esiDeduction: a.hrSnapshot?.payroll?.esiDeduction || 0,
-  //             advanceDeduction: a.hrSnapshot?.payroll?.advanceDeduction || 0,
-  //             totalDeductions: a.hrSnapshot?.payroll?.totalDeductions || 0,
-  //             netPayable: a.hrSnapshot?.payroll?.netPayable || 0,
-  //           },
-  //         });
-  //       });
+          map[a.assignmentId].attendance.push({
+            attendanceId: a.id,
+            date: a.attendanceDate,
+            status: a.status,
+            checkIn: a.checkInTime ? formatTimeIST(a.checkInTime) : "--:--",
+            checkOut: a.checkOutTime ? formatTimeIST(a.checkOutTime) : "--:--",
+            siteVerified: a.sitePhotoUploaded,
+            payroll: {
+              basePay: a.hrSnapshot?.payroll?.basePay || 0,
+              dailyPay: a.hrSnapshot?.payroll?.dailyPay || 0,
+              overtimePay: a.hrSnapshot?.payroll?.overtimePay || 0,
+              bata: a.hrSnapshot?.payroll?.bata || 0,
+              pfDeduction: a.hrSnapshot?.payroll?.pfDeduction || 0,
+              esiDeduction: a.hrSnapshot?.payroll?.esiDeduction || 0,
+              advanceDeduction: a.hrSnapshot?.payroll?.advanceDeduction || 0,
+              totalDeductions: a.hrSnapshot?.payroll?.totalDeductions || 0,
+              netPayable: a.hrSnapshot?.payroll?.netPayable || 0,
+            },
+          });
+        });
 
-  //       await Promise.all(
-  //         Object.entries(assignmentFetches).map(async ([assignmentId, promise]) => {
-  //           try {
-  //             const assignment = await promise;
-  //             if (assignment?.shiftStartTime && assignment?.shiftEndTime) {
-  //               map[assignmentId].shift = `${formatTimeIST(assignment.shiftStartTime)} - ${formatTimeIST(assignment.shiftEndTime)}`;
-  //             }
-  //                   map[assignmentId].payroll = assignment?.payroll || { basePay: 0 };
+        await Promise.all(
+          Object.entries(assignmentFetches).map(async ([assignmentId, promise]) => {
+            try {
+              const assignment = await promise;
+              if (assignment?.shiftStartTime && assignment?.shiftEndTime) {
+                map[assignmentId].shift = `${formatTimeIST(assignment.shiftStartTime)} - ${formatTimeIST(assignment.shiftEndTime)}`;
+              }
+                    map[assignmentId].payroll = assignment?.payroll || { basePay: 0 };
 
-  //           } catch (e) {}
-  //         })
-  //       );
-  //       setAssignments(Object.values(map));
-  //     })
-  //     .catch(() => setAssignments(EMPTY_STATE))
-  //     .finally(() => setLoading(false));
-  // }, []);
+            } catch (e) {}
+          })
+        );
+        setAssignments(Object.values(map));
+      })
+      .catch(() => setAssignments(EMPTY_STATE))
+      .finally(() => setLoading(false));
+  }, []);
 // useEffect(() => {
 //   let isMounted = true;
 //   setLoading(true);
@@ -253,101 +253,6 @@ const changeCalendarMonth = (offset) => {
 //   };
 // }, []);
 
-useEffect(() => {
-  let isMounted = true;
-  setLoading(true);
-
-  (async () => {
-    try {
-      /* ===============================
-         1️⃣ FETCH ALL ASSIGNMENTS (SOURCE OF TRUTH)
-      ================================ */
-      const assignmentsRes = await getMyAssignments();
-      const assignmentsList = assignmentsRes || [];
-
-      /* ===============================
-         2️⃣ INIT MAP FROM ASSIGNMENTS
-      ================================ */
-      const map = {};
-
-      assignmentsList.forEach((a) => {
-        map[a.id] = {
-          assignmentId: a.id,
-          jobId: a.jobId,
-          workerId: a.workerId,
-
-          jobTitle: a.jobTitle || "Job",
-          companyName: a.companyName || "Company",
-          managerName: a.managerName || "Manager",
-          location: a.location || "Location Unavailable",
-
-          role: a.workerRole || "Worker",
-          shift:
-            a.shiftStartTime && a.shiftEndTime
-              ? `${formatTimeIST(a.shiftStartTime)} - ${formatTimeIST(
-                  a.shiftEndTime
-                )}`
-              : "--:--",
-
-          payroll: a.payroll || { basePay: 0 },
-          attendance: [], // 👈 empty initially
-        };
-      });
-
-      /* ===============================
-         3️⃣ FETCH ATTENDANCE HISTORY
-      ================================ */
-      const attendanceRes = await getMyAttendanceHistory();
-      const attendanceList = attendanceRes?.data || [];
-
-      /* ===============================
-         4️⃣ MERGE ATTENDANCE INTO ASSIGNMENTS
-      ================================ */
-      attendanceList.forEach((a) => {
-        if (!map[a.assignmentId]) return;
-
-        map[a.assignmentId].attendance.push({
-          attendanceId: a.id,
-          date: a.attendanceDate,
-          status: a.status,
-          checkIn: a.checkInTime
-            ? formatTimeIST(a.checkInTime)
-            : "--:--",
-          checkOut: a.checkOutTime
-            ? formatTimeIST(a.checkOutTime)
-            : "--:--",
-          siteVerified: a.sitePhotoUploaded,
-          payroll: {
-            basePay: a.hrSnapshot?.payroll?.basePay || 0,
-            dailyPay: a.hrSnapshot?.payroll?.dailyPay || 0,
-            overtimePay: a.hrSnapshot?.payroll?.overtimePay || 0,
-            bata: a.hrSnapshot?.payroll?.bata || 0,
-            pfDeduction: a.hrSnapshot?.payroll?.pfDeduction || 0,
-            esiDeduction: a.hrSnapshot?.payroll?.esiDeduction || 0,
-            advanceDeduction:
-              a.hrSnapshot?.payroll?.advanceDeduction || 0,
-            totalDeductions:
-              a.hrSnapshot?.payroll?.totalDeductions || 0,
-            netPayable: a.hrSnapshot?.payroll?.netPayable || 0,
-          },
-        });
-      });
-
-      if (isMounted) {
-        setAssignments(Object.values(map));
-      }
-    } catch (err) {
-      console.error("Failed to load assignments", err);
-      if (isMounted) setAssignments([]);
-    } finally {
-      if (isMounted) setLoading(false);
-    }
-  })();
-
-  return () => {
-    isMounted = false;
-  };
-}, []);
   const getPayroll = (assignment) => {
     const netTotal = assignment.attendance.reduce((sum, a) => sum + Number(a.payroll?.netPayable || 0), 0);
     return { netTotal };
