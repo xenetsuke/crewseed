@@ -43,8 +43,18 @@ const {
   queryKey: ["workerProfiles"],
   queryFn: async () => {
     const res = await getAllProfiles();
+
     return Array.isArray(res)
-      ? res.filter((p) => p.accountType === "APPLICANT")
+      ? res.filter(
+          (p) =>
+            p.completed === true &&          // ✅ profile completed
+            p.Workeravailability === true  &&  // ✅ available worker
+            
+                        p.accountType !== "EMPLOYER"    &&        // ✅ hide employers ONLY
+                                    p.accountType !== "ADMIN"            // ✅ hide employers ONLY
+
+
+        )
       : [];
   },
   staleTime: 1000 * 60 * 5,
@@ -71,15 +81,16 @@ const {
   /* =========================================================
       SEARCH & FILTER LOGIC (MEMOIZED)
   ========================================================= */
-  const filteredWorkers = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    if (!q) return allWorkers;
-    return allWorkers.filter(
-      (w) =>
-        w.fullName?.toLowerCase().includes(q) ||
-        w.primaryJobRole?.toLowerCase().includes(q)
-    );
-  }, [searchQuery, allWorkers]);
+ const filteredWorkers = useMemo(() => {
+  const q = searchQuery.toLowerCase().trim();
+  if (!q) return allWorkers;
+
+  return allWorkers.filter(
+    (w) =>
+      w.fullName?.toLowerCase().includes(q) ||
+      w.primaryJobRole?.toLowerCase().trim().includes(q)
+  );
+}, [searchQuery, allWorkers]);
 
   /* =========================================================
       SAVE / BOOKMARK WORKER LOGIC
