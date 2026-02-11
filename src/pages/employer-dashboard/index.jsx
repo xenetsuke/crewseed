@@ -43,8 +43,15 @@ const EmployerDashboard = () => {
         getJobsPostedBy(user.id)
       ]);
 
-      const allWorkers = (profileRes || []).filter(p => p.accountType === "APPLICANT");
-      
+const allWorkers = (profileRes || []).filter(
+  (p) =>
+    p.completed === true &&          // ✅ profile must be completed
+    p.accountType !== "EMPLOYER"    && // ❌ hide employers only
+        p.accountType !== "ADMIN"    && // ❌ hide employers only
+
+                p.Workeravailability === true    // ✅ available worker
+
+);      
       const workerStatusMap = {};
       jobsRes.forEach(job => {
         job.applicants?.forEach(app => {
