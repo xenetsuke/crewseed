@@ -371,7 +371,7 @@ const handleLogout = async () => {
               <div className="bg-white rounded-lg border p-4 md:p-6 mb-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                   <h2 className="text-lg md:text-xl font-semibold">Personal Information</h2>
-                  <div className="flex gap-2 w-full sm:w-auto">
+                  {/* <div className="flex gap-2 w-full sm:w-auto">
                     {isEditingUser && (
                       <Button 
                         variant="ghost" 
@@ -390,7 +390,7 @@ const handleLogout = async () => {
                     >
                       {isEditingUser ? "Save Changes" : "Edit Details"}
                     </Button>
-                  </div>
+                  </div> */}
                 </div>
                 <div className="w-full md:max-w-md">
                   <Input
