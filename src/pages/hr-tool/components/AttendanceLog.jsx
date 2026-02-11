@@ -52,6 +52,7 @@ const AttendanceLog = ({
   const logRefs = useRef({});
   const containerRef = useRef(null);
   const actionLockRef = useRef(false);
+const [previewImage, setPreviewImage] = useState(null);
 
   useEffect(() => {
     setPendingChanges({});
@@ -219,15 +220,31 @@ const AttendanceLog = ({
               )}
 
               <div className="flex gap-5">
-                <div className="group w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative shadow-inner ring-1 ring-slate-900/5">
-                  {log.sitePhoto ? (
-                    <img src={log.sitePhoto} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Verification" />
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-slate-300">
-                      <Camera className="w-6 h-6 opacity-50" />
-                    </div>
-                  )}
-                </div>
+             <div className="flex flex-col items-center">
+  <div className="group w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 relative shadow-inner ring-1 ring-slate-900/5">
+    {log.sitePhoto ? (
+      <img
+        src={log.sitePhoto}
+        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+        alt="Verification"
+      />
+    ) : (
+      <div className="h-full flex items-center justify-center text-slate-300">
+        <Camera className="w-6 h-6 opacity-50" />
+      </div>
+    )}
+  </div>
+
+  {log.sitePhoto && (
+    <button
+      onClick={() => setPreviewImage(log.sitePhoto)}
+      className="mt-2 text-[9px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-wider"
+    >
+      View Full Pic
+    </button>
+  )}
+</div>
+
 
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
@@ -498,6 +515,28 @@ const AttendanceLog = ({
           );
         })}
       </div>
+      {previewImage && (
+  <div
+    className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+    onClick={() => setPreviewImage(null)}
+  >
+    <div className="relative max-w-4xl w-full">
+      <img
+        src={previewImage}
+        alt="Full Preview"
+        className="w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+      />
+
+      <button
+        onClick={() => setPreviewImage(null)}
+        className="absolute -top-4 -right-4 bg-white text-black w-8 h-8 rounded-full flex items-center justify-center font-black shadow-lg"
+      >
+        ✕
+      </button>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
