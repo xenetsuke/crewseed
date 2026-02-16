@@ -5,12 +5,19 @@ import { setAuthReady } from "../features/AuthSlice";
 import { store } from "Store";
 
 export const bootstrapAuth = async (dispatch) => {
+  //   const tokenInStore = store.getState().jwt?.token;
+
+  //    if (tokenInStore) {
+  //   dispatch(setAuthReady());
+  //   return;
+  // }
     const tokenInStore = store.getState().jwt?.token;
 
-     if (tokenInStore) {
-    dispatch(setAuthReady());
-    return;
-  }
+if (tokenInStore) {
+  dispatch(setAuthReady());
+  return;
+}
+
 
   try {
     // 🚫 user explicitly logged out
