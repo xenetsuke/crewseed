@@ -131,17 +131,17 @@ axiosInstance.interceptors.request.use(
     // }
 const authReady = store.getState().auth?.ready;
 
-if (!authReady) {
-  return new Promise((resolve) => {
-    const unsubscribe = store.subscribe(() => {
-      const readyNow = store.getState().auth?.ready;
-      if (readyNow) {
-        unsubscribe();
-        resolve(config);
-      }
-    });
-  });
-}
+// if (!authReady) {
+//   return new Promise((resolve) => {
+//     const unsubscribe = store.subscribe(() => {
+//       const readyNow = store.getState().auth?.ready;
+//       if (readyNow) {
+//         unsubscribe();
+//         resolve(config);
+//       }
+//     });
+//   });
+// }
 
 
     const { token } = store.getState().jwt || {};
